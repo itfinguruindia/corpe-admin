@@ -1,4 +1,5 @@
 import React from "react";
+import clsx from "clsx";
 
 interface TabCardProps {
   label: string;
@@ -16,20 +17,13 @@ export default function TabCard({
   return (
     <div
       onClick={onClick}
-      style={{
-        background: active
-          ? "linear-gradient(114.98deg, rgba(255, 255, 255, 0) 43.6%, #F36541 133.03%)"
-          : "white",
-      }}
-      className={`rounded-xl px-6 py-4 text-center text-[20px] font-normal shadow-sm cursor-pointer transition-all duration-300
-        ${
-          active
-            ? "text-secondary ring-1 ring-orange-200" // active state
-            : "text-secondary hover:shadow-md hover:scale-[1.02]" // inactive state
-        }
-        hover:bg-gradient-to-br from-white to-orange-50
-        ${className}
-      `}
+      className={clsx(
+        "rounded-xl px-6 py-4 text-center text-lg font-medium shadow-sm cursor-pointer transition-all duration-300 border",
+        active
+          ? "bg-white text-secondary border-primary/30 ring-4 ring-primary/5 shadow-md scale-[1.02]"
+          : "bg-white text-gray-500 border-gray-100 hover:border-gray-200 hover:shadow-md hover:text-secondary",
+        className,
+      )}
     >
       {label}
     </div>

@@ -83,45 +83,58 @@ export default function NewsLetter() {
 
   return (
     <div className="w-full min-w-0">
-      <div className="mb-6 flex min-h-16 flex-wrap items-center justify-between gap-4 bg-[#F46A45] px-6 py-3 text-white">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Newsletter Subscribers</h1>
-          <p className="text-sm text-white/90">
-            Total: <span className="font-semibold">{data.length}</span>
-          </p>
-          <button
-            onClick={handleRefresh}
-            className="ml-2 p-2 rounded hover:bg-white/20"
-            title="Refresh"
-            type="button"
-          >
-            <RefreshCw size={20} />
-          </button>
-          <button
-            onClick={handleExport}
-            className="ml-2 p-2 rounded hover:bg-white/20"
-            title="Export to Excel"
-            type="button"
-          >
-            <FileDown size={20} />
-          </button>
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="email"
-            placeholder="Enter email..."
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="h-9 rounded-lg border border-white/50 bg-white/90 px-3 text-black focus:outline-none focus:ring-2 focus:ring-white/70"
-          />
-          <button
-            onClick={handleAdd}
-            className="p-2 rounded bg-white/20 hover:bg-white/30 font-semibold"
-            title="Add/Subscribe"
-            type="button"
-          >
-            <Plus size={20} />
-          </button>
+      {/* HEADER & SEARCH TOOLBAR */}
+      <div className="flex flex-col gap-6 p-6 pb-0 mb-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Newsletter Subscribers</h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Total: <span className="font-semibold text-gray-900">{data.length}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <input
+                type="email"
+                placeholder="Enter email..."
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full sm:w-64 bg-transparent px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:outline-none rounded-xl border border-gray-200 shadow-sm h-[38px]"
+              />
+              <button
+                onClick={handleAdd}
+                className="flex items-center justify-center p-2 text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors border shadow-sm border-transparent h-[38px] px-3 font-medium text-sm"
+                title="Add/Subscribe"
+                type="button"
+              >
+                <Plus size={18} className="mr-1" /> Add
+              </button>
+            </div>
+
+            <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                onClick={handleRefresh}
+                className="flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
+                title="Refresh"
+                type="button"
+              >
+                <RefreshCw size={18} />
+              </button>
+              <button
+                onClick={handleExport}
+                className="flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
+                title="Export to Excel"
+                type="button"
+              >
+                <FileDown size={18} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -145,7 +158,7 @@ export default function NewsLetter() {
       {!loading && data.length > 0 && (
         <div className="w-full max-w-full min-w-0 overflow-hidden">
           <div className="w-full overflow-x-auto">
-            <table className="min-w-max w-full">
+            <table id="subscribers-table" className="min-w-max w-full">
               <thead>
                 <tr className="border-b border-black">
                   <th className="whitespace-nowrap px-6 py-3 text-left text-base font-bold text-secondary">

@@ -97,7 +97,10 @@ const TemplatesPage = () => {
       </div>
 
       {/* Grid of Templates */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div
+        id="templates-grid"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+      >
         {filteredTemplates.map((template) => (
           <div
             key={template.id}
@@ -116,7 +119,7 @@ const TemplatesPage = () => {
             <div className="p-4 space-y-3">
               {/* File Icon and Name */}
               <div className="flex items-start gap-2">
-                <FileText className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <FileText className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                 <h3 className="font-semibold text-gray-900 line-clamp-2 flex-1">
                   {template.fileName}
                 </h3>

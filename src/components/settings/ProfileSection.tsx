@@ -23,6 +23,7 @@ interface ProfileSectionProps {
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleProfileSave: () => void;
   isLoading?: boolean;
+  id?: string;
 }
 
 export default function ProfileSection({
@@ -34,9 +35,10 @@ export default function ProfileSection({
   handleImageUpload,
   handleProfileSave,
   isLoading = false,
+  id,
 }: ProfileSectionProps) {
   return (
-    <div className="rounded-xl bg-white shadow-sm p-6">
+    <div id={id} className="rounded-xl bg-white shadow-sm p-6">
       <div className="flex items-center gap-6 mb-6">
         {/* Profile Image */}
         <div className="relative">

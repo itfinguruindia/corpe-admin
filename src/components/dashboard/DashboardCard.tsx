@@ -3,25 +3,28 @@ import clsx from "clsx";
 import { Zap } from "lucide-react";
 
 interface DashboardCardProps {
+  id?: string;
   children: React.ReactNode;
   className?: string;
   title?: string;
 }
 
 export function DashboardCard({
+  id,
   children,
   className,
   title,
 }: DashboardCardProps) {
   return (
     <div
+      id={id}
       className={clsx(
-        "rounded-xl bg-white p-5 shadow-sm transition-shadow hover:shadow-md",
+        "rounded-xl bg-white border border-gray-200 p-6 shadow-sm transition-all hover:shadow-md",
         className,
       )}
     >
       {title && (
-        <h3 className="mb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+        <h3 className="mb-5 text-sm font-semibold text-secondary uppercase tracking-wider">
           {title}
         </h3>
       )}
@@ -40,35 +43,48 @@ interface StatCardProps {
 export function StatCard({ label, value, subValue, className }: StatCardProps) {
   return (
     <DashboardCard
-      className={clsx("flex flex-col h-full min-h-[140px]", className)}
+      className={clsx(
+        "flex flex-col h-full min-h-[140px] justify-between",
+        className,
+      )}
     >
-      {/* Value on top */}
-      <div className="flex items-end gap-8">
-        <span className="text-6xl font-bold text-[#F36541]">{value}</span>
+      <div>
+        <span className="text-sm font-semibold text-secondary block mb-2 tracking-wide">
+          {label}
+        </span>
+      </div>
+
+      <div className="flex items-end gap-3 mt-auto">
+        <span className="text-4xl md:text-5xl font-extrabold text-primary tracking-tight">
+          {value}
+        </span>
         {subValue && (
-          <span className="mb-1 text-sm font-medium text-gray-400">
+          <span className="mb-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100 flex items-center">
             {subValue}
           </span>
         )}
       </div>
-
-      {/* Label below */}
-      <span className="mt-2 text-lg font-bold text-secondary">{label}</span>
     </DashboardCard>
   );
 }
 
 interface ContentCardProps {
+  id?: string;
   title?: string;
   children: React.ReactNode;
   className?: string;
 }
 
-export function ContentCard({ title, children, className }: ContentCardProps) {
+export function ContentCard({
+  id,
+  title,
+  children,
+  className,
+}: ContentCardProps) {
   return (
-    <DashboardCard className={clsx("h-full min-h-[140px]", className)}>
+    <DashboardCard id={id} className={clsx("h-full min-h-[140px]", className)}>
       {title && (
-        <h3 className="mb-2 text-lg font-bold text-secondary">{title}</h3>
+        <h3 className="mb-3 text-sm font-semibold text-secondary">{title}</h3>
       )}
       {children}
     </DashboardCard>
@@ -76,36 +92,35 @@ export function ContentCard({ title, children, className }: ContentCardProps) {
 }
 
 interface tableCardProps {
+  id?: string;
   title?: string;
   children: React.ReactNode;
   className?: string;
 }
-export function TableCard({ title, children, className }: tableCardProps) {
+export function TableCard({ id, title, children, className }: tableCardProps) {
   return (
-    <DashboardCard
-      className={clsx(
-        "relative h-full rounded-xl bg-white p-4 shadow-sm ",
-        className,
-      )}
-    >
+    <DashboardCard id={id} className={clsx("relative h-full", className)}>
       {title && (
-        <h3 className="mb-4 text-[20px] font-bold text-secondary">{title}</h3>
+        <h3 className="mb-4 text-sm font-bold text-secondary flex items-center gap-2">
+          {title}
+          <Zap className="h-5 w-5 text-gray-400" />
+        </h3>
       )}
-      <Zap className="absolute right-3 top-1 h-7 w-7 text-[#FF6A3D]" />
       {children}
     </DashboardCard>
   );
 }
 interface ChartCardProps {
+  id?: string;
   title?: string;
   children: React.ReactNode;
   className?: string;
 }
-export function ChartCard({ title, children, className }: ChartCardProps) {
+export function ChartCard({ id, title, children, className }: ChartCardProps) {
   return (
-    <DashboardCard className={clsx("h-full min-h-[300px] p-6", className)}>
+    <DashboardCard id={id} className={clsx("h-full min-h-[300px]", className)}>
       {title && (
-        <h3 className="mb-4 text-xl font-bold text-secondary">{title}</h3>
+        <h3 className="mb-4 text-sm font-bold text-secondary">{title}</h3>
       )}
       {children}
     </DashboardCard>

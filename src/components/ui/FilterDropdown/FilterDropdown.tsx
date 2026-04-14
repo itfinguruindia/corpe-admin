@@ -23,13 +23,14 @@ import {
   AssignerFilters,
 } from "./types";
 import { defaultStatus, defaultEntityType, defaultDateRange } from "./defaults";
-import { toQueryValue, fromQueryValue, countActive, toggle } from "./helpers";
+import { toQueryValue, fromQueryValue, countActive, toggle, filtersToSearchParams } from "./helpers";
 
 export type FilterDropdownProps = {
   onApply: (filters: Filters) => void;
   onClear?: () => void;
   search?: string;
   onSearchChange?: (value: string) => void;
+  filters?: Filters;
 };
 
 export default function FilterDropdown({
@@ -37,6 +38,7 @@ export default function FilterDropdown({
   onClear,
   search = "",
   onSearchChange,
+  filters: externalFilters,
 }: FilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [assigneeOptions, setAssigneeOptions] = useState<SearchSelectOption[]>(
@@ -81,6 +83,16 @@ export default function FilterDropdown({
   });
 
   const [searchInput, setSearchInput] = useState(search);
+
+  // Sync internal state when external filters change (e.g., from chips)
+  useEffect(() => {
+    if (!externalFilters) return;
+    setStatus(externalFilters.status);
+    setEntityType(externalFilters.entityType);
+    setDateRange(externalFilters.dateRange);
+    setAssignee(externalFilters.assignee);
+    setAssigner(externalFilters.assigner);
+  }, [externalFilters]);
 
   // Fetch assignee/assigner list when dropdown opens
   useEffect(() => {
@@ -162,8 +174,18 @@ export default function FilterDropdown({
     if (e) params.set("entity", e);
     if (d) params.set("date", d);
     if (searchInput) params.set("search", searchInput);
+    
+    const queryParams = filtersToSearchParams({
+      status,
+      entityType,
+      dateRange,
+      assignee,
+      assigner,
+      search: searchInput,
+    });
+
     // Use history.replaceState to sync URL without triggering Next.js RSC navigation
-    window.history.replaceState(null, "", `?${params.toString()}`);
+    window.history.replaceState(null, "", `?${queryParams.toString()}`);
     onApply({
       status,
       entityType,
@@ -217,16 +239,19 @@ export default function FilterDropdown({
       {/* Trigger */}
       <button
         onClick={() => setIsOpen((v) => !v)}
-        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all
+        className={`flex items-center gap-2.5 px-4 py-2 rounded-xl font-bold text-sm transition-all shadow-sm active:scale-95
         ${
           isOpen
-            ? "bg-primary-500 text-white border-primary-500"
-            : "bg-white text-primary border-slate-200 hover:border-orange-300"
+            ? "bg-primary-500 text-white border-primary-500 shadow-primary-200"
+            : "bg-gray-50 text-gray-700 border border-gray-200 hover:bg-white hover:border-primary-400 hover:text-primary-600"
         }`}
       >
-        <Filter size={20} />
+        <Filter size={18} className={isOpen ? "text-white" : "text-gray-500"} />
+        <span>Filters</span>
         {totalActive > 0 && (
-          <span className="w-5 h-5 text-xs rounded-full bg-orange-500 text-white flex items-center justify-center">
+          <span className={`w-5 h-5 text-[10px] rounded-full flex items-center justify-center font-bold ${
+            isOpen ? "bg-white text-primary-500" : "bg-primary-500 text-white"
+          }`}>
             {totalActive}
           </span>
         )}

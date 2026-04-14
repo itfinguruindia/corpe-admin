@@ -371,6 +371,7 @@ export default function SettingPage() {
         {/* Left Column */}
         <div className="space-y-6">
           <ProfileSection
+            id="profile-section"
             profileData={profileData}
             setProfileData={setProfileData}
             isEditingProfile={isEditingProfile}
@@ -382,6 +383,7 @@ export default function SettingPage() {
           />
 
           <ChangePasswordSection
+            id="password-section"
             passwordData={passwordData}
             setPasswordData={setPasswordData}
             passwordErrors={passwordErrors}
@@ -390,14 +392,14 @@ export default function SettingPage() {
             isLoading={isChangingPassword}
           />
 
-          <AccessRolesSection />
+          <AccessRolesSection id="roles-section" />
         </div>
 
         {/* Right Column */}
         <div className="space-y-6">
-          <NotificationsSection />
+          <NotificationsSection id="notifications-section" />
 
-          <DataManagementSection />
+          <DataManagementSection id="data-management-section" />
         </div>
       </div>
 

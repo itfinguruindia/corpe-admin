@@ -1,6 +1,12 @@
-export default function DataManagementSection() {
+interface DataManagementSectionProps {
+  id?: string;
+}
+
+export default function DataManagementSection({
+  id,
+}: DataManagementSectionProps) {
   return (
-    <div className="rounded-xl bg-white shadow-sm p-6">
+    <div id={id} className="rounded-xl bg-white shadow-sm p-6">
       <h3 className="text-lg font-semibold text-secondary mb-4">
         Data Management
       </h3>

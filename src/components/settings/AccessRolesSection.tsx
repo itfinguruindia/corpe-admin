@@ -5,7 +5,11 @@ import { useState } from "react";
 import { Shield, Users, UserPlus, History } from "lucide-react";
 import InviteUserModal from "./InviteUserModal";
 
-export default function AccessRolesSection() {
+interface AccessRolesSectionProps {
+  id?: string;
+}
+
+export default function AccessRolesSection({ id }: AccessRolesSectionProps) {
   const router = useRouter();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
@@ -49,7 +53,7 @@ export default function AccessRolesSection() {
   ];
 
   return (
-    <div className="rounded-xl bg-white shadow-sm p-6">
+    <div id={id} className="rounded-xl bg-white shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-secondary">Access & Roles</h3>
         <div className="h-10 w-10 rounded-full bg-[#E91E63] flex items-center justify-center">

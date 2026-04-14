@@ -91,7 +91,7 @@ export default function RaisedTicketsPage() {
       </div>
 
       {/* Tickets Table */}
-      <div className="rounded-xl bg-white shadow-sm overflow-visible">
+      <div id="tickets-table" className="rounded-xl bg-white shadow-sm overflow-visible">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200">

@@ -8,7 +8,11 @@ import {
 } from "@/services/preference.service";
 import { AdminPreferences } from "@/types/admin";
 
-export default function NotificationsSection() {
+interface NotificationsSectionProps {
+  id?: string;
+}
+
+export default function NotificationsSection({ id }: NotificationsSectionProps) {
   const swal = useSwal();
   const [preferences, setPreferences] = useState<AdminPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,7 +99,7 @@ export default function NotificationsSection() {
 
   if (isLoading) {
     return (
-      <div className="rounded-xl bg-white shadow-sm p-6 flex flex-col justify-center items-center h-full">
+      <div id={id} className="rounded-xl bg-white shadow-sm p-6 flex flex-col justify-center items-center h-full">
         <p className="text-gray-500">Loading preferences...</p>
       </div>
     );
@@ -110,7 +114,7 @@ export default function NotificationsSection() {
   }
 
   return (
-    <div className="rounded-xl bg-white shadow-sm p-6">
+    <div id={id} className="rounded-xl bg-white shadow-sm p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-secondary">
           Notification Preference

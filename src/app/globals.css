@@ -3,6 +3,10 @@
 /* -----------------------------
    Base Design Tokens
 ------------------------------*/
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -92,4 +96,145 @@ body {
 
 button:hover {
   cursor: pointer;
+}
+
+/* =============================
+   Sidebar Collapse System
+   ============================= */
+
+/* Sidebar shell transition */
+.sidebar {
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---- Grid rows ---- */
+.sidebar-row {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  transition: grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar-row[data-collapsed="true"] {
+  grid-template-columns: 20px 0fr;
+}
+
+.sidebar-row-sub {
+  display: grid;
+  grid-template-columns: 17px 1fr;
+  align-items: center;
+  transition: grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar-row-sub[data-collapsed="true"] {
+  grid-template-columns: 17px 0fr;
+}
+
+.sidebar-label {
+  overflow: hidden;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* ---- Avatar transition ---- */
+.sidebar-avatar {
+  transition: width height font-size 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---- Tooltip (fixed, React-positioned) ---- */
+.sidebar-tooltip {
+  position: fixed;
+  padding: 5px 12px;
+  background: #1e3a6e;
+  color: #e0ecff;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+.sidebar-tooltip::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: #1e3a6e;
+}
+.sidebar-tooltip[data-visible="true"] {
+  opacity: 1;
+}
+
+/* ---- Flyout (fixed, React-positioned) ---- */
+.sidebar-flyout {
+  position: fixed;
+  min-width: 180px;
+  background: #1e3a6e;
+  border-radius: 8px;
+  padding: 6px 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-6px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    visibility 0ms 180ms;
+}
+.sidebar-flyout[data-visible="true"] {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+.sidebar-flyout-title {
+  padding: 6px 16px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #90b4e0;
+}
+
+/* ---- Content margin transition ---- */
+.sidebar-content {
+  margin-left: var(--sidebar-width, 260px);
+  transition: margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Mobile: sidebar is an overlay, content takes full width */
+@media (max-width: 767px) {
+  .sidebar-content {
+    margin-left: 0 !important;
+  }
+
+  /* On mobile, don't collapse the grid rows — always show labels */
+  .sidebar-row[data-collapsed="true"] {
+    grid-template-columns: 20px 1fr;
+  }
+  .sidebar-row-sub[data-collapsed="true"] {
+    grid-template-columns: 17px 1fr;
+  }
+
+  /* No tooltips or flyouts on mobile */
+  .sidebar-tooltip,
+  .sidebar-flyout {
+    display: none !important;
+  }
+}
+
+/* ---- Backdrop transition ---- */
+.sidebar-backdrop {
+  transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0ms linear 0ms;
+}
+.sidebar-backdrop.invisible {
+  transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0ms linear 300ms;
 }

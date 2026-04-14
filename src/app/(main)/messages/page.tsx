@@ -26,7 +26,7 @@ export default function ClientMessagesPage() {
       </div>
 
       {/* Messages Table */}
-      <div className="rounded-xl bg-white shadow-sm">
+      <div id="messages-table" className="rounded-xl bg-white shadow-sm">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-200">

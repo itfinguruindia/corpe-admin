@@ -30,6 +30,7 @@ interface ChangePasswordSectionProps {
   >;
   handlePasswordChange: () => void;
   isLoading?: boolean;
+  id?: string;
 }
 
 export default function ChangePasswordSection({
@@ -39,13 +40,14 @@ export default function ChangePasswordSection({
   setPasswordErrors,
   handlePasswordChange,
   isLoading = false,
+  id,
 }: ChangePasswordSectionProps) {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
-    <div className="rounded-xl bg-white shadow-sm p-6">
+    <div id={id} className="rounded-xl bg-white shadow-sm p-6">
       <h3 className="text-lg font-semibold text-[#FF6A3D] mb-2">
         Change Password
       </h3>
