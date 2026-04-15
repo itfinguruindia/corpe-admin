@@ -2,8 +2,12 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { PricingPayment } from "@/types/pricingPayment";
-import { fetchPricingPayment } from "@/lib/data/mockPricingPaymentData";
+import {
+  pricingPaymentService,
+  PricingAndPaymentResponse,
+  PaymentStep as BackendPaymentStep
+} from "@/services/pricingPayment.service";
+import { PricingPayment, PaymentStep as FrontendPaymentStep, StepStatus } from "@/types/pricingPayment";
 
 import { InfoField, Chip, Switch } from "@/components/ui";
 import { Lock, MoreVertical } from "lucide-react";
@@ -19,11 +23,13 @@ export default function PricingAndPaymentPage() {
 
   useEffect(() => {
     const loadPricingData = async () => {
+      if (!appNo) return;
       try {
         setIsLoading(true);
-        // TODO: Replace with actual API call when available
-        const data = await fetchPricingPayment("GJC000001" as string);
-        setPricingData(data);
+        const data = await pricingPaymentService.getPricingAndPayment(appNo as string);
+        if (data) {
+          setPricingData(mapBackendToFrontend(data));
+        }
       } catch (error) {
         console.error("Error fetching pricing data:", error);
       } finally {
@@ -31,14 +37,58 @@ export default function PricingAndPaymentPage() {
       }
     };
 
-    // if (appNo) {
     loadPricingData();
-    // }
   }, [appNo]);
+
+  const mapBackendToFrontend = (data: PricingAndPaymentResponse): PricingPayment => {
+    const { summary, steps } = data;
+
+    const mapStatus = (status: string): StepStatus => {
+      switch (status) {
+        case "paid": return "Paid";
+        case "pending": return "Pending";
+        case "failed": return "Overdue";
+        case "due": return "Pending";
+        default: return "Pending";
+      }
+    };
+
+    const paymentSteps: FrontendPaymentStep[] = steps.map((s: BackendPaymentStep) => ({
+      step: s.stepNumber,
+      installmentName: s.installmentName,
+      amount: s.amount,
+      triggerGate: s.triggerGate,
+      effects: s.effects,
+      status: mapStatus(s.status),
+      action: s.status === "paid" ? "Payment Received" : "Send Payment Link",
+      invoice: s.invoiceAvailable ? "Sent" : "Not Sent",
+      paymentAlert: s.status === "paid" ? "Paid Confirmation" : (s.status === "failed" ? "Payment Failed" : "Awaiting"),
+      paymentModeCapture: s.status === "paid" ? "Online" : "-", // Backend doesn't return mode yet in this API
+    }));
+
+    return {
+      applicationNo: summary.applicationNo,
+      companyName: summary.companyName || "N/A",
+      entityType: summary.entityType || "N/A",
+      plan: summary.plan,
+      packageType: summary.packageType,
+      totalPayable: summary.totalPayable,
+      paid: summary.amountPaid,
+      remainingBalance: summary.remainingBalance,
+      status: summary.status,
+      baseServiceFee: summary.baseServiceFee,
+      gst: summary.gstAmount,
+      finalPaidAmount: summary.finalPayableWithoutGST, // Frontend uses this for "Final Payable Amount" calculation
+      isLocked: false, // Default to unlocked if not in API
+      discount: summary.discountAmount,
+      paymentSteps,
+    };
+  };
 
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "Complete":
+      case "Completed":
         return "green";
       case "Active":
         return "blue";
@@ -62,7 +112,7 @@ export default function PricingAndPaymentPage() {
   if (!pricingData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Pricing data not found</div>
+        <div className="text-xl text-gray-600">Pricing data not found for {appNo}</div>
       </div>
     );
   }

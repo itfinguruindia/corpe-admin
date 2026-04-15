@@ -1,4 +1,4 @@
-export type PlanType = "Basic" | "Advance";
+export type PlanType = "Normal" | "Advance";
 export type PackageType = "Full Payment" | "Installment";
 export type PaymentStatus = "Complete" | "Active" | "Awaiting" | "Blocked";
 export type StepStatus = "Paid" | "Pending" | "Overdue" | "Processing";

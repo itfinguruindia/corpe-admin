@@ -64,7 +64,7 @@ const mockPricingPaymentData: Record<string, PricingPayment> = {
     applicationNo: "RAJC00002",
     companyName: "Rajasthan Manufacturing Ltd",
     entityType: "Private Limited Company – Individual Shareholding",
-    plan: "Basic",
+    plan: "Normal",
     packageType: "Full Payment",
 
     baseServiceFee: 101694.92,
