@@ -103,7 +103,7 @@ export default function Sidebar() {
 
       <aside
         className={clsx(
-          "sidebar min-h-screen bg-[#2d4a8a] flex flex-col fixed left-0 top-0 z-50",
+          "sidebar h-screen bg-[#2d4a8a] flex flex-col fixed left-0 top-0 z-50",
           /* Mobile: full-width drawer, slides in/out */
           "max-md:w-[260px] max-md:transition-transform max-md:duration-300",
           isMobileOpen
@@ -180,7 +180,7 @@ export default function Sidebar() {
 
         <Divider />
 
-        <nav className="flex flex-col flex-1 py-2 overflow-y-auto overflow-x-hidden">
+        <nav className="flex flex-col flex-1 py-2 overflow-y-auto overflow-x-hidden scrollbar-hide">
           <SidebarLink
             label="Dashboard"
             href="/dashboard"

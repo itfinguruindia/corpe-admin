@@ -241,7 +241,7 @@ export default function LeadsPage() {
       id: "action",
       label: "Action",
       render: (lead) => (
-        <div className="flex gap-2 justify-center">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => handleDelete(lead._id)}
             className="cursor-pointer p-2 text-red-600 transition-colors hover:text-red-800"

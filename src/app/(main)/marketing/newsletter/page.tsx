@@ -5,12 +5,15 @@ import * as XLSX from "xlsx";
 import { useEffect, useState } from "react";
 import { newsletterApi, Newsletter } from "@/lib/api/newsletter";
 import useSwal from "@/utils/useSwal";
+import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 
 export default function NewsLetter() {
   const [data, setData] = useState<Newsletter[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const swal = useSwal();
 
   const fetchData = async () => {
@@ -81,6 +84,51 @@ export default function NewsLetter() {
     }
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const columns: ColumnDef<Newsletter>[] = [
+    {
+      id: "email",
+      label: "Email",
+      render: (item) => (
+        <span className="font-semibold text-gray-900 whitespace-nowrap">
+          {item.email}
+        </span>
+      ),
+    },
+    {
+      id: "subscribeCount",
+      label: "Subscribe Count",
+      render: (item) => (
+        <span className="text-gray-700">{item.subscribeCount}</span>
+      ),
+    },
+    {
+      id: "action",
+      label: "Action",
+      render: (item) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleDelete(item._id)}
+            className="cursor-pointer p-2 text-red-600 transition-colors hover:text-red-800"
+            title="Delete subscriber"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  // Client-side pagination logic
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+  const paginatedData = data.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
   return (
     <div className="w-full min-w-0">
       {/* HEADER & SEARCH TOOLBAR */}
@@ -138,68 +186,19 @@ export default function NewsLetter() {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-      {loading && (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin">
-            <div className="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-          </div>
-        </div>
-      )}
-      {!loading && data.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No subscribers found.</p>
-        </div>
-      )}
-      {!loading && data.length > 0 && (
-        <div className="w-full max-w-full min-w-0 overflow-hidden">
-          <div className="w-full overflow-x-auto">
-            <table id="subscribers-table" className="min-w-max w-full">
-              <thead>
-                <tr className="border-b border-black">
-                  <th className="whitespace-nowrap px-6 py-3 text-left text-base font-bold text-secondary">
-                    Email
-                  </th>
-                  <th className="whitespace-nowrap px-6 py-3 text-left text-base font-bold text-secondary">
-                    Subscribe Count
-                  </th>
-                  <th className="whitespace-nowrap px-6 py-3 text-center text-base font-bold text-secondary">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((item) => (
-                  <tr
-                    key={item._id}
-                    className="border-b border-black text-gray-900 transition-colors hover:bg-[#F6FAFF]"
-                  >
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-gray-900">
-                      {item.email}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
-                      {item.subscribeCount}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => handleDelete(item._id)}
-                        className="cursor-pointer p-2 text-red-600 transition-colors hover:text-red-800"
-                        title="Delete subscriber"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <DataTable<Newsletter>
+        data={paginatedData}
+        columns={columns}
+        keyField="_id"
+        loading={loading}
+        error={error}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={data.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={handlePageChange}
+        emptyMessage="No subscribers found."
+      />
     </div>
   );
 }
