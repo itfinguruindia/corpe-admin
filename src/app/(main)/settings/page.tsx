@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import useSwal from "@/utils/useSwal";
 import axiosInstance from "@/lib/axios";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ import {
   DataManagementSection,
 } from "@/components/settings";
 import { requestEmailChange } from "@/utils/auth";
+import { parsePhoneNumber } from "react-phone-number-input";
 
 export default function SettingPage() {
   const router = useRouter();
@@ -27,25 +28,6 @@ export default function SettingPage() {
     phoneNumber: "",
     email: "",
   });
-
-  useEffect(() => {
-    const adminStr = localStorage.getItem("adminInfo");
-    if (adminStr) {
-      try {
-        const admin = JSON.parse(adminStr);
-        const data = {
-          displayName: admin.name || "",
-          phoneNumber:
-            admin.phoneNumber || admin.phone || admin.contactNumber || "",
-          email: admin.email || "",
-        };
-        setProfileData(data);
-        setInitialProfileData(data);
-      } catch (e) {
-        console.error("Failed to parse admin info", e);
-      }
-    }
-  }, []);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -63,14 +45,47 @@ export default function SettingPage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  // Removed showLogoutModal, not needed with useSwal
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const fetchProfilePictureUrl = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await axiosInstance.get("/auth/admin-profile-picture-url", {
+        headers: {
+          "x-access-token": token || "",
+          "x-access-token-type": "accessToken",
+        },
+      });
+      if (response.data.success && response.data.data?.profilePictureUrl) {
+        setProfileImage(response.data.data.profilePictureUrl);
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile picture URL", error);
+    }
+  }, []);
 
   const handleProfileSave = async () => {
-    if (!/^\d{10}$/.test(profileData.phoneNumber)) {
+    // Parse the E.164 number from react-phone-number-input
+    let countryCode = "+1";
+    let nationalNumber = profileData.phoneNumber;
+
+    if (profileData.phoneNumber) {
+      try {
+        const parsed = parsePhoneNumber(profileData.phoneNumber);
+        if (parsed) {
+          countryCode = `+${parsed.countryCallingCode}`;
+          nationalNumber = parsed.nationalNumber;
+        }
+      } catch {
+        // If parsing fails, send raw
+      }
+    }
+
+    if (!nationalNumber || nationalNumber.length < 4) {
       await swal({
         icon: "error",
         title: "Invalid Phone Number",
-        text: "Phone number must be exactly 10 digits",
+        text: "Please enter a valid phone number",
       });
       setIsSavingProfile(false);
       return;
@@ -103,7 +118,8 @@ export default function SettingPage() {
           "/auth/admin-update-profile",
           {
             name: profileData.displayName,
-            phoneNumber: profileData.phoneNumber,
+            phoneNumber: nationalNumber,
+            countryCode: countryCode,
           },
           {
             headers: {
@@ -119,10 +135,12 @@ export default function SettingPage() {
             localStorage.setItem("adminInfo", JSON.stringify(updatedAdmin));
           }
 
+          // Rebuild E.164 for the state
+          const newFullPhone = `${countryCode}${nationalNumber}`;
           setInitialProfileData((prev) => ({
             ...prev,
             displayName: profileData.displayName,
-            phoneNumber: profileData.phoneNumber,
+            phoneNumber: newFullPhone,
           }));
 
           if (!emailChanged) {
@@ -280,14 +298,128 @@ export default function SettingPage() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Client-side validation
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      await swal({
+        icon: "error",
+        title: "Invalid File Type",
+        text: "Only JPEG, PNG, and WebP images are allowed.",
+      });
+      return;
+    }
+
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      await swal({
+        icon: "error",
+        title: "File Too Large",
+        text: "Please select an image smaller than 10 MB.",
+      });
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await axiosInstance.post(
+        "/auth/admin-upload-profile-picture",
+        formData,
+        {
+          headers: {
+            "x-access-token": token || "",
+            "x-access-token-type": "accessToken",
+            "Content-Type": "multipart/form-data",
+          },
+          timeout: 30000, // 30s for upload
+        },
+      );
+
+      if (response.data.success) {
+        const { profilePictureUrl, admin } = response.data.data;
+        if (profilePictureUrl) {
+          setProfileImage(profilePictureUrl);
+        }
+        if (admin) {
+          localStorage.setItem("adminInfo", JSON.stringify(admin));
+        }
+        await swal({
+          icon: "success",
+          title: "Success",
+          text: "Profile picture uploaded successfully!",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+    } catch (error: any) {
+      await swal({
+        icon: "error",
+        title: "Upload Failed",
+        text:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to upload profile picture.",
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    const result = await swal({
+      title: "Remove Photo?",
+      text: "Are you sure you want to remove your profile picture?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Remove",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#d33",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await axiosInstance.delete(
+        "/auth/admin-remove-profile-picture",
+        {
+          headers: {
+            "x-access-token": token || "",
+            "x-access-token-type": "accessToken",
+          },
+        },
+      );
+
+      if (response.data.success) {
+        setProfileImage(null);
+        const admin = response.data.data?.admin;
+        if (admin) {
+          localStorage.setItem("adminInfo", JSON.stringify(admin));
+        }
+        await swal({
+          icon: "success",
+          title: "Removed",
+          text: "Profile picture removed successfully.",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      }
+    } catch (error: any) {
+      await swal({
+        icon: "error",
+        title: "Error",
+        text:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to remove profile picture.",
+      });
     }
   };
 
@@ -357,6 +489,36 @@ export default function SettingPage() {
     });
   };
 
+  useEffect(() => {
+    const adminStr = localStorage.getItem("adminInfo");
+    if (adminStr) {
+      try {
+        const admin = JSON.parse(adminStr);
+
+        // Rebuild the E.164 phone number from stored countryCode + phoneNumber
+        const countryCode = admin.countryCode || "+1";
+        const rawPhone = admin.phoneNumber ||"";
+        // If rawPhone already starts with +, use it as-is; otherwise combine
+        const fullPhone = rawPhone.startsWith("+") ? rawPhone : `${countryCode}${rawPhone}`;
+
+        const data = {
+          displayName: admin.name || "",
+          phoneNumber: fullPhone,
+          email: admin.email || "",
+        };
+        setProfileData(data);
+        setInitialProfileData(data);
+
+        // Fetch profile picture signed URL if admin has a profile picture
+        if (admin.profilePicture) {
+          fetchProfilePictureUrl();
+        }
+      } catch (e) {
+        console.error("Failed to parse admin info", e);
+      }
+    }
+  }, [fetchProfilePictureUrl]);
+
   return (
     <div className="space-y-6 pb-8">
       {/* Page Header */}
@@ -378,8 +540,10 @@ export default function SettingPage() {
             setIsEditingProfile={setIsEditingProfile}
             profileImage={profileImage}
             handleImageUpload={handleImageUpload}
+            handleRemoveProfilePicture={handleRemoveProfilePicture}
             handleProfileSave={handleProfileSave}
             isLoading={isSavingProfile}
+            isUploadingImage={isUploadingImage}
           />
 
           <ChangePasswordSection

@@ -78,7 +78,7 @@ export default function ChangePasswordSection({
                 passwordErrors.currentPassword
                   ? "border-red-500"
                   : "border-gray-300"
-              } bg-white px-4 py-2 pr-10 text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20`}
+              } bg-white px-4 py-2 pr-10 text-sm sm:text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20`}
               placeholder="Enter current password"
             />
             <button
@@ -122,7 +122,7 @@ export default function ChangePasswordSection({
                 passwordErrors.newPassword
                   ? "border-red-500"
                   : "border-gray-300"
-              } bg-white px-4 py-2 pr-10 text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20`}
+              } bg-white px-4 py-2 pr-10 text-sm sm:text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20`}
               placeholder="Enter new password"
             />
             <button
@@ -170,7 +170,7 @@ export default function ChangePasswordSection({
                 passwordErrors.confirmPassword
                   ? "border-red-500"
                   : "border-gray-300"
-              } bg-white px-4 py-2 pr-10 text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20`}
+              } bg-white px-4 py-2 pr-10 text-sm sm:text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20`}
               placeholder="Confirm new password"
             />
             <button
@@ -195,7 +195,7 @@ export default function ChangePasswordSection({
         <button
           onClick={handlePasswordChange}
           disabled={isLoading}
-          className={`w-full flex items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-6 py-2 text-base font-medium text-white transition-all hover:bg-[#e55a2d] ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`w-full flex items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-6 py-2 text-sm sm:text-base font-medium text-white transition-all hover:bg-[#e55a2d] ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {isLoading ? (
             <>

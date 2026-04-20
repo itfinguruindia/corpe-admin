@@ -1,8 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import Image from "next/image";
-import { Upload, Edit2 } from "lucide-react";
+import { Upload, Edit2, Trash2, Loader2 } from "lucide-react";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
 interface ProfileSectionProps {
   profileData: {
@@ -21,8 +23,10 @@ interface ProfileSectionProps {
   setIsEditingProfile: React.Dispatch<React.SetStateAction<boolean>>;
   profileImage: string | null;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleRemoveProfilePicture?: () => void;
   handleProfileSave: () => void;
   isLoading?: boolean;
+  isUploadingImage?: boolean;
   id?: string;
 }
 
@@ -33,8 +37,10 @@ export default function ProfileSection({
   setIsEditingProfile,
   profileImage,
   handleImageUpload,
+  handleRemoveProfilePicture,
   handleProfileSave,
   isLoading = false,
+  isUploadingImage = false,
   id,
 }: ProfileSectionProps) {
   return (
@@ -43,13 +49,16 @@ export default function ProfileSection({
         {/* Profile Image */}
         <div className="relative">
           <div className="h-32 w-32 rounded-full bg-[#3D63A4] flex items-center justify-center overflow-hidden">
-            {profileImage ? (
+            {isUploadingImage ? (
+              <Loader2 className="h-10 w-10 text-white animate-spin" />
+            ) : profileImage ? (
               <Image
                 src={profileImage}
                 alt="Profile"
                 width={128}
                 height={128}
                 className="h-full w-full object-cover"
+                unoptimized
               />
             ) : (
               <Upload className="h-12 w-12 text-[#FFD54F]" />
@@ -57,17 +66,27 @@ export default function ProfileSection({
           </div>
           <label
             htmlFor="profile-upload"
-            className="absolute bottom-0 right-0 h-10 w-10 rounded-full bg-[#FF6A3D] flex items-center justify-center cursor-pointer hover:bg-[#e55a2d] transition-colors"
+            className={`absolute bottom-0 right-0 h-10 w-10 rounded-full bg-[#FF6A3D] flex items-center justify-center cursor-pointer hover:bg-[#e55a2d] transition-colors ${isUploadingImage ? "opacity-50 pointer-events-none" : ""}`}
           >
             <Upload className="h-5 w-5 text-white" />
             <input
               id="profile-upload"
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               className="hidden"
               onChange={handleImageUpload}
             />
           </label>
+          {/* Remove picture button */}
+          {profileImage && handleRemoveProfilePicture && !isUploadingImage && (
+            <button
+              onClick={handleRemoveProfilePicture}
+              className="absolute top-0 right-0 h-8 w-8 rounded-full bg-red-500 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors shadow-md"
+              title="Remove photo"
+            >
+              <Trash2 className="h-4 w-4 text-white" />
+            </button>
+          )}
         </div>
 
         <div className="flex-1">
@@ -105,7 +124,7 @@ export default function ProfileSection({
               })
             }
             disabled={!isEditingProfile}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20 disabled:bg-gray-50"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm sm:text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20 disabled:bg-gray-50"
           />
         </div>
 
@@ -113,22 +132,18 @@ export default function ProfileSection({
           <label className="block text-sm font-medium text-secondary mb-2">
             Phone Number
           </label>
-          <input
-            type="tel"
+          <PhoneInput
+            international
+            defaultCountry="US"
             value={profileData.phoneNumber}
-            onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, "");
-              if (value.length <= 10) {
-                setProfileData({
-                  ...profileData,
-                  phoneNumber: value,
-                });
-              }
-            }}
+            onChange={(value) =>
+              setProfileData({
+                ...profileData,
+                phoneNumber: value || "",
+              })
+            }
             disabled={!isEditingProfile}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20 disabled:bg-gray-50"
-            inputMode="numeric"
-            pattern="[0-9]*"
+            className="phone-input-custom"
           />
         </div>
 
@@ -143,7 +158,7 @@ export default function ProfileSection({
               setProfileData({ ...profileData, email: e.target.value })
             }
             disabled={!isEditingProfile}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20 disabled:bg-gray-50"
+            className="w-full rounded-lg text-sm sm:text-base border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20 disabled:bg-gray-50"
           />
         </div>
 
@@ -151,7 +166,7 @@ export default function ProfileSection({
         <button
           disabled={!isEditingProfile || isLoading}
           onClick={handleProfileSave}
-          className={`w-full flex items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-6 py-3 text-base font-medium text-white transition-all hover:bg-[#e55a2d] ${(!isEditingProfile || isLoading) ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`w-full flex items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-6 py-3 text-sm sm:text-base font-medium text-white transition-all hover:bg-[#e55a2d] ${(!isEditingProfile || isLoading) ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {isLoading ? (
             <>

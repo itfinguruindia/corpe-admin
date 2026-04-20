@@ -1,9 +1,10 @@
 "use client";
 
 import { AlertCircle, ChevronUp, Inbox } from "lucide-react";
-import { Table, Pagination, EmptyState, Skeleton, cn } from "@heroui/react";
+import { Table, EmptyState, Skeleton, cn } from "@heroui/react";
 import type { SortDescriptor } from "@heroui/react";
 import React from "react";
+import CustomPagination from "./Pagination";
 
 export type ColumnDef<T> = {
   id: string;
@@ -223,10 +224,10 @@ export function DataTable<T>({
                         </Table.Row>
                       ))}
               </Table.Body>
-            </Table.Content>
-          </Table.ScrollContainer>
-        </Table>
-      </div>
+          </Table.Content>
+        </Table.ScrollContainer>
+      </Table>
+    </div>
 
       {showPagination && (
         <div className="mt-6 pb-6 flex flex-col md:flex-row justify-between items-center px-4 gap-4">
@@ -242,53 +243,11 @@ export function DataTable<T>({
             of <span className="text-gray-900">{totalItems}</span> results
           </div>
 
-          <Pagination>
-            <Pagination.Content className="flex gap-1.5 items-center">
-              <Pagination.Item>
-                <Pagination.Previous
-                  isDisabled={currentPage === 1}
-                  onPress={() => onPageChange!(currentPage! - 1)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700"
-                >
-                  <Pagination.PreviousIcon className="w-4 h-4" />
-                  <span className="hidden sm:inline">Previous</span>
-                </Pagination.Previous>
-              </Pagination.Item>
-
-              {getPaginationItems(currentPage!, totalPages!).map(
-                (item, idx) => (
-                  <Pagination.Item key={idx}>
-                    {item === "..." ? (
-                      <Pagination.Ellipsis className="px-2 text-gray-400 font-medium" />
-                    ) : (
-                      <Pagination.Link
-                        isActive={currentPage === item}
-                        onPress={() => onPageChange!(item as number)}
-                        className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${
-                          currentPage === item
-                            ? "bg-[#F46A45] text-white shadow-sm hover:opacity-90"
-                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                        }`}
-                      >
-                        {item}
-                      </Pagination.Link>
-                    )}
-                  </Pagination.Item>
-                ),
-              )}
-
-              <Pagination.Item>
-                <Pagination.Next
-                  isDisabled={currentPage === totalPages}
-                  onPress={() => onPageChange!(currentPage! + 1)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700"
-                >
-                  <span className="hidden sm:inline">Next</span>
-                  <Pagination.NextIcon className="w-4 h-4" />
-                </Pagination.Next>
-              </Pagination.Item>
-            </Pagination.Content>
-          </Pagination>
+          <CustomPagination
+            currentPage={currentPage!}
+            totalPages={totalPages!}
+            onPageChange={onPageChange!}
+          />
         </div>
       )}
     </>

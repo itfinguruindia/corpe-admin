@@ -25,6 +25,7 @@ import {
   PanelRightOpen,
   PanelLeftOpen,
   X,
+  Rss
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 
@@ -196,6 +197,16 @@ export default function Sidebar() {
             href="/clients"
             icon={<Users size={18} />}
             active={pathname.startsWith("/clients")}
+            collapsed={effectiveCollapsed}
+          />
+
+          <Divider />
+
+          <SidebarLink
+            label="Feedbacks"
+            href="/feedbacks"
+            icon={<Rss size={18} />}
+            active={pathname.startsWith("/feedbacks")}
             collapsed={effectiveCollapsed}
           />
 
