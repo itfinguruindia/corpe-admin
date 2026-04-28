@@ -18,6 +18,7 @@ axiosInstance.interceptors.request.use(
       const token = localStorage.getItem("accessToken");
       if (token) {
         config.headers["x-access-token"] = token;
+        config.headers["x-access-token-type"] = "access_token";
       }
     }
     return config;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, Trash2, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import type { SortDescriptor } from "@heroui/react";
 import { SearchSelect, SearchSelectOption } from "@/components/ui/SearchSelect";
@@ -8,6 +8,7 @@ import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 
 export interface Client {
   appNo: string;
+  orgId: string;
   client: string;
   entity: string;
   assigneeId: string | null;
@@ -31,6 +32,7 @@ interface ClientsTableProps {
   onAssigneeChange: (appNo: string, opt: SearchSelectOption) => void;
   onAssignerChange: (appNo: string, opt: SearchSelectOption) => void;
   onDelete: (appNo: string) => void;
+  onChat: (orgId: string) => void;
   currentPage: number;
   totalPages: number;
   total: number;
@@ -48,6 +50,7 @@ export default function ClientsTable({
   onAssigneeChange,
   onAssignerChange,
   onDelete,
+  onChat,
   currentPage,
   totalPages,
   total,
@@ -166,6 +169,13 @@ export default function ClientsTable({
           >
             <Eye size={20} />
           </Link>
+          <button
+            onClick={() => onChat(row.orgId)}
+            className="cursor-pointer text-[#3D63A4] hover:text-[#FF6A3D] transition-colors"
+            title="Chat with Client"
+          >
+            <MessageSquare size={20} />
+          </button>
           <button
             onClick={() => onDelete(row.appNo)}
             className="cursor-pointer text-red-600 hover:text-red-800 transition-colors"

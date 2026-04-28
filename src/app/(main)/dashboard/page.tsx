@@ -17,7 +17,12 @@ export default async function Dashboard() {
     pendingApplication = "N/A",
     approveNameApplication = "N/A",
     rejectedOrResubmitted = "N/A",
-  } = data;
+  } = data ?? {
+    totalApplication: "N/A",
+    pendingApplication: "N/A",
+    approveNameApplication: "N/A",
+    rejectedOrResubmitted: "N/A",
+  };
 
   return (
     <div className="space-y-8 pb-10">

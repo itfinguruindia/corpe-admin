@@ -2,20 +2,25 @@
 
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { buildFiltersFromParams, useDebouncedCallback } from "@/utils/helpers";
 import { filtersToSearchParams } from "@/components/ui/FilterDropdown/helpers";
 import { clientsApi } from "@/lib/api";
 import { adminApi } from "@/lib/api/admin";
+import chatService from "@/services/chat.service";
 import useSwal from "@/utils/useSwal";
 import FilterDropdown, { Filters } from "@/components/ui/FilterDropdown/index";
 import ActiveFilters from "@/components/ui/FilterDropdown/ActiveFilters";
 import { SearchSelectOption } from "@/components/ui/SearchSelect";
 import type { SortDescriptor } from "@heroui/react";
-import ClientsTable, { Client, ITEMS_PER_PAGE } from "@/components/clients/ClientsTable";
+import ClientsTable, {
+  Client,
+  ITEMS_PER_PAGE,
+} from "@/components/clients/ClientsTable";
 
 export default function ClientsPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
 
   // Debounced search handler — fires API call with current filters
@@ -170,7 +175,10 @@ export default function ClientsPage() {
     fetchClients(1, newFilters);
   };
 
-  const handleAssigneeChange = async (appNo: string, opt: SearchSelectOption) => {
+  const handleAssigneeChange = async (
+    appNo: string,
+    opt: SearchSelectOption,
+  ) => {
     try {
       await clientsApi.updateAssignee(appNo, opt.id);
       setClientsData((prev) =>
@@ -185,7 +193,10 @@ export default function ClientsPage() {
     }
   };
 
-  const handleAssignerChange = async (appNo: string, opt: SearchSelectOption) => {
+  const handleAssignerChange = async (
+    appNo: string,
+    opt: SearchSelectOption,
+  ) => {
     try {
       await clientsApi.updateAssigner(appNo, opt.id);
       setClientsData((prev) =>
@@ -200,10 +211,19 @@ export default function ClientsPage() {
     }
   };
 
+  const handleChat = async (orgId: string) => {
+    try {
+      const room = await chatService.getOrCreateRoom(orgId);
+      router.push(`/messages?room=${room._id}`);
+    } catch (err) {
+      console.error("Error opening chat:", err);
+    }
+  };
+
   return (
     <div className="w-full">
       {/* HEADER & SEARCH TOOLBAR */}
-      <div className="flex flex-col gap-6 p-6 pb-0">
+      <div className="flex flex-col gap-6 py-6 pb-4">
         {/* Unified Search and Filter Bar */}
         <div className="flex flex-col gap-3">
           <div className="flex flex-col md:flex-row justify-between items-center gap-3">
@@ -220,7 +240,7 @@ export default function ClientsPage() {
 
             <div className="h-8 w-px bg-gray-200 hidden md:block"></div>
 
-            <div className="flex items-center gap-2 pr-1 self-end">
+            <div className="flex items-center gap-2 self-end">
               <FilterDropdown
                 onApply={handleApply}
                 search={search}
@@ -246,6 +266,7 @@ export default function ClientsPage() {
         onAssigneeChange={handleAssigneeChange}
         onAssignerChange={handleAssignerChange}
         onDelete={handleDelete}
+        onChat={handleChat}
         currentPage={currentPage}
         totalPages={totalPages}
         total={total}

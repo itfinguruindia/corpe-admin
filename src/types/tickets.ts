@@ -10,7 +10,7 @@ export interface Ticket {
   category: string;
   subject: string;
   status: TicketStatus;
-  assignee: string;
+  assignee: { _id: string; name: string } | null;
   priority: TicketPriority;
   createdOn: string;
   description?: string;

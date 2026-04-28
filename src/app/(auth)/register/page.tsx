@@ -6,6 +6,15 @@ import { useRouter } from "next/navigation";
 import { checkSuperAdmin, registerSuperAdmin } from "@/utils/auth";
 import toast from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
+import {
+  Alert,
+  Button,
+  Card,
+  Input,
+  Label,
+  Spinner,
+  TextField,
+} from "@heroui/react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -25,7 +34,7 @@ export default function RegisterPage() {
       try {
         const hasSuper = await checkSuperAdmin();
         setHasSuperAdmin(hasSuper);
-      } catch (error) {
+      } catch {
         setHasSuperAdmin(false);
       }
     })();
@@ -57,9 +66,12 @@ export default function RegisterPage() {
       return;
     }
 
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
-      setError("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character");
+      setError(
+        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+      );
       return;
     }
 
@@ -69,20 +81,16 @@ export default function RegisterPage() {
       await registerSuperAdmin({ name, email, phoneNumber, password });
 
       if (hasSuperAdmin) {
-        // Registered as normal admin - show success message
         toast.success(
           "Registration successful! Your account has been created. Please contact the Super Admin to assign you a role before you can login.",
         );
-
         router.push("/login");
-        // Clear form
         setName("");
         setEmail("");
         setPhoneNumber("");
         setPassword("");
         setConfirmPassword("");
       } else {
-        // Registered as super admin - redirect to dashboard
         router.push("/dashboard");
       }
     } catch (error: any) {
@@ -96,178 +104,157 @@ export default function RegisterPage() {
     }
   };
 
-  // Show loading while checking for super admin
   if (hasSuperAdmin === null) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F6FAFF]">
-        <div className="text-xl text-gray-600">Loading...</div>
+        <Spinner />
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F6FAFF] p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-secondary">
+      <Card className="w-full max-w-md">
+        <Card.Header className="flex flex-col items-center pt-8 px-8 pb-0">
+          <Card.Title className="text-3xl font-bold text-[#3D63A4]">
             {hasSuperAdmin ? "Register as Admin" : "Create Super Admin"}
-          </h1>
-          <p className="mt-2 text-gray-500">
+          </Card.Title>
+          <Card.Description className="mt-2 text-center">
             {hasSuperAdmin
               ? "Create your admin account. You'll need role assignment from Super Admin to login."
               : "Register the first admin account for the system"}
-          </p>
-        </div>
+          </Card.Description>
+        </Card.Header>
 
-        {error && (
-          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
+        <Card.Content className="px-8 py-6 flex flex-col gap-5">
+          {error && (
+            <Alert status="danger">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Description>{error}</Alert.Description>
+              </Alert.Content>
+            </Alert>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label
-              htmlFor="name"
-              className="mb-2 block text-sm font-medium text-gray-700"
-            >
-              Full Name
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#3D63A4] focus:outline-none focus:ring-1 focus:ring-[#3D63A4]"
-              placeholder="Enter your full name"
-              required
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {/* Full Name */}
+            <TextField isRequired value={name} onChange={setName} name="name">
+              <Label>Full Name</Label>
+              <Input placeholder="Enter your full name" />
+            </TextField>
 
-          <div>
-            <label
-              htmlFor="email"
-              className="mb-2 block text-sm font-medium text-gray-700"
-            >
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
+            {/* Email */}
+            <TextField
+              isRequired
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#3D63A4] focus:outline-none focus:ring-1 focus:ring-[#3D63A4]"
-              placeholder="Enter your email"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="phoneNumber"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              onChange={setEmail}
+              type="email"
+              name="email"
             >
-              Phone Number
-            </label>
-            <input
-              id="phoneNumber"
-              type="tel"
+              <Label>Email Address</Label>
+              <Input placeholder="Enter your email" />
+            </TextField>
+
+            {/* Phone Number */}
+            <TextField
+              isRequired
               value={phoneNumber}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, "");
-                if (value.length <= 10) {
-                  setPhoneNumber(value);
-                }
+              onChange={(val) => {
+                const digits = val.replace(/\D/g, "");
+                if (digits.length <= 10) setPhoneNumber(digits);
               }}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#3D63A4] focus:outline-none focus:ring-1 focus:ring-[#3D63A4]"
-              placeholder="Enter your 10-digit phone number"
-              required
-              inputMode="numeric"
-              pattern="[0-9]*"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              name="phoneNumber"
             >
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#3D63A4] focus:outline-none focus:ring-1 focus:ring-[#3D63A4] pr-10"
-                placeholder="min. 8 chars, 1 uppercase, 1 special char"
-                required
-                minLength={8}
+              <Label>Phone Number</Label>
+              <Input
+                placeholder="Enter your 10-digit phone number"
+                inputMode="numeric"
+                pattern="[0-9]*"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
+            </TextField>
 
-          <div>
-            <label
-              htmlFor="confirmPassword"
-              className="mb-2 block text-sm font-medium text-gray-700"
+            {/* Password */}
+            <TextField
+              isRequired
+              value={password}
+              onChange={setPassword}
+              type={showPassword ? "text" : "password"}
+              name="password"
             >
-              Confirm Password
-            </label>
-            <div className="relative">
-              <input
-                id="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#3D63A4] focus:outline-none focus:ring-1 focus:ring-[#3D63A4] pr-10"
-                placeholder="Confirm your password"
-                required
-                minLength={8}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
+              <Label>Password</Label>
+              <div className="relative">
+                <Input
+                  placeholder="min. 8 chars, 1 uppercase, 1 special char"
+                  className="w-full"
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </TextField>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-lg bg-[#3D63A4] px-4 py-3 text-center text-sm font-semibold text-white shadow-md transition-all hover:bg-[#2d4b7c] focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading
-              ? "Creating Account..."
-              : hasSuperAdmin
-                ? "Create Admin Account"
-                : "Create Super Admin Account"}
-          </button>
-        </form>
+            {/* Confirm Password */}
+            <TextField
+              isRequired
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              type={showConfirmPassword ? "text" : "password"}
+              name="confirmPassword"
+            >
+              <Label>Confirm Password</Label>
+              <div className="relative">
+                <Input
+                  placeholder="Confirm your password"
+                  className="w-full"
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
+              </div>
+            </TextField>
 
-        <div className="mt-6 text-center">
+            <Button
+              type="submit"
+              isDisabled={isLoading}
+              className="w-full bg-[#3D63A4] text-white font-semibold"
+            >
+              {isLoading ? (
+                <Spinner />
+              ) : hasSuperAdmin ? (
+                "Create Admin Account"
+              ) : (
+                "Create Super Admin Account"
+              )}
+            </Button>
+          </form>
+        </Card.Content>
+
+        <Card.Footer className="px-8 pb-8 pt-0 justify-center">
           <p className="text-sm text-gray-600">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-medium text-secondary hover:underline"
+              className="font-medium text-[#3D63A4] hover:underline"
             >
               Sign in here
             </Link>
           </p>
-        </div>
-      </div>
+        </Card.Footer>
+      </Card>
     </div>
   );
 }

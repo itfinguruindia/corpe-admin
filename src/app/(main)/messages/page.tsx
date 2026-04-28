@@ -1,124 +1,149 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { MessageSquare, RefreshCw, FileDown } from "lucide-react";
-import { mockClientMessages } from "@/lib/data/mockCommunicationData";
-import { DataTable, ColumnDef } from "@/components/ui/DataTable";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useSelector } from "react-redux";
+import { useSearchParams } from "next/navigation";
+import { RootState } from "@/redux/store";
+import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket";
+import chatService from "@/services/chat.service";
+import ChatRoomList from "@/components/chat/ChatRoomList";
+import ChatWindow from "@/components/chat/ChatWindow";
+import NewChatModal from "@/components/chat/NewChatModal";
 
-export default function ClientMessagesPage() {
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-  
-  // Client-side pagination logic
-  const totalItems = mockClientMessages.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const paginatedData = mockClientMessages.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
+interface ChatRoom {
+  _id: string;
+  applicationNo?: string;
+  companyName?: string;
+  orgUser?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
+  lastMessage?: {
+    content?: string;
+    timestamp?: string;
+    senderModel?: string;
+  };
+  unreadByAdmin: number;
+  status: string;
+}
+
+export default function MessagesPage() {
+  const searchParams = useSearchParams();
+  const auth = useSelector((state: RootState) => state.auth);
+  const adminId = auth?.admin?.id || "";
+
+  const [rooms, setRooms] = useState<ChatRoom[]>([]);
+  const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+
+  const socketRef = useRef(getSocket());
+
+  // Connect socket on mount
+  useEffect(() => {
+    const socket = connectSocket();
+    socketRef.current = socket;
+
+    // Listen for room updates (new messages, etc.)
+    const handleRoomUpdated = () => {
+      // Re-fetch rooms to update unread counts and order
+      fetchRooms();
+    };
+
+    socket.on("chat:roomUpdated", handleRoomUpdated);
+
+    return () => {
+      socket.off("chat:roomUpdated", handleRoomUpdated);
+      disconnectSocket();
+    };
+  }, []);
+
+  // Fetch chat rooms
+  const fetchRooms = useCallback(async () => {
+    try {
+      const data = await chatService.getChatRooms(1, 50, searchQuery);
+      setRooms(data?.rooms || []);
+    } catch (error) {
+      console.error("Failed to fetch rooms:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(fetchRooms, 300);
+    return () => clearTimeout(timer);
+  }, [fetchRooms]);
+
+  // Handle room query param (from clients page)
+  useEffect(() => {
+    const roomParam = searchParams.get("room");
+    if (roomParam && rooms.length > 0) {
+      const found = rooms.find((r) => r._id === roomParam);
+      if (found) {
+        setActiveRoom(found);
+      }
+    }
+  }, [searchParams, rooms]);
+
+  // Handle room selection
+  const handleSelectRoom = useCallback((room: ChatRoom) => {
+    setActiveRoom(room);
+    // Update URL without navigation
+    const url = new URL(window.location.href);
+    url.searchParams.set("room", room._id);
+    window.history.replaceState({}, "", url.toString());
+  }, []);
+
+  // Handle new chat room created
+  const handleRoomCreated = useCallback(
+    (room: any) => {
+      setActiveRoom(room);
+      fetchRooms();
+    },
+    [fetchRooms],
   );
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const columns: ColumnDef<any>[] = [
-    {
-      id: "applicationNo",
-      label: "Application Number",
-      render: (row) => (
-        <span className="text-lg font-medium text-[#FF6A3D]">
-          {row.applicationNo}
-        </span>
-      ),
-    },
-    {
-      id: "companyName",
-      label: "Name of the Company",
-      render: (row) => (
-        <span className="text-base text-gray-700">{row.companyName}</span>
-      ),
-    },
-    {
-      id: "clientName",
-      label: "Client Name",
-      render: (row) => (
-        <span className="text-base text-gray-700">{row.clientName}</span>
-      ),
-    },
-    {
-      id: "action",
-      label: "View Message",
-      render: (row) => (
-        <div className="flex justify-center">
-          <Link
-            href={`/messages/${row.id}`}
-            className="flex h-12 w-12 items-center justify-center rounded-lg text-[#FF6A3D] transition-all hover:bg-[#FFE5DD]"
-          >
-            <MessageSquare className="h-7 w-7" />
-          </Link>
-        </div>
-      ),
-    },
-  ];
-
   return (
-    <div className="w-full min-w-0">
-      {/* HEADER & SEARCH TOOLBAR */}
-      <div className="flex flex-col gap-6 p-6 pb-0 mb-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-4xl font-bold text-[#FF6A3D]">GUJC000001</h1>
-              <div className="mt-4 inline-block">
-                <span className="rounded-full bg-[#FFE5DD] px-6 py-2 text-lg font-medium text-secondary">
-                  Communication
-                </span>
-              </div>
-            </div>
-          </div>
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Split pane layout */}
+      <div className="flex flex-1 overflow-hidden md:mx-6 md:mb-6 md:rounded-xl border-t md:border border-gray-200 bg-white md:shadow-sm">
+        {/* Left pane — Conversation list */}
+        <div
+          className={`${activeRoom ? "hidden md:block" : "w-full"} md:w-[340px] shrink-0 border-r border-gray-100`}
+        >
+          <ChatRoomList
+            rooms={rooms}
+            activeRoomId={activeRoom?._id || null}
+            onSelectRoom={handleSelectRoom}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onNewChat={() => setShowNewChatModal(true)}
+            isLoading={isLoading}
+          />
+        </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-            <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
-
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <button
-                className="flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                title="Refresh"
-                type="button"
-                onClick={() => window.location.reload()}
-              >
-                <RefreshCw size={18} />
-              </button>
-              <button
-                className="flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                title="Export"
-                type="button"
-              >
-                <FileDown size={18} />
-              </button>
-            </div>
-          </div>
+        {/* Right pane — Chat window */}
+        <div
+          className={`${!activeRoom ? "hidden md:block" : "flex-1"} min-w-0`}
+        >
+          <ChatWindow
+            room={activeRoom}
+            socket={socketRef.current}
+            adminId={adminId}
+            onBack={() => setActiveRoom(null)}
+          />
         </div>
       </div>
 
-      {/* Section Title */}
-      <div className="px-6 mb-2">
-        <h2 className="text-2xl font-semibold text-secondary">Client Message</h2>
-      </div>
-
-      {/* Messages Table */}
-      <DataTable
-        data={paginatedData}
-        columns={columns}
-        keyField="id"
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        itemsPerPage={itemsPerPage}
-        onPageChange={handlePageChange}
-        emptyMessage="No messages yet"
-        emptyIcon={MessageSquare}
+      {/* New chat modal */}
+      <NewChatModal
+        isOpen={showNewChatModal}
+        onClose={() => setShowNewChatModal(false)}
+        onRoomCreated={handleRoomCreated}
       />
     </div>
   );

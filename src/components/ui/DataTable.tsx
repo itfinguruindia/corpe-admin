@@ -10,7 +10,7 @@ export type ColumnDef<T> = {
   id: string;
   label: string;
   sortable?: boolean;
-  render?: (row: T) => React.ReactNode;
+  render?: (row: T, index: number) => React.ReactNode;
 };
 
 export interface DataTableProps<T> {
@@ -31,48 +31,6 @@ export interface DataTableProps<T> {
 
   emptyMessage?: string;
   emptyIcon?: React.ElementType;
-}
-
-function getPaginationItems(currentPage: number, totalPages: number) {
-  const siblingCount = 1;
-  const totalPageNumbers = siblingCount + 5;
-  if (totalPageNumbers >= totalPages) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }
-  const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
-  const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages);
-  const shouldShowLeftDots = leftSiblingIndex > 2;
-  const shouldShowRightDots = rightSiblingIndex < totalPages - 2;
-
-  if (!shouldShowLeftDots && shouldShowRightDots) {
-    let leftItemCount = 3 + 2 * siblingCount;
-    return [
-      ...Array.from({ length: leftItemCount }, (_, i) => i + 1),
-      "...",
-      totalPages,
-    ];
-  }
-  if (shouldShowLeftDots && !shouldShowRightDots) {
-    let rightItemCount = 3 + 2 * siblingCount;
-    return [
-      1,
-      "...",
-      ...Array.from(
-        { length: rightItemCount },
-        (_, i) => totalPages - rightItemCount + 1 + i,
-      ),
-    ];
-  }
-  return [
-    1,
-    "...",
-    ...Array.from(
-      { length: rightSiblingIndex - leftSiblingIndex + 1 },
-      (_, i) => leftSiblingIndex + i,
-    ),
-    "...",
-    totalPages,
-  ];
 }
 
 function SortableColumnHeader({
@@ -131,8 +89,8 @@ export function DataTable<T>({
 
   return (
     <>
-      <div className="p-5">
-        <Table className="bg-white border text-sm border-gray-200 rounded-xl shadow-sm w-full overflow-hidden min-h-[650px]">
+      <div className="py-5">
+        <Table className="bg-white border text-sm border-gray-200 rounded-xl shadow-sm w-full p-0 overflow-hidden min-h-[70vh]">
           <Table.ScrollContainer className="w-full overflow-x-auto">
             <Table.Content
               aria-label="Data Table"
@@ -153,7 +111,7 @@ export function DataTable<T>({
                   >
                     {({ sortDirection }) => (
                       <SortableColumnHeader sortDirection={sortDirection}>
-                        <button className="hover:text-primary-500">
+                        <button className="hover:text-primary-500 text-white">
                           {col.label}
                         </button>
                       </SortableColumnHeader>
@@ -206,7 +164,7 @@ export function DataTable<T>({
                     ))
                   : error
                     ? []
-                    : data.map((row) => (
+                    : data.map((row, index) => (
                         <Table.Row
                           key={getKey(row)}
                           className="hover:bg-primary-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
@@ -217,17 +175,17 @@ export function DataTable<T>({
                               className="px-5 py-4 align-middle text-gray-800"
                             >
                               {col.render
-                                ? col.render(row)
+                                ? col.render(row, index)
                                 : String((row as any)[col.id]) || ""}
                             </Table.Cell>
                           ))}
                         </Table.Row>
                       ))}
               </Table.Body>
-          </Table.Content>
-        </Table.ScrollContainer>
-      </Table>
-    </div>
+            </Table.Content>
+          </Table.ScrollContainer>
+        </Table>
+      </div>
 
       {showPagination && (
         <div className="mt-6 pb-6 flex flex-col md:flex-row justify-between items-center px-4 gap-4">

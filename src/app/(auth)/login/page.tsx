@@ -5,6 +5,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { checkSuperAdmin, loginAdmin } from "@/utils/auth";
 import { Eye, EyeOff } from "lucide-react";
+import {
+  Alert,
+  Button,
+  Card,
+  Checkbox,
+  Input,
+  Label,
+  Spinner,
+  TextField,
+} from "@heroui/react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,10 +29,8 @@ export default function LoginPage() {
     try {
       const hasSuper = await checkSuperAdmin();
       setHasSuperAdmin(hasSuper);
-      if (!hasSuper) {
-        router.push("/register");
-      }
-    } catch (error) {
+      if (!hasSuper) router.push("/register");
+    } catch {
       setHasSuperAdmin(true);
     }
   };
@@ -50,118 +58,107 @@ export default function LoginPage() {
     }
   };
 
-  // Show loading while checking for super admin
   if (hasSuperAdmin === null) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F6FAFF]">
-        <div className="text-xl text-gray-600">Loading...</div>
+        <Spinner />
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#F6FAFF] p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-secondary">Welcome Back</h1>
-          <p className="mt-2 text-gray-500">Please sign in to your account</p>
-        </div>
+      <Card className="w-full max-w-md">
+        <Card.Header className="flex flex-col items-center pt-8 px-8 pb-0">
+          <Card.Title className="text-3xl font-bold text-[#3D63A4]">
+            Welcome Back
+          </Card.Title>
+          <Card.Description className="mt-2">
+            Please sign in to your account
+          </Card.Description>
+        </Card.Header>
 
-        {error && (
-          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
+        <Card.Content className="px-8 py-6 flex flex-col gap-5">
+          {error && (
+            <Alert status="danger">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Description>{error}</Alert.Description>
+              </Alert.Content>
+            </Alert>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="email"
-              className="mb-2 block text-sm font-medium text-gray-700"
-            >
-              Email Address
-            </label>
-            <input
-              id="email"
-              type="email"
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {/* Email */}
+            <TextField
+              isRequired
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#3D63A4] focus:outline-none focus:ring-1 focus:ring-[#3D63A4]"
-              placeholder="Enter your email"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              onChange={setEmail}
+              type="email"
+              name="email"
             >
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#3D63A4] focus:outline-none focus:ring-1 focus:ring-[#3D63A4] pr-10"
-                placeholder="Enter your password"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
+              <Label>Email Address</Label>
+              <Input placeholder="Enter your email" />
+            </TextField>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-secondary focus:ring-[#3D63A4]"
-              />
-              <label
-                htmlFor="remember-me"
-                className="ml-2 block text-sm text-gray-600"
-              >
-                Remember me
-              </label>
-            </div>
-            <Link
-              href="/forgot-password"
-              className="text-sm font-medium text-secondary hover:underline"
+            {/* Password */}
+            <TextField
+              isRequired
+              value={password}
+              onChange={setPassword}
+              type={showPassword ? "text" : "password"}
+              name="password"
             >
-              Forgot Password?
-            </Link>
-          </div>
+              <Label>Password</Label>
+              <div className="relative">
+                <Input placeholder="Enter your password" className="w-full" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </TextField>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-lg bg-[#3D63A4] px-4 py-3 text-center text-sm font-semibold text-white shadow-md transition-all hover:bg-[#2d4b7c] focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
+            {/* Remember me + Forgot password */}
+            <div className="flex items-center justify-between">
+              <Checkbox id="remember-me">
+                <Label htmlFor="remember-me" className="text-sm text-gray-600">
+                  Remember me
+                </Label>
+              </Checkbox>
+              <Link
+                href="/forgot-password"
+                className="text-sm font-medium text-[#3D63A4] hover:underline"
+              >
+                Forgot Password?
+              </Link>
+            </div>
 
-        <div className="mt-6 text-center">
+            <Button
+              type="submit"
+              isDisabled={isLoading}
+              className="w-full bg-[#3D63A4] text-white font-semibold"
+            >
+              {isLoading ? <Spinner /> : "Sign In"}
+            </Button>
+          </form>
+        </Card.Content>
+
+        <Card.Footer className="px-8 pb-8 pt-0 justify-center">
           <p className="text-sm text-gray-600">
             Don't have an account?{" "}
             <Link
               href="/register"
-              className="font-medium text-secondary hover:underline"
+              className="font-medium text-[#3D63A4] hover:underline"
             >
               Register here
             </Link>
           </p>
-        </div>
-      </div>
+        </Card.Footer>
+      </Card>
     </div>
   );
 }

@@ -56,6 +56,9 @@ export function SearchSelect(props: SearchSelectProps) {
   const selectedSingle = !isMultiple
     ? (props.value as SearchSelectOption | null)
     : null;
+
+  console.log({ selectedSingle });
+
   const selectedMulti = isMultiple ? (props.value as SearchSelectOption[]) : [];
 
   const isOptionSelected = (opt: SearchSelectOption) => {
