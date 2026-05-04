@@ -14,10 +14,15 @@ import {
 } from "@/components/settings";
 import { requestEmailChange } from "@/utils/auth";
 import { parsePhoneNumber } from "react-phone-number-input";
+import { useDispatch, useSelector } from "react-redux";
+import { setProfilePictureUrl } from "@/redux/slices/authSlice";
+import { RootState } from "@/redux/store";
 
 export default function SettingPage() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const swal = useSwal();
+  const { profilePictureUrl: reduxProfileImage } = useSelector((state: RootState) => state.auth);
   const [profileData, setProfileData] = useState({
     displayName: "",
     phoneNumber: "",
@@ -44,7 +49,6 @@ export default function SettingPage() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const fetchProfilePictureUrl = useCallback(async () => {
@@ -57,12 +61,12 @@ export default function SettingPage() {
         },
       });
       if (response.data.success && response.data.data?.profilePictureUrl) {
-        setProfileImage(response.data.data.profilePictureUrl);
+        dispatch(setProfilePictureUrl(response.data.data.profilePictureUrl));
       }
     } catch (error) {
       console.error("Failed to fetch profile picture URL", error);
     }
-  }, []);
+  }, [dispatch]);
 
   const handleProfileSave = async () => {
     // Parse the E.164 number from react-phone-number-input
@@ -345,7 +349,7 @@ export default function SettingPage() {
       if (response.data.success) {
         const { profilePictureUrl, admin } = response.data.data;
         if (profilePictureUrl) {
-          setProfileImage(profilePictureUrl);
+          dispatch(setProfilePictureUrl(profilePictureUrl));
         }
         if (admin) {
           localStorage.setItem("adminInfo", JSON.stringify(admin));
@@ -398,7 +402,7 @@ export default function SettingPage() {
       );
 
       if (response.data.success) {
-        setProfileImage(null);
+        dispatch(setProfilePictureUrl(null));
         const admin = response.data.data?.admin;
         if (admin) {
           localStorage.setItem("adminInfo", JSON.stringify(admin));
@@ -538,7 +542,7 @@ export default function SettingPage() {
             setProfileData={setProfileData}
             isEditingProfile={isEditingProfile}
             setIsEditingProfile={setIsEditingProfile}
-            profileImage={profileImage}
+            profileImage={reduxProfileImage || null}
             handleImageUpload={handleImageUpload}
             handleRemoveProfilePicture={handleRemoveProfilePicture}
             handleProfileSave={handleProfileSave}

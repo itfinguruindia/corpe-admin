@@ -4,10 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/redux/store";
-import {
-  toggleSidebar,
-  closeMobileSidebar,
-} from "@/redux/slices/layoutSlice";
+import { toggleSidebar, closeMobileSidebar } from "@/redux/slices/layoutSlice";
 import clsx from "clsx";
 import {
   LayoutDashboard,
@@ -25,9 +22,15 @@ import {
   PanelRightOpen,
   PanelLeftOpen,
   X,
-  Rss
+  Rss,
+  LogOut,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
+import axiosInstance from "@/lib/axios";
+import { setProfilePictureUrl } from "@/redux/slices/authSlice";
+import { logoutAdmin } from "@/utils/auth";
+import useSwal from "@/utils/useSwal";
 
 const SIDEBAR_EXPANDED = 260;
 const SIDEBAR_COLLAPSED = 68;
@@ -35,10 +38,13 @@ const SIDEBAR_COLLAPSED = 68;
 export default function Sidebar() {
   const pathname = usePathname();
   const dispatch = useDispatch();
-  const { admin } = useSelector((state: RootState) => state.auth);
+  const { admin, profilePictureUrl } = useSelector(
+    (state: RootState) => state.auth,
+  );
   const { isCollapsed: collapsed, isMobileOpen } = useSelector(
     (state: RootState) => state.layout,
   );
+  const swal = useSwal();
 
   /* Detect mobile to override collapsed behavior */
   const [isMobile, setIsMobile] = useState(false);
@@ -78,6 +84,60 @@ export default function Sidebar() {
     };
   }, [isMobileOpen]);
 
+  const fetchProfilePictureUrl = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      const response = await axiosInstance.get(
+        "/auth/admin-profile-picture-url",
+        {
+          headers: {
+            "x-access-token": token || "",
+            "x-access-token-type": "accessToken",
+          },
+        },
+      );
+      if (response.data.success && response.data.data?.profilePictureUrl) {
+        dispatch(setProfilePictureUrl(response.data.data.profilePictureUrl));
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile picture URL", error);
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (admin?.profilePicture && !profilePictureUrl) {
+      fetchProfilePictureUrl();
+    }
+  }, [admin, profilePictureUrl, fetchProfilePictureUrl]);
+
+  const handleLogout = async () => {
+    const result = await swal({
+      title: "Log out?",
+      text: "Are you sure you want to log out?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Log out",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#FF6A3D",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      logoutAdmin();
+      await swal({
+        icon: "success",
+        title: "Logged out!",
+        text: "You have been logged out successfully.",
+        timer: 1200,
+        showConfirmButton: false,
+      });
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
+
   const getInitials = (name?: string) => {
     if (!name) return "U";
     return name
@@ -107,9 +167,7 @@ export default function Sidebar() {
           "sidebar h-screen bg-[#2d4a8a] flex flex-col fixed left-0 top-0 z-50",
           /* Mobile: full-width drawer, slides in/out */
           "max-md:w-[260px] max-md:transition-transform max-md:duration-300",
-          isMobileOpen
-            ? "max-md:translate-x-0"
-            : "max-md:-translate-x-full",
+          isMobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full",
         )}
         style={{
           /* Desktop width controlled by collapsed state (mobile uses CSS class) */
@@ -125,31 +183,48 @@ export default function Sidebar() {
           }
         `}</style>
 
-        {/* Avatar + toggle */}
         <div className="relative flex flex-col items-center px-4 pt-8 pb-6">
           <div
-            className="sidebar-avatar rounded-full bg-yellow-400 flex items-center justify-center my-5"
+            className="sidebar-avatar relative rounded-full bg-yellow-400 flex items-center justify-center my-5 overflow-hidden border-2 border-white/20 shadow-lg transition-all duration-300"
             style={{
-              width: collapsed ? 40 : 80,
-              height: collapsed ? 40 : 80,
-              fontSize: collapsed ? 14 : 24,
+              width: collapsed ? 44 : 88,
+              height: collapsed ? 44 : 88,
             }}
           >
-            <span className="font-extrabold text-[#2d4a8a] tracking-wide leading-none">
-              {getInitials(admin?.name)}
-            </span>
+            {profilePictureUrl ? (
+              <Image
+                src={profilePictureUrl}
+                alt={admin?.name || "User"}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <span
+                className="font-extrabold text-[#2d4a8a] tracking-wide leading-none"
+                style={{
+                  fontSize: collapsed ? 16 : 28,
+                }}
+              >
+                {getInitials(admin?.name)}
+              </span>
+            )}
           </div>
 
           {/* Role label — clip with overflow */}
           <div
             className="overflow-hidden transition-all duration-300"
             style={{
-              maxHeight: collapsed ? 0 : 24,
+              maxHeight: collapsed ? 0 : 32,
               opacity: collapsed ? 0 : 1,
             }}
           >
-            <p className="text-xs text-blue-300 font-medium uppercase tracking-widest whitespace-nowrap">
-              {admin?.isSuperAdmin ? "Super Admin" : admin?.role?.name || "Admin"}
+            <p className="text-[10px] text-blue-300 text-center font-medium uppercase tracking-widest whitespace-nowrap">
+              {admin?.isSuperAdmin
+                ? "Super Admin"
+                : admin?.role?.name || "Admin"}
+            </p>
+            <p className="text-sm text-primary text-center font-semibold uppercase tracking-widest whitespace-nowrap">
+              {admin?.name || ""}
             </p>
           </div>
 
@@ -257,7 +332,8 @@ export default function Sidebar() {
             title="Communication"
             icon={<MessageSquare size={18} />}
             active={
-              pathname.startsWith("/messages") || pathname.startsWith("/tickets")
+              pathname.startsWith("/messages") ||
+              pathname.startsWith("/tickets")
             }
             collapsed={effectiveCollapsed}
           >
@@ -287,6 +363,20 @@ export default function Sidebar() {
             collapsed={effectiveCollapsed}
           />
         </nav>
+
+        <Divider />
+
+        {/* Logout Button */}
+        <SidebarTooltip
+          label="Logout"
+          active={false}
+          collapsed={effectiveCollapsed}
+          icon={<LogOut size={18} />}
+        >
+          <button onClick={handleLogout} type="button" className="text-left">
+            Logout
+          </button>
+        </SidebarTooltip>
       </aside>
     </>
   );
@@ -298,22 +388,20 @@ function Divider() {
   return <div className="h-px bg-white/10 mx-5 my-1" />;
 }
 
-/* ---- SidebarLink ---- */
-
-function SidebarLink({
-  label,
-  href,
-  icon,
-  active,
+function SidebarTooltip({
   collapsed,
+  label,
+  active,
+  icon,
+  children,
 }: {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-  active: boolean;
   collapsed: boolean;
+  label: string;
+  active: boolean;
+  icon: React.ReactNode;
+  children: React.ReactNode;
 }) {
-  const ref = useRef<HTMLAnchorElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const [tip, setTip] = useState<{ top: number; left: number } | null>(null);
 
   const showTip = useCallback(() => {
@@ -324,11 +412,20 @@ function SidebarLink({
 
   const hideTip = useCallback(() => setTip(null), []);
 
+  const handleRowClick = (e: React.MouseEvent) => {
+    if (collapsed && ref.current) {
+      const clickable = ref.current.querySelector("a, button") as HTMLElement;
+      if (clickable && !clickable.contains(e.target as Node)) {
+        clickable.click();
+      }
+    }
+  };
+
   return (
     <>
-      <Link
+      <div
         ref={ref}
-        href={href}
+        onClick={handleRowClick}
         className={clsx(
           "sidebar-row gap-3 px-6 py-3.5 text-sm font-semibold transition-colors duration-150",
           active
@@ -344,8 +441,8 @@ function SidebarLink({
         >
           {icon}
         </span>
-        <span className="sidebar-label">{label}</span>
-      </Link>
+        <div className="overflow-hidden">{children}</div>
+      </div>
 
       {/* Fixed tooltip */}
       {collapsed && (
@@ -362,6 +459,24 @@ function SidebarLink({
         </span>
       )}
     </>
+  );
+}
+
+/* ---- SidebarLink ---- */
+
+function SidebarLink(linkProps: {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  active: boolean;
+  collapsed: boolean;
+}) {
+  return (
+    <SidebarTooltip {...linkProps}>
+      <Link href={linkProps.href} className="sidebar-label">
+        {linkProps.label}
+      </Link>
+    </SidebarTooltip>
   );
 }
 
@@ -520,7 +635,9 @@ function SubItem({
             : "text-blue-200 hover:bg-white/8 hover:text-white",
         )}
       >
-        <span className={clsx("shrink-0", active ? "opacity-100" : "opacity-60")}>
+        <span
+          className={clsx("shrink-0", active ? "opacity-100" : "opacity-60")}
+        >
           {icon}
         </span>
         {label}

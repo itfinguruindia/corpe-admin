@@ -6,7 +6,9 @@ import {
   ChartCard,
 } from "@/components/dashboard/DashboardCard";
 import FloatingActionButton from "@/components/dashboard/FloatingActionButton";
-import { MessageSquareText, Zap } from "lucide-react";
+import RaisedTicketsWidget from "@/components/dashboard/RaisedTicketsWidget";
+import RecentlyOnboardedWidget from "@/components/dashboard/RecentlyOnboardedWidget";
+import { Zap } from "lucide-react";
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
 
@@ -29,7 +31,7 @@ export default async function Dashboard() {
       {/* SECTIONS 1 & 2: Top Grid (4 columns) */}
       <section
         id="stats-overview"
-        className="grid md:grid-cols-4 grid-cols-2 gap-6"
+        className="grid md:grid-cols-4 grid-cols-2 gap-6 stagger-children"
       >
         {/* Row 1 */}
         <StatCard label="Total name application" value={totalApplication} />
@@ -46,11 +48,12 @@ export default async function Dashboard() {
           className="bg-gray-50/50"
         >
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="relative h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
               <Zap className="h-5 w-5 text-primary" />
+              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary animate-pulse-glow" />
             </div>
             <p className="text-sm font-medium text-secondary italic">
-              “Chhaya completed KYC”
+              &ldquo;Chhaya completed KYC&rdquo;
             </p>
           </div>
         </ContentCard>
@@ -62,49 +65,13 @@ export default async function Dashboard() {
           value={rejectedOrResubmitted}
         />
 
-        {/* Raised Tickets Table Placeholder */}
+        {/* Raised Tickets — Dynamic Widget */}
         <TableCard
           id="raised-tickets"
           title="Raised Tickets"
           className="col-span-2"
         >
-          <div className="flex flex-wrap justify-between gap-2 items-center bg-gray-50/50 rounded-xl p-4 border border-gray-100">
-            {/* Application No */}
-            <div className="shrink-0">
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">
-                Application No.
-              </p>
-              <p className="text-lg font-bold text-primary">GUJC000001</p>
-            </div>
-
-            {/* View Message */}
-            <div className="shrink-0 flex flex-col items-center border-gray-200 px-6">
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">
-                Message
-              </p>
-              <button className="flex items-center justify-center p-2 rounded-lg hover:bg-white transition-all text-primary border border-transparent hover:border-gray-200 hover:shadow-sm">
-                <MessageSquareText className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* Assignee */}
-            <div className="shrink-0 px-4">
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">
-                Assignee
-              </p>
-              <p className="text-lg font-bold text-secondary">Shaili</p>
-            </div>
-
-            {/* Time */}
-            <div className="ml-auto text-center">
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">
-                Time
-              </p>
-              <span className="text-sm font-semibold text-primary">
-                11:11 AM
-              </span>
-            </div>
-          </div>
+          <RaisedTicketsWidget />
         </TableCard>
 
         {/* Empty Placeholder to keep alignment */}
@@ -112,7 +79,7 @@ export default async function Dashboard() {
       </section>
 
       {/* SECTION 3: Bottom Grid (3 columns, taller cards) */}
-      <section className="grid lg:grid-cols-3 grid-cols-1 gap-6">
+      <section className="grid lg:grid-cols-3 grid-cols-1 gap-6 stagger-children">
         {/* Company Types List */}
         <ContentCard
           id="company-types"
@@ -123,21 +90,21 @@ export default async function Dashboard() {
             <li>
               <Link
                 href={"/clients?entity=opcs"}
-                className="text-sm font-bold text-secondary hover:text-primary transition-colors flex items-center gap-2"
+                className="text-sm font-bold text-secondary hover:text-primary transition-colors flex items-center gap-2 group"
               >
-                <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                <div className="h-2 w-2 rounded-full bg-primary transition-transform group-hover:scale-125"></div>
                 OPCs
               </Link>
             </li>
             <li className="space-y-3">
               <Link
                 href={"/clients?entity=privateIndividual%2CprivateCorporate"}
-                className="text-sm font-bold text-secondary hover:text-primary transition-colors flex items-center gap-2"
+                className="text-sm font-bold text-secondary hover:text-primary transition-colors flex items-center gap-2 group"
               >
-                <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                <div className="h-2 w-2 rounded-full bg-primary transition-transform group-hover:scale-125"></div>
                 Private Companies
               </Link>
-              <ul className="ml-6 space-y-2 border-l-2 border-gray-100 pl-4">
+              <ul className="ml-6 space-y-2 border-l-2 border-primary/10 pl-4">
                 <li>
                   <Link
                     href={"/clients?entity=privateIndividual"}
@@ -160,12 +127,12 @@ export default async function Dashboard() {
             <li className="space-y-3">
               <Link
                 href={"/clients?entity=publicIndividual%2CpublicCorporate"}
-                className="text-sm font-bold text-secondary hover:text-primary transition-colors flex items-center gap-2"
+                className="text-sm font-bold text-secondary hover:text-primary transition-colors flex items-center gap-2 group"
               >
-                <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                <div className="h-2 w-2 rounded-full bg-primary transition-transform group-hover:scale-125"></div>
                 Public Companies
               </Link>
-              <ul className="ml-6 space-y-2 border-l-2 border-gray-100 pl-4">
+              <ul className="ml-6 space-y-2 border-l-2 border-primary/10 pl-4">
                 <li>
                   <Link
                     href={"/clients?entity=publicIndividual"}
@@ -187,16 +154,16 @@ export default async function Dashboard() {
             <li>
               <Link
                 href={"/clients?entity=foreignIndividual"}
-                className="text-sm font-bold text-secondary hover:text-primary transition-colors flex items-center gap-2"
+                className="text-sm font-bold text-secondary hover:text-primary transition-colors flex items-center gap-2 group"
               >
-                <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                <div className="h-2 w-2 rounded-full bg-primary transition-transform group-hover:scale-125"></div>
                 Foreign Individual
               </Link>
             </li>
           </ul>
         </ContentCard>
 
-        {/* Monthly Target Donut Chart */}
+        {/* Monthly Target Donut Chart — Static, visually polished */}
         <ChartCard
           id="monthly-target"
           title="Monthly Target Progress"
@@ -205,7 +172,7 @@ export default async function Dashboard() {
           <div className="flex flex-col items-center justify-center py-6">
             {/* Donut */}
             <div
-              className="relative h-56 w-56 rounded-full shadow-inner-lg"
+              className="animate-donut-reveal relative h-56 w-56 rounded-full shadow-inner-lg"
               style={{
                 background: `conic-gradient(
                   #F36541 0% 59%,
@@ -233,47 +200,13 @@ export default async function Dashboard() {
           </div>
         </ChartCard>
 
-        {/* Recently Onboarded Companies */}
+        {/* Recently Onboarded — Dynamic Widget */}
         <ContentCard
           id="recent-onboarded"
           title="Recently onboarded"
           className="min-h-[400px]"
         >
-          <div className="space-y-4">
-            {/* Header row */}
-            <div className="grid grid-cols-3 gap-4 pb-2 border-b-2 border-gray-100">
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                Company Name
-              </div>
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                Handled By
-              </div>
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                Reviewed By
-              </div>
-            </div>
-
-            {/* Rows */}
-            <div className="divide-y divide-gray-50">
-              {[
-                ["Alpha Tech Pvt Ltd", "Rohit Sharma", "Anita Verma"],
-                ["BlueSky Solutions", "Neha Gupta", "Sanjay Mehta"],
-                ["NextGen Systems", "Aman Khanna", "Pooja Singh"],
-                ["Vertex Innovations", "Karan Malhotra", "Ritu Jain"],
-              ].map((row, i) => (
-                <div
-                  key={i}
-                  className="grid grid-cols-3 gap-4 py-3 group hover:bg-gray-50/50 transition-colors"
-                >
-                  <div className="text-sm font-semibold text-secondary">
-                    {row[0]}
-                  </div>
-                  <div className="text-sm text-gray-600">{row[1]}</div>
-                  <div className="text-sm text-gray-600">{row[2]}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <RecentlyOnboardedWidget />
         </ContentCard>
       </section>
 
@@ -292,10 +225,10 @@ function LegendItem({
   value: string;
 }) {
   return (
-    <div className="flex flex-col items-start gap-1 p-3 rounded-xl bg-gray-50/50 border border-gray-100 hover:bg-white transition-all shadow-sm hover:shadow-md">
+    <div className="flex flex-col items-start gap-1.5 p-3 rounded-xl bg-gray-50/50 border border-gray-100 hover:bg-white transition-all shadow-sm hover:shadow-md">
       <div className="flex items-center gap-2">
         <span
-          className="h-2 w-2 rounded-full"
+          className="h-2.5 w-2.5 rounded-full"
           style={{ backgroundColor: color }}
         />
         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
