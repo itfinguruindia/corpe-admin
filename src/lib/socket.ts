@@ -4,15 +4,19 @@ import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 
-function getSocketUrlFromApiUrl(): string {
+function getSocketConfigFromApiUrl(): { url: string; path: string } {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   if (!apiUrl) {
     throw new Error("NEXT_PUBLIC_API_URL is not set");
   }
 
-  // Convert e.g. https://api.corpe.io/api -> https://api.corpe.io
-  return apiUrl.replace(/\/api\/?$/, "");
+  const url = new URL(apiUrl);
+
+  return {
+    url: url.origin,
+    path: "/api/socket.io",
+  };
 }
 
 /**
@@ -28,10 +32,11 @@ export function connectSocket(): Socket {
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+  const { url, path } = getSocketConfigFromApiUrl();
 
-  socket = io(getSocketUrlFromApiUrl(), {
+  socket = io(url, {
+    path,
     auth: { token },
-    transports: ["websocket"],
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
