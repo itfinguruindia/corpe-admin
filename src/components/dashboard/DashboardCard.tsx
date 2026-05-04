@@ -1,6 +1,5 @@
 import React from "react";
 import clsx from "clsx";
-import { Zap } from "lucide-react";
 
 interface DashboardCardProps {
   id?: string;
@@ -19,12 +18,12 @@ export function DashboardCard({
     <div
       id={id}
       className={clsx(
-        "rounded-xl bg-white border border-gray-200 p-6 shadow-sm transition-all hover:shadow-md",
+        "card-accent-top rounded-2xl bg-white border border-gray-100 p-6 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
         className,
       )}
     >
       {title && (
-        <h3 className="mb-5 text-sm font-semibold text-secondary uppercase tracking-wider">
+        <h3 className="mb-5 text-xs font-bold text-secondary uppercase tracking-widest">
           {title}
         </h3>
       )}
@@ -36,7 +35,7 @@ export function DashboardCard({
 interface StatCardProps {
   label: string;
   value: string | number;
-  subValue?: string; // e.g. "40%"
+  subValue?: string;
   className?: string;
 }
 
@@ -44,22 +43,22 @@ export function StatCard({ label, value, subValue, className }: StatCardProps) {
   return (
     <DashboardCard
       className={clsx(
-        "flex flex-col h-full min-h-[140px] justify-between",
+        "flex flex-col h-full min-h-[140px] justify-between border-l-[3px] border-l-primary/40",
         className,
       )}
     >
       <div>
-        <span className="text-sm font-semibold text-secondary block mb-2 tracking-wide">
+        <span className="text-xs font-bold text-secondary/70 block mb-2 tracking-wide uppercase">
           {label}
         </span>
       </div>
 
       <div className="flex items-end gap-3 mt-auto">
-        <span className="text-4xl md:text-5xl font-extrabold text-primary tracking-tight">
+        <span className="text-4xl md:text-5xl font-extrabold text-primary tracking-tighter">
           {value}
         </span>
         {subValue && (
-          <span className="mb-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-100 flex items-center">
+          <span className="mb-1 text-xs font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full border border-green-100 flex items-center gap-1">
             {subValue}
           </span>
         )}
@@ -84,7 +83,9 @@ export function ContentCard({
   return (
     <DashboardCard id={id} className={clsx("h-full min-h-[140px]", className)}>
       {title && (
-        <h3 className="mb-3 text-sm font-semibold text-secondary">{title}</h3>
+        <h3 className="mb-3 text-xs font-bold text-secondary uppercase tracking-widest">
+          {title}
+        </h3>
       )}
       {children}
     </DashboardCard>
@@ -101,9 +102,9 @@ export function TableCard({ id, title, children, className }: tableCardProps) {
   return (
     <DashboardCard id={id} className={clsx("relative h-full", className)}>
       {title && (
-        <h3 className="mb-4 text-sm font-bold text-secondary flex items-center gap-2">
+        <h3 className="mb-4 text-xs font-bold text-secondary flex items-center gap-2 uppercase tracking-widest">
+          <span className="h-2 w-2 rounded-full bg-primary animate-pulse-glow inline-block" />
           {title}
-          <Zap className="h-5 w-5 text-gray-400" />
         </h3>
       )}
       {children}
@@ -120,7 +121,9 @@ export function ChartCard({ id, title, children, className }: ChartCardProps) {
   return (
     <DashboardCard id={id} className={clsx("h-full min-h-[300px]", className)}>
       {title && (
-        <h3 className="mb-4 text-sm font-bold text-secondary">{title}</h3>
+        <h3 className="mb-4 text-xs font-bold text-secondary uppercase tracking-widest">
+          {title}
+        </h3>
       )}
       {children}
     </DashboardCard>

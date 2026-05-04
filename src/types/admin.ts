@@ -4,6 +4,7 @@ export interface AuthResponse {
   accessToken: string | null;
   refreshToken: string | null;
   admin: Admin | null;
+  profilePictureUrl?: string | null;
 }
 
 export interface Admin {
@@ -14,6 +15,7 @@ export interface Admin {
   isSuperAdmin: boolean;
   role: Role;
   permissions: string[];
+  profilePicture?: string;
 }
 
 export interface NotificationPreferences {

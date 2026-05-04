@@ -9,19 +9,19 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@heroui/react": "^3.0.2",
-    "@heroui/styles": "^3.0.2",
+    "@heroui/react": "^3.0.3",
+    "@heroui/styles": "^3.0.3",
     "@reduxjs/toolkit": "^2.11.2",
-    "axios": "^1.14.0",
+    "axios": "^1.16.0",
     "clsx": "^2.1.1",
-    "emoji-picker-react": "^4.18.0",
+    "emoji-picker-react": "^4.19.1",
     "js-cookie": "^3.0.5",
-    "lucide-react": "^1.7.0",
-    "next": "^16.2.2",
+    "lucide-react": "^1.14.0",
+    "next": "^16.2.4",
     "nextjs-toploader": "^3.9.17",
     "nprogress": "^0.2.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
     "react-hot-toast": "^2.6.0",
     "react-phone-number-input": "^3.4.16",
     "react-redux": "^9.2.0",
@@ -31,19 +31,19 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "^4.2.4",
     "@types/js-cookie": "^3.0.6",
-    "@types/node": "^25",
+    "@types/node": "^25.6.0",
     "@types/nprogress": "^0.2.3",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "@types/redux-persist": "^4.3.1",
     "eslint": "9",
     "eslint-config-next": "16.2.2",
-    "tailwindcss": "^4",
-    "typescript": "^6"
+    "tailwindcss": "^4.2.4",
+    "typescript": "^6.0.3"
   },
   "overrides": {
-    "ajv": "^8.18.0"
+    "ajv": "^8.20.0"
   }
 }
