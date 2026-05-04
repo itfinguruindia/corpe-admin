@@ -1,15 +1,17 @@
+"use client";
+
 import { io, Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
 
-/**
- * Derive the Socket.IO server URL from the API URL.
- * NEXT_PUBLIC_API_URL = "http://localhost:8000/api/" → "http://localhost:8000"
- */
-function getSocketUrl(): string {
-  const apiUrl =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
-  // Strip the /api/ or /api suffix to get base URL
+function getSocketUrlFromApiUrl(): string {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  if (!apiUrl) {
+    throw new Error("NEXT_PUBLIC_API_URL is not set");
+  }
+
+  // Convert e.g. https://api.corpe.io/api -> https://api.corpe.io
   return apiUrl.replace(/\/api\/?$/, "");
 }
 
@@ -18,14 +20,18 @@ function getSocketUrl(): string {
  * Should be called from the messages page only.
  */
 export function connectSocket(): Socket {
+  if (typeof window === "undefined") {
+    throw new Error("Socket connection can only be initialized in the browser");
+  }
+
   if (socket?.connected) return socket;
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
 
-  socket = io(getSocketUrl(), {
+  socket = io(getSocketUrlFromApiUrl(), {
     auth: { token },
-    transports: ["websocket", "polling"],
+    transports: ["websocket"],
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
