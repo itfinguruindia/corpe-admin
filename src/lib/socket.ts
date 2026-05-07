@@ -11,11 +11,9 @@ function getSocketConfigFromApiUrl(): { url: string; path: string } {
     throw new Error("NEXT_PUBLIC_API_URL is not set");
   }
 
-  const url = new URL(apiUrl);
-
   return {
-    url: url.origin,
-    path: "/api/socket.io",
+    url: apiUrl.replace("/api/", "/"),
+    path: "/socket.io",
   };
 }
 

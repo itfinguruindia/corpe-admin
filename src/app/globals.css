@@ -220,7 +220,7 @@ button:hover {
 }
 
 /* Mobile: sidebar is an overlay, content takes full width */
-@media (max-width: 767px) {
+@media (max-width: 767.98px) {
   .sidebar-content {
     margin-left: 0 !important;
   }

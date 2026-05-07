@@ -1,7 +1,7 @@
 import { logoutAdmin } from "@/utils/auth";
 import axios from "axios";
 import Cookies from "js-cookie";
-import toast from "react-hot-toast";
+import { toast } from "@heroui/react";
 
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
@@ -39,7 +39,7 @@ axiosInstance.interceptors.response.use(
       response.data.success === false &&
       response.data.message
     ) {
-      toast.error(response.data.message);
+      toast.danger(response.data.message);
     }
 
     return response;
@@ -53,13 +53,13 @@ axiosInstance.interceptors.response.use(
     // 401 → logout
     if (status === 401 && typeof window !== "undefined") {
       logoutAdmin();
-      toast.error("Session expired. Please login again.");
+      toast.danger("Session expired. Please login again.");
       window.location.href = "/login";
       return Promise.reject(error);
     }
 
     // Other errors → toast
-    toast.error(message);
+    toast.danger(message);
 
     return Promise.reject(error);
   },

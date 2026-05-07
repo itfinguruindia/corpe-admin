@@ -22,7 +22,9 @@ export default function SettingPage() {
   const router = useRouter();
   const dispatch = useDispatch();
   const swal = useSwal();
-  const { profilePictureUrl: reduxProfileImage } = useSelector((state: RootState) => state.auth);
+  const { profilePictureUrl: reduxProfileImage } = useSelector(
+    (state: RootState) => state.auth,
+  );
   const [profileData, setProfileData] = useState({
     displayName: "",
     phoneNumber: "",
@@ -54,12 +56,15 @@ export default function SettingPage() {
   const fetchProfilePictureUrl = useCallback(async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await axiosInstance.get("/auth/admin-profile-picture-url", {
-        headers: {
-          "x-access-token": token || "",
-          "x-access-token-type": "accessToken",
+      const response = await axiosInstance.get(
+        "/auth/admin-profile-picture-url",
+        {
+          headers: {
+            "x-access-token": token || "",
+            "x-access-token-type": "accessToken",
+          },
         },
-      });
+      );
       if (response.data.success && response.data.data?.profilePictureUrl) {
         dispatch(setProfilePictureUrl(response.data.data.profilePictureUrl));
       }
@@ -501,9 +506,11 @@ export default function SettingPage() {
 
         // Rebuild the E.164 phone number from stored countryCode + phoneNumber
         const countryCode = admin.countryCode || "+1";
-        const rawPhone = admin.phoneNumber ||"";
+        const rawPhone = admin.phoneNumber || "";
         // If rawPhone already starts with +, use it as-is; otherwise combine
-        const fullPhone = rawPhone.startsWith("+") ? rawPhone : `${countryCode}${rawPhone}`;
+        const fullPhone = rawPhone.startsWith("+")
+          ? rawPhone
+          : `${countryCode}${rawPhone}`;
 
         const data = {
           displayName: admin.name || "",
@@ -566,8 +573,6 @@ export default function SettingPage() {
         {/* Right Column */}
         <div className="space-y-6">
           <NotificationsSection id="notifications-section" />
-
-          <DataManagementSection id="data-management-section" />
         </div>
       </div>
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { checkSuperAdmin, registerSuperAdmin } from "@/utils/auth";
-import toast from "react-hot-toast";
+import { toast } from "@heroui/react";
 import { Eye, EyeOff } from "lucide-react";
 import {
   Alert,

@@ -63,7 +63,7 @@ export default function MessagesPage() {
   // Fetch chat rooms
   const fetchRooms = useCallback(async () => {
     try {
-      const data = await chatService.getChatRooms(1, 50, searchQuery);
+      const data = await chatService.getChatRooms(1, 50, searchQuery, adminId);
       setRooms(data?.rooms || []);
     } catch (error) {
       console.error("Failed to fetch rooms:", error);

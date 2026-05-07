@@ -5,6 +5,7 @@ import { Bell, RefreshCcw, Undo2, Menu } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { openMobileSidebar } from "@/redux/slices/layoutSlice";
 import GlobalSearch from "@/components/layout/GlobalSearch";
+import NotificationBell from "@/components/layout/NotificationBell";
 
 export default function DashboardHeader() {
   const router = useRouter();
@@ -40,13 +41,7 @@ export default function DashboardHeader() {
       {/* Right Side: Actions & Profile */}
       <div className="flex items-center gap-3 md:gap-6 ml-4 col-[-2/-1] row-[1/2] justify-self-end">
         {/* Notification Bell */}
-        <button className="relative flex h-10 w-10 items-center justify-center rounded-full text-primary-500 hover:bg-gray-100 transition-colors">
-          <Bell className="h-6 w-6 md:h-8 md:w-8" />
-          <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-          </span>
-        </button>
+        <NotificationBell />
 
         {/* Add/Plus Icon */}
         {/* <button className="flex h-10 w-10 items-center justify-center rounded-full text-primary-500 hover:bg-gray-100 transition-colors">

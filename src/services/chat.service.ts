@@ -8,10 +8,11 @@ const chatService = {
   /**
    * Fetch all chat rooms for admin inbox.
    */
-  async getChatRooms(page = 1, limit = 20, search = "") {
+  async getChatRooms(page = 1, limit = 20, search = "", adminId: string) {
     const params = new URLSearchParams({
       page: String(page),
       limit: String(limit),
+      adminId: String(adminId),
     });
     if (search) params.set("search", search);
 
