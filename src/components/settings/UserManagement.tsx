@@ -20,7 +20,7 @@ import {
   Users as UsersIcon,
   Shield,
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "@heroui/react";
 
 interface UserManagementProps {
   onEditUser?: (userId: string) => void;
@@ -138,7 +138,7 @@ export default function UserManagement({
 
   const handleDeleteUser = (user: User) => {
     if (user.isSuperAdmin) {
-      toast.error("Super Admin cannot be deleted!");
+      toast.danger("Super Admin cannot be deleted!");
       return;
     }
     if (

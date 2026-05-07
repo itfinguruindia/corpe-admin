@@ -28,24 +28,29 @@ export default async function Dashboard() {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* SECTIONS 1 & 2: Top Grid (4 columns) */}
+      {/* SECTION 1: Overview Stats (4 columns) */}
       <section
         id="stats-overview"
         className="grid md:grid-cols-4 grid-cols-2 gap-6 stagger-children"
       >
-        {/* Row 1 */}
         <StatCard label="Total name application" value={totalApplication} />
         <StatCard
           label="Name application approved"
           value={approveNameApplication}
         />
+        <StatCard label="Pending application" value={pendingApplication} />
+        <StatCard
+          label="Name re-submission, rejected"
+          value={rejectedOrResubmitted}
+        />
+
         <StatCard label="Delay status" value="40%" subValue="" />
 
-        {/* Highlight/Notification Card */}
+        {/* Highlight/Notification Card - Spans 3 columns for better balance */}
         <ContentCard
           id="highlights"
           title="Highlights/Notifications"
-          className="bg-gray-50/50"
+          className="bg-gray-50/50 md:col-span-3 col-span-2"
         >
           <div className="flex items-center gap-3">
             <div className="relative h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -57,28 +62,58 @@ export default async function Dashboard() {
             </p>
           </div>
         </ContentCard>
+      </section>
 
-        {/* Row 2 */}
-        <StatCard label="Pending application" value={pendingApplication} />
-        <StatCard
-          label="Name re-submission, rejected"
-          value={rejectedOrResubmitted}
-        />
-
-        {/* Raised Tickets — Dynamic Widget */}
+      {/* SECTION 2: Active Monitoring (Raised Tickets & Target) */}
+      <section className="grid lg:grid-cols-3 grid-cols-1 gap-6 stagger-children">
+        {/* Raised Tickets — Dynamic Widget (Spans 2 columns) */}
         <TableCard
           id="raised-tickets"
           title="Raised Tickets"
-          className="col-span-2"
+          className="lg:col-span-2"
         >
           <RaisedTicketsWidget />
         </TableCard>
 
-        {/* Empty Placeholder to keep alignment */}
-        <div className="hidden lg:block"></div>
+        {/* Monthly Target Donut Chart — Static, visually polished */}
+        <ChartCard
+          id="monthly-target"
+          title="Monthly Target Progress"
+          className="min-h-80"
+        >
+          <div className="flex flex-col items-center justify-center py-6">
+            {/* Donut */}
+            <div
+              className="animate-donut-reveal relative h-56 w-56 rounded-full shadow-inner-lg"
+              style={{
+                background: `conic-gradient(
+                  #F36541 0% 59%,
+                  #3D63A4 59% 80%,
+                  #F7C948 80% 100%
+                )`,
+              }}
+            >
+              <div className="absolute inset-8 rounded-full bg-white flex flex-col items-center justify-center shadow-lg border border-gray-50">
+                <span className="text-3xl font-black text-secondary">
+                  20.9%
+                </span>
+                <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">
+                  Achieved
+                </span>
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="mt-10 grid grid-cols-2 gap-4 w-full px-4">
+              <LegendItem color="#F36541" label="Completed" value="59%" />
+              <LegendItem color="#3D63A4" label="In Progress" value="21%" />
+              <LegendItem color="#F7C948" label="Pending" value="20%" />
+            </div>
+          </div>
+        </ChartCard>
       </section>
 
-      {/* SECTION 3: Bottom Grid (3 columns, taller cards) */}
+      {/* SECTION 3: Directory & Activity (Company Types & Recently Onboarded) */}
       <section className="grid lg:grid-cols-3 grid-cols-1 gap-6 stagger-children">
         {/* Company Types List */}
         <ContentCard
@@ -163,48 +198,11 @@ export default async function Dashboard() {
           </ul>
         </ContentCard>
 
-        {/* Monthly Target Donut Chart — Static, visually polished */}
-        <ChartCard
-          id="monthly-target"
-          title="Monthly Target Progress"
-          className="min-h-80"
-        >
-          <div className="flex flex-col items-center justify-center py-6">
-            {/* Donut */}
-            <div
-              className="animate-donut-reveal relative h-56 w-56 rounded-full shadow-inner-lg"
-              style={{
-                background: `conic-gradient(
-                  #F36541 0% 59%,
-                  #3D63A4 59% 80%,
-                  #F7C948 80% 100%
-                )`,
-              }}
-            >
-              <div className="absolute inset-8 rounded-full bg-white flex flex-col items-center justify-center shadow-lg border border-gray-50">
-                <span className="text-3xl font-black text-secondary">
-                  20.9%
-                </span>
-                <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold">
-                  Achieved
-                </span>
-              </div>
-            </div>
-
-            {/* Legend */}
-            <div className="mt-10 grid grid-cols-2 gap-4 w-full px-4">
-              <LegendItem color="#F36541" label="Completed" value="59%" />
-              <LegendItem color="#3D63A4" label="In Progress" value="21%" />
-              <LegendItem color="#F7C948" label="Pending" value="20%" />
-            </div>
-          </div>
-        </ChartCard>
-
-        {/* Recently Onboarded — Dynamic Widget */}
+        {/* Recently Onboarded — Dynamic Widget (Spans 2 columns) */}
         <ContentCard
           id="recent-onboarded"
           title="Recently onboarded"
-          className="min-h-[400px]"
+          className="min-h-[400px] lg:col-span-2"
         >
           <RecentlyOnboardedWidget />
         </ContentCard>
