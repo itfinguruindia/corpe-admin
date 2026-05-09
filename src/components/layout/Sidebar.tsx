@@ -427,7 +427,7 @@ function SidebarTooltip({
         ref={ref}
         onClick={handleRowClick}
         className={clsx(
-          "sidebar-row gap-3 px-6 py-3.5 text-sm font-semibold transition-colors duration-150",
+          "sidebar-row w-full! gap-3 px-6 py-3.5 text-sm font-semibold transition-colors duration-150",
           active
             ? "text-yellow-400 bg-yellow-400/10"
             : "text-blue-100 hover:bg-white/8 hover:text-white",
@@ -473,9 +473,11 @@ function SidebarLink(linkProps: {
 }) {
   return (
     <SidebarTooltip {...linkProps}>
-      <Link href={linkProps.href} className="sidebar-label">
-        {linkProps.label}
-      </Link>
+      <div className="flex">
+        <Link href={linkProps.href} className="flex-1">
+          {linkProps.label}
+        </Link>
+      </div>
     </SidebarTooltip>
   );
 }
