@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 
 import { Users, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { Skeleton, Chip, Button } from "@heroui/react";
 
 import { clientsApi } from "@/lib/api";
 
@@ -19,16 +20,16 @@ function TableSkeleton() {
     <div className="space-y-4">
       {/* Header */}
       <div className="grid grid-cols-3 gap-4 pb-2 border-b-2 border-gray-100">
-        <div className="skeleton h-3 w-24" />
-        <div className="skeleton h-3 w-20" />
-        <div className="skeleton h-3 w-22" />
+        <Skeleton className="h-3 w-24 rounded-md" />
+        <Skeleton className="h-3 w-20 rounded-md" />
+        <Skeleton className="h-3 w-22 rounded-md" />
       </div>
       {/* Rows */}
       {[1, 2, 3, 4].map((i) => (
         <div key={i} className="grid grid-cols-3 gap-4 py-3">
-          <div className="skeleton h-4 w-32" />
-          <div className="skeleton h-4 w-24" />
-          <div className="skeleton h-4 w-24" />
+          <Skeleton className="h-4 w-32 rounded-md" />
+          <Skeleton className="h-4 w-24 rounded-md" />
+          <Skeleton className="h-4 w-24 rounded-md" />
         </div>
       ))}
     </div>
@@ -97,14 +98,18 @@ export default function RecentlyOnboardedWidget() {
               >
                 {client.appNo}
               </Link>
-              <span className="text-[10px] font-medium text-gray-500 uppercase tracking-tight mt-0.5">
+              <Chip
+                variant="soft"
+                size="sm"
+                className="mt-1 bg-gray-100 text-gray-500 text-[10px] uppercase tracking-tight"
+              >
                 {client.entity}
-              </span>
+              </Chip>
             </div>
-            <div className="text-sm text-gray-600 self-center">
+            <div className="text-sm text-gray-600 self-center font-medium">
               {client.assignee}
             </div>
-            <div className="text-sm text-gray-600 self-center">
+            <div className="text-sm text-gray-600 self-center font-medium">
               {client.assigner}
             </div>
           </div>
@@ -112,12 +117,13 @@ export default function RecentlyOnboardedWidget() {
       </div>
 
       {/* View All Link */}
-      <Link
-        href="/clients"
-        className="flex items-center justify-center gap-1.5 pt-1 text-xs font-bold text-secondary/60 hover:text-primary transition-colors uppercase tracking-wider"
-      >
-        View all clients
-        <ArrowRight className="h-3.5 w-3.5" />
+      <Link href="/clients">
+        <Button
+          className="w-full text-secondary/60 hover:text-primary font-bold uppercase tracking-wider text-xs bg-transparent"
+        >
+          View all clients
+          <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+        </Button>
       </Link>
     </div>
   );
