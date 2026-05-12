@@ -1,19 +1,18 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { Bell, RefreshCcw, Undo2, Menu } from "lucide-react";
+import { RefreshCcw, Undo2, Menu } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { openMobileSidebar } from "@/redux/slices/layoutSlice";
 import GlobalSearch from "@/components/layout/GlobalSearch";
 import NotificationBell from "@/components/layout/NotificationBell";
+import { Button, Tooltip } from "@heroui/react";
 
 export default function DashboardHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
 
-  // Determine if we should show navigation actions (back/refresh)
-  // Usually shown on non-root dashboard pages
   const isRootDashboard = pathname === "/dashboard";
 
   return (
@@ -21,15 +20,14 @@ export default function DashboardHeader() {
       {/* Left Side: Mobile Menu, Navigation & Search */}
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 flex-1">
         <div className="flex items-center gap-3 w-full md:w-auto">
-          {/* Mobile hamburger */}
-          <button
-            type="button"
-            onClick={() => dispatch(openMobileSidebar())}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-primary-500 hover:bg-gray-100 transition-colors md:hidden"
+          <Button
+            isIconOnly
+            onPress={() => dispatch(openMobileSidebar())}
+            className="shrink-0 text-primary-500 bg-transparent hover:bg-gray-100 md:hidden"
             aria-label="Open menu"
           >
             <Menu className="h-6 w-6" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -40,38 +38,35 @@ export default function DashboardHeader() {
 
       {/* Right Side: Actions & Profile */}
       <div className="flex items-center gap-3 md:gap-6 ml-4 col-[-2/-1] row-[1/2] justify-self-end">
-        {/* Notification Bell */}
         <NotificationBell />
 
-        {/* Add/Plus Icon */}
-        {/* <button className="flex h-10 w-10 items-center justify-center rounded-full text-primary-500 hover:bg-gray-100 transition-colors">
-          <Image
-            src="/plus.png"
-            width={32}
-            height={32}
-            alt="Add item"
-            className="h-6 w-6 md:h-8 md:w-8 object-contain"
-          />
-        </button> */}
-
-        {/* Navigation Actions (Back/Refresh) */}
         <div className="flex items-center gap-2">
           {!isRootDashboard && (
-            <button
-              onClick={() => router.back()}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-primary-500 hover:bg-gray-100 transition-colors shadow-sm border border-gray-100"
-              title="Go Back"
-            >
-              <Undo2 className="h-5 w-5" />
-            </button>
+            <Tooltip>
+              <Tooltip.Trigger>
+                <Button
+                  isIconOnly
+                  onPress={() => router.back()}
+                  className="rounded-full text-primary-500 border border-gray-100 shadow-sm bg-white hover:bg-gray-50 h-9 w-9"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </Button>
+              </Tooltip.Trigger>
+              <Tooltip.Content>Go Back</Tooltip.Content>
+            </Tooltip>
           )}
-          <button
-            onClick={() => router.refresh()}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-primary-500 hover:bg-gray-100 transition-colors shadow-sm border border-gray-100"
-            title="Refresh Page"
-          >
-            <RefreshCcw className="h-5 w-5" />
-          </button>
+          <Tooltip>
+            <Tooltip.Trigger>
+              <Button
+                isIconOnly
+                onPress={() => router.refresh()}
+                className="rounded-full text-primary-500 border border-gray-100 shadow-sm bg-white hover:bg-gray-50 h-9 w-9"
+              >
+                <RefreshCcw className="h-4 w-4" />
+              </Button>
+            </Tooltip.Trigger>
+            <Tooltip.Content>Refresh Page</Tooltip.Content>
+          </Tooltip>
         </div>
       </div>
     </header>
