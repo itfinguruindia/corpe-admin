@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { ChevronDown, Upload, Download, RefreshCw, Eye } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast, Spinner } from "@heroui/react";
 import TabCard from "@/components/dashboard/TabCard";
 import Modal from "@/components/ui/Modal";
 import { clientsApi } from "@/lib/api/clients";
@@ -69,7 +69,7 @@ export default function NameApplicationPage() {
       toast.success("Status refreshed");
     } catch (error) {
       console.error("Error refreshing status:", error);
-      toast.error("Failed to refresh status");
+      toast("Failed to refresh status", { variant: "danger" });
     } finally {
       setIsRefreshing(false);
     }
@@ -104,7 +104,7 @@ export default function NameApplicationPage() {
         setClientFile(statusData.clientFile);
       } catch (error) {
         console.error("Error uploading Object Clause:", error);
-        toast.error("Failed to upload Object Clause");
+        toast("Failed to upload Object Clause", { variant: "danger" });
       }
     };
     input.click();
@@ -139,7 +139,7 @@ export default function NameApplicationPage() {
       toast.success(`Downloaded ${source || "file"} successfully`);
     } catch (error) {
       console.error("Error downloading Object Clause:", error);
-      toast.error("Failed to download Object Clause");
+      toast("Failed to download Object Clause", { variant: "danger" });
     }
   };
 
@@ -165,7 +165,7 @@ export default function NameApplicationPage() {
       setIsPreviewOpen(true);
     } catch (error) {
       console.error("Error previewing Object Clause:", error);
-      toast.error("Failed to preview Object Clause");
+      toast("Failed to preview Object Clause", { variant: "danger" });
     }
   };
 
