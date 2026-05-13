@@ -252,15 +252,17 @@ export default function LeadsPage() {
       label: "Action",
       render: (lead) => (
         <div className="flex items-center gap-2">
-          <Button
-            onClick={() => handleDelete(lead._id)}
-            className="min-w-0 h-auto p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
-            title="Delete lead"
-            aria-label="Delete lead"
-            variant="plain"
-          >
-            <Trash2 size={18} />
-          </Button>
+          <span title="Delete lead" className="inline-flex">
+            <Button
+              onClick={() => handleDelete(lead._id)}
+              className="min-w-0 h-auto p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
+              aria-label="Delete lead"
+              variant="ghost"
+              type="button"
+            >
+              <Trash2 size={18} />
+            </Button>
+          </span>
         </div>
       ),
     },
@@ -306,26 +308,28 @@ export default function LeadsPage() {
             <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
 
             <div className="flex items-center gap-2 self-end sm:self-auto">
-              <Button
-                onClick={handleRefresh}
-                className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                title="Refresh"
-                aria-label="Refresh leads"
-                type="button"
-                variant="plain"
-              >
-                <RefreshCw size={18} />
-              </Button>
-              <Button
-                onClick={handleExport}
-                className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                title="Export to Excel"
-                aria-label="Export leads to Excel"
-                type="button"
-                variant="plain"
-              >
-                <FileDown size={18} />
-              </Button>
+              <span title="Refresh" className="inline-flex">
+                <Button
+                  onClick={handleRefresh}
+                  className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
+                  aria-label="Refresh leads"
+                  type="button"
+                  variant="ghost"
+                >
+                  <RefreshCw size={18} />
+                </Button>
+              </span>
+              <span title="Export to Excel" className="inline-flex">
+                <Button
+                  onClick={handleExport}
+                  className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
+                  aria-label="Export leads to Excel"
+                  type="button"
+                  variant="ghost"
+                >
+                  <FileDown size={18} />
+                </Button>
+              </span>
             </div>
           </div>
         </div>

@@ -2,7 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Search, Loader2, MessageSquare } from "lucide-react";
-import Modal from "@/components/ui/Modal";
+import {
+  Button,
+  EmptyState,
+  Input,
+  Label,
+  Modal,
+  TextField,
+  useOverlayState,
+} from "@heroui/react";
 import axiosInstance from "@/lib/axios";
 import chatService from "@/services/chat.service";
 
@@ -28,6 +36,13 @@ export default function NewChatModal({
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState<string | null>(null);
+
+  const modalState = useOverlayState({
+    isOpen,
+    onOpenChange: (open) => {
+      if (!open) onClose();
+    },
+  });
 
   // Fetch clients when modal opens
   useEffect(() => {
@@ -66,7 +81,7 @@ export default function NewChatModal({
       if (isOpen) fetchClients(search);
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, isOpen]);
+  }, [search, isOpen, fetchClients]);
 
   const handleStartChat = async (client: Client) => {
     if (isCreating) return;
@@ -84,65 +99,79 @@ export default function NewChatModal({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Start New Conversation"
-      maxWidth="md:max-w-lg"
-    >
-      <div className="space-y-4">
-        {/* Search input */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by application number..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3 text-sm text-gray-700 placeholder-gray-400 focus:border-[#FF6A3D] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#FF6A3D]/30"
-            autoFocus
-          />
-        </div>
+    <Modal state={modalState}>
+      <Modal.Backdrop className="bg-black/50 backdrop-blur-sm">
+        <Modal.Container placement="center" className="p-4">
+          <Modal.Dialog className="flex w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white shadow-2xl outline-none max-h-[90vh]">
+            <Modal.Header className="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4">
+              <Modal.Heading className="text-lg font-semibold text-gray-900">
+                Start New Conversation
+              </Modal.Heading>
+              <Modal.CloseTrigger
+                className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Close modal"
+              />
+            </Modal.Header>
 
-        {/* Client list */}
-        <div className="max-h-[350px] overflow-y-auto rounded-lg border border-gray-100">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-[#FF6A3D]" />
-            </div>
-          ) : clients.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <MessageSquare className="h-8 w-8 text-gray-300 mb-2" />
-              <p className="text-sm text-gray-400">
-                {search ? "No clients found" : "No clients available"}
-              </p>
-            </div>
-          ) : (
-            clients.map((client) => (
-              <button
-                key={client.orgId}
-                onClick={() => handleStartChat(client)}
-                disabled={isCreating === client.orgId}
-                className="w-full flex items-center justify-between px-4 py-3 text-left border-b border-gray-50 transition-colors hover:bg-[#FFF5F2] disabled:opacity-60"
-              >
-                <div>
-                  <p className="text-sm font-bold text-[#FF6A3D]">
-                    {client.appNo || "—"}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {client.client || "Unknown"} · {client.entity || ""}
-                  </p>
+            <Modal.Body className="min-h-0 flex-1 overflow-y-auto px-6 py-4 text-gray-700">
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <TextField value={search} onChange={setSearch} name="searchClients">
+                    <Label className="sr-only">Search by application number</Label>
+                    <Input
+                      type="text"
+                      placeholder="Search by application number..."
+                      autoFocus
+                      className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3 text-sm text-gray-700 placeholder-gray-400 focus:border-[#FF6A3D] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#FF6A3D]/30"
+                    />
+                  </TextField>
                 </div>
-                {isCreating === client.orgId ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-[#FF6A3D]" />
-                ) : (
-                  <MessageSquare className="h-4 w-4 text-gray-400" />
-                )}
-              </button>
-            ))
-          )}
-        </div>
-      </div>
+
+                <div className="max-h-[350px] overflow-y-auto rounded-lg border border-gray-100">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-5 w-5 animate-spin text-[#FF6A3D]" />
+                    </div>
+                  ) : clients.length === 0 ? (
+                    <EmptyState className="flex flex-col items-center justify-center py-8 text-center">
+                      <MessageSquare className="h-8 w-8 text-gray-300 mb-2" />
+                      <p className="text-sm text-gray-400">
+                        {search ? "No clients found" : "No clients available"}
+                      </p>
+                    </EmptyState>
+                  ) : (
+                    clients.map((client) => (
+                      <Button
+                        key={client.orgId}
+                        type="button"
+                        variant="ghost"
+                        onClick={() => handleStartChat(client)}
+                        isDisabled={isCreating === client.orgId}
+                        className="w-full h-auto min-h-0 justify-between rounded-none border-b border-gray-50 px-4 py-3 font-normal text-left transition-colors hover:bg-[#FFF5F2] disabled:opacity-60"
+                      >
+                        <div>
+                          <p className="text-sm font-bold text-[#FF6A3D]">
+                            {client.appNo || "—"}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {client.client || "Unknown"} · {client.entity || ""}
+                          </p>
+                        </div>
+                        {isCreating === client.orgId ? (
+                          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#FF6A3D]" />
+                        ) : (
+                          <MessageSquare className="h-4 w-4 shrink-0 text-gray-400" />
+                        )}
+                      </Button>
+                    ))
+                  )}
+                </div>
+              </div>
+            </Modal.Body>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
     </Modal>
   );
 }

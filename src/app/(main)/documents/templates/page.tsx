@@ -3,17 +3,28 @@
 import { useState } from "react";
 import { templates } from "@/lib/data/mockTempletesUrlData";
 import { Search, FileText, Download, Upload, Eye, X } from "lucide-react";
+import {
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  Label,
+  Modal,
+  TextField,
+  useOverlayState,
+} from "@heroui/react";
 
 const TemplatesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [previewModal, setPreviewModal] = useState<{
-    isOpen: boolean;
-    url: string;
-    fileName: string;
-  }>({
-    isOpen: false,
-    url: "",
-    fileName: "",
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewFileName, setPreviewFileName] = useState("");
+  const previewOverlay = useOverlayState({
+    onOpenChange: (open) => {
+      if (!open) {
+        setPreviewUrl("");
+        setPreviewFileName("");
+      }
+    },
   });
 
   // Filter templates based on search query
@@ -32,19 +43,13 @@ const TemplatesPage = () => {
   };
 
   const handlePreview = (url: string, fileName: string) => {
-    setPreviewModal({
-      isOpen: true,
-      url,
-      fileName,
-    });
+    setPreviewUrl(url);
+    setPreviewFileName(fileName);
+    previewOverlay.open();
   };
 
   const closePreview = () => {
-    setPreviewModal({
-      isOpen: false,
-      url: "",
-      fileName: "",
-    });
+    previewOverlay.close();
   };
 
   const handleImport = () => {
@@ -71,22 +76,24 @@ const TemplatesPage = () => {
         {/* Search Bar with Import Button */}
         <div className="flex gap-3 items-center">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search templates..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none z-10" />
+            <TextField value={searchQuery} onChange={setSearchQuery} name="searchTemplates">
+              <Label className="sr-only">Search templates</Label>
+              <Input
+                type="text"
+                placeholder="Search templates..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </TextField>
           </div>
-          <button
+          <Button
+            type="button"
             onClick={handleImport}
-            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
+            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 shrink-0"
           >
             <Upload className="w-5 h-5" />
             Import
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -102,7 +109,7 @@ const TemplatesPage = () => {
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
       >
         {filteredTemplates.map((template) => (
-          <div
+          <Card
             key={template.id}
             className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-200"
           >
@@ -110,13 +117,12 @@ const TemplatesPage = () => {
             <div className="relative h-64 bg-gray-100 overflow-hidden">
               <iframe
                 src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(template.url)}`}
-                className="w-full h-full  origin-top-left"
+                className="w-full h-full origin-top-left"
                 title={template.fileName}
               />
             </div>
 
-            {/* Template Info */}
-            <div className="p-4 space-y-3">
+            <Card.Content className="p-4 space-y-3">
               {/* File Icon and Name */}
               <div className="flex items-start gap-2">
                 <FileText className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
@@ -127,13 +133,16 @@ const TemplatesPage = () => {
 
               {/* Action Buttons */}
               <div className="flex gap-2">
-                <button
+                <Button
+                  type="button"
                   onClick={() => handlePreview(template.url, template.fileName)}
-                  className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                  className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                  aria-label={`Preview ${template.fileName}`}
                 >
                   <Eye className="w-5 h-5" />
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
                   onClick={() =>
                     handleDownload(template.url, template.fileName)
                   }
@@ -141,16 +150,16 @@ const TemplatesPage = () => {
                 >
                   <Download className="w-5 h-5" />
                   Download
-                </button>
+                </Button>
               </div>
-            </div>
-          </div>
+            </Card.Content>
+          </Card>
         ))}
       </div>
 
       {/* Empty State */}
       {filteredTemplates.length === 0 && (
-        <div className="text-center py-12">
+        <EmptyState className="flex flex-col items-center justify-center text-center py-12">
           <FileText className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">
             No templates found
@@ -158,67 +167,68 @@ const TemplatesPage = () => {
           <p className="mt-1 text-sm text-gray-500">
             Try adjusting your search query
           </p>
-        </div>
+        </EmptyState>
       )}
 
       {/* Preview Modal */}
-      {previewModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop with blur */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={closePreview}
-          ></div>
+      <Modal state={previewOverlay}>
+        <Modal.Backdrop className="bg-black/50 backdrop-blur-sm">
+          <Modal.Container placement="center" className="p-4">
+            <Modal.Dialog className="bg-white rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col outline-none">
+              <Modal.Header className="flex items-center justify-between p-4 border-b border-gray-200 shrink-0">
+                <div className="flex items-center gap-2 min-w-0 pr-2">
+                  <FileText className="w-5 h-5 text-blue-600 shrink-0" />
+                  <Modal.Heading className="text-lg font-semibold text-gray-900 truncate">
+                    {previewFileName}
+                  </Modal.Heading>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={closePreview}
+                  className="min-w-0 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 shrink-0"
+                  aria-label="Close preview"
+                >
+                  <X className="w-6 h-6 text-gray-600" />
+                </Button>
+              </Modal.Header>
 
-          {/* Modal Content */}
-          <div className="relative bg-white rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600" />
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {previewModal.fileName}
-                </h2>
-              </div>
-              <button
-                onClick={closePreview}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-              >
-                <X className="w-6 h-6 text-gray-600" />
-              </button>
-            </div>
+              <Modal.Body className="flex-1 min-h-0 overflow-hidden bg-gray-100 p-0">
+                {previewUrl ? (
+                  <iframe
+                    src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewUrl)}`}
+                    className="w-full h-full border-0"
+                    title={previewFileName}
+                  />
+                ) : null}
+              </Modal.Body>
 
-            {/* Modal Body - Preview */}
-            <div className="flex-1 overflow-hidden bg-gray-100">
-              <iframe
-                src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewModal.url)}`}
-                className="w-full h-full"
-                title={previewModal.fileName}
-              />
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={closePreview}
-                className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors duration-200 font-medium"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => {
-                  handleDownload(previewModal.url, previewModal.fileName);
-                  closePreview();
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 font-medium flex items-center gap-2"
-              >
-                <Download className="w-5 h-5" />
-                Download
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <Modal.Footer className="p-4 border-t border-gray-200 flex justify-end gap-3 shrink-0">
+                <Button
+                  type="button"
+                  onClick={closePreview}
+                  className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors duration-200 font-medium"
+                >
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (previewUrl) {
+                      handleDownload(previewUrl, previewFileName);
+                    }
+                    closePreview();
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 font-medium flex items-center gap-2"
+                >
+                  <Download className="w-5 h-5" />
+                  Download
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
     </div>
   );
 };

@@ -1,6 +1,14 @@
 "use client";
 
 import { MessageSquare, Search } from "lucide-react";
+import {
+  Button,
+  EmptyState,
+  Input,
+  Label,
+  Spinner,
+  TextField,
+} from "@heroui/react";
 
 interface ChatRoom {
   _id: string;
@@ -66,24 +74,26 @@ export default function ChatRoomList({
       <div className="border-b border-gray-100 px-4 py-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-gray-800">Conversations</h2>
-          <button
+          <Button
+            type="button"
             onClick={onNewChat}
-            className="rounded-lg bg-[#FF6A3D] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#e55a2f] active:scale-95"
+            className="rounded-lg bg-[#FF6A3D] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#e55a2f] active:scale-95 h-auto min-h-0"
           >
             + New Chat
-          </button>
+          </Button>
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by app no. or company..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-700 placeholder-gray-400 transition-colors focus:border-[#FF6A3D] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#FF6A3D]/30"
-          />
+          <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <TextField value={searchQuery} onChange={onSearchChange} name="searchRooms">
+            <Label className="sr-only">Search conversations</Label>
+            <Input
+              type="text"
+              placeholder="Search by app no. or company..."
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-700 placeholder-gray-400 transition-colors focus:border-[#FF6A3D] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#FF6A3D]/30"
+            />
+          </TextField>
         </div>
       </div>
 
@@ -91,21 +101,23 @@ export default function ChatRoomList({
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#FF6A3D] border-t-transparent" />
+            <Spinner className="text-[#FF6A3D]" />
           </div>
         ) : rooms.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+          <EmptyState className="flex flex-col items-center justify-center py-12 text-center px-4">
             <MessageSquare className="h-10 w-10 text-gray-300 mb-2" />
             <p className="text-sm text-gray-400">
               {searchQuery ? "No conversations found" : "No conversations yet"}
             </p>
-          </div>
+          </EmptyState>
         ) : (
           rooms.map((room) => (
-            <button
+            <Button
               key={room._id}
+              type="button"
+              variant="ghost"
               onClick={() => onSelectRoom(room)}
-              className={`w-full px-4 py-3 text-left transition-colors hover:bg-gray-50 border-b border-gray-50 ${
+              className={`w-full h-auto min-h-0 justify-start rounded-none border-b border-gray-50 px-4 py-3 text-left font-normal transition-colors hover:bg-gray-50 ${
                 activeRoomId === room._id
                   ? "bg-[#FFF5F2] border-l-[3px] border-l-[#FF6A3D]"
                   : ""
@@ -141,7 +153,7 @@ export default function ChatRoomList({
                   {formatTime(room.lastMessage?.timestamp)}
                 </span>
               </div>
-            </button>
+            </Button>
           ))
         )}
       </div>
