@@ -5,6 +5,8 @@ import { Eye, Search, Star } from "lucide-react";
 import { feedbackService, IFeedbackItem } from "@/services/feedback.service";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import CustomModal from "@/components/ui/Modal";
+import CustomSelect from "@/components/ui/CustomSelect";
+import { Input, Label, TextField } from "@heroui/react";
 import Link from "next/link";
 
 const RatingFilterOptions = [
@@ -15,6 +17,11 @@ const RatingFilterOptions = [
   { label: "4 Stars", value: "3" },
   { label: "5 Stars", value: "4" },
 ];
+
+const ratingSelectOptions = RatingFilterOptions.map((opt) => ({
+  id: opt.value,
+  label: opt.label,
+}));
 
 const emojis = [
   { emoji: "😞", label: "Sad" },
@@ -169,27 +176,23 @@ export default function FeedbacksPage() {
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-5" />
-              <input
-                type="text"
-                placeholder="Search feedbacks..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-transparent pl-10 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:outline-none rounded-xl border border-gray-200 shadow-sm"
-              />
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-gray-400 size-5" />
+              <TextField value={search} onChange={setSearch} name="searchFeedbacks">
+                <Label className="sr-only">Search feedbacks</Label>
+                <Input
+                  placeholder="Search feedbacks..."
+                  className="w-full bg-transparent pl-10 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:outline-none rounded-xl border border-gray-200 shadow-sm"
+                />
+              </TextField>
             </div>
 
-            <select
-              value={rating}
-              onChange={(e) => setRating(e.target.value)}
-              className="h-[38px] w-full sm:w-auto min-w-[140px] appearance-none rounded-xl border border-gray-200 bg-transparent px-4 pr-8 text-sm text-gray-900 transition-all hover:bg-gray-50 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 bg-no-repeat bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%20%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-position-[right_0.5rem_center]"
-            >
-              {RatingFilterOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <div className="h-[38px] w-full sm:w-auto min-w-[140px]">
+              <CustomSelect
+                value={rating}
+                onChange={setRating}
+                options={ratingSelectOptions}
+              />
+            </div>
           </div>
         </div>
       </div>

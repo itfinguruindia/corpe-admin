@@ -13,6 +13,7 @@ import { InfoField, Chip, Switch } from "@/components/ui";
 import { Lock, MoreVertical } from "lucide-react";
 import { formatCurrency } from "@/utils/helpers";
 import useSwal from "@/utils/useSwal";
+import { Card, Spinner } from "@heroui/react";
 
 export default function PricingAndPaymentPage() {
   const swal = useSwal();
@@ -104,7 +105,7 @@ export default function PricingAndPaymentPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Loading...</div>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -119,7 +120,7 @@ export default function PricingAndPaymentPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-sm p-8">
+      <Card className="max-w-7xl mx-auto p-8">
         {/* Header */}
         <div className="mb-6 border-b pb-6">
           <h1 className="text-3xl font-bold text-primary mb-2">
@@ -397,7 +398,7 @@ export default function PricingAndPaymentPage() {
             </div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import RoleForm from "@/components/settings/RoleForm";
 import { roleApi } from "@/lib/api/roles";
-import toast from "react-hot-toast";
+import { toast } from "@heroui/react";
 import { ArrowLeft } from "lucide-react";
 
 export default function CreateRolePage() {
@@ -26,7 +26,7 @@ export default function CreateRolePage() {
       console.error("Error creating role:", error);
       const errorMessage =
         error.response?.data?.message || "Failed to create role";
-      toast.error(errorMessage);
+      toast.danger(errorMessage);
     } finally {
       setIsLoading(false);
     }

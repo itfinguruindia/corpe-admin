@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Eye, Download, Upload, RefreshCw, Trash2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "@heroui/react";
 
 import { Shareholder } from "@/types/shareholder";
 import { ShareholderDocument } from "@/types/shareholderDocuments";
@@ -67,7 +67,7 @@ export default function ShareholderDocumentsPage() {
       toast.success("INC-9 status refreshed");
     } catch (error) {
       console.error("Error refreshing INC-9 status:", error);
-      toast.error("Failed to refresh INC-9 status");
+      toast.danger("Failed to refresh INC-9 status");
     } finally {
       setIsRefreshingInc9(false);
     }
@@ -157,7 +157,7 @@ export default function ShareholderDocumentsPage() {
       window.open(url, "_blank");
       toast.success("Opening INC-9 Shareholder document");
     } catch {
-      toast.error("Could not open INC-9 Shareholder document.");
+      toast.danger("Could not open INC-9 Shareholder document.");
     }
   };
 
@@ -185,7 +185,7 @@ export default function ShareholderDocumentsPage() {
       URL.revokeObjectURL(url);
       toast.success("INC-9 Shareholder document downloaded");
     } catch {
-      toast.error("Could not download INC-9 Shareholder document.");
+      toast.danger("Could not download INC-9 Shareholder document.");
     }
   };
 
@@ -214,7 +214,7 @@ export default function ShareholderDocumentsPage() {
       setInc9ClientFile(inc9Status.clientFile || null);
     } catch (error) {
       console.error(`Error deleting ${fileSource}:`, error);
-      toast.error(`Failed to delete ${fileSource}`);
+      toast.danger(`Failed to delete ${fileSource}`);
     }
   };
 
@@ -242,7 +242,7 @@ export default function ShareholderDocumentsPage() {
           setInc9AdminFile(inc9Status.adminFile || null);
           setInc9ClientFile(inc9Status.clientFile || null);
         } catch {
-          toast.error("Could not upload INC-9 Shareholder document.");
+          toast.danger("Could not upload INC-9 Shareholder document.");
         }
       };
       input.click();

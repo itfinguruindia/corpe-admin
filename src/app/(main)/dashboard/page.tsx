@@ -11,6 +11,7 @@ import RecentlyOnboardedWidget from "@/components/dashboard/RecentlyOnboardedWid
 import { Zap } from "lucide-react";
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
+import { Chip } from "@heroui/react";
 
 export default async function Dashboard() {
   const data = await adminApi.getDashboardData();
@@ -57,9 +58,12 @@ export default async function Dashboard() {
               <Zap className="h-5 w-5 text-primary" />
               <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary animate-pulse-glow" />
             </div>
-            <p className="text-sm font-medium text-secondary italic">
+            <Chip
+              variant="soft"
+              className="bg-secondary-50 text-secondary font-medium italic"
+            >
               &ldquo;Chhaya completed KYC&rdquo;
-            </p>
+            </Chip>
           </div>
         </ContentCard>
       </section>
@@ -108,6 +112,11 @@ export default async function Dashboard() {
               <LegendItem color="#F36541" label="Completed" value="59%" />
               <LegendItem color="#3D63A4" label="In Progress" value="21%" />
               <LegendItem color="#F7C948" label="Pending" value="20%" />
+              <div className="col-span-2 flex justify-center pt-2">
+                <Chip variant="soft" size="sm" className="bg-green-50 text-green-700 font-semibold">
+                  On Track
+                </Chip>
+              </div>
             </div>
           </div>
         </ChartCard>

@@ -15,7 +15,7 @@ import {
   Phone,
 } from "lucide-react";
 import { Chip } from "@/components/ui";
-import toast from "react-hot-toast";
+import { toast } from "@heroui/react";
 
 export default function UserDetailPage() {
   const params = useParams();
@@ -53,7 +53,7 @@ export default function UserDetailPage() {
       );
 
       if (!currentUser) {
-        toast.error("User not found!");
+        toast.danger("User not found!");
         router.push("/settings/users");
         return;
       }
@@ -76,7 +76,7 @@ export default function UserDetailPage() {
       });
     } catch (error) {
       console.error("Error loading user details:", error);
-      toast.error("Failed to load user details");
+      toast.danger("Failed to load user details");
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +96,7 @@ export default function UserDetailPage() {
     e.preventDefault();
 
     if (user?.isSuperAdmin) {
-      toast.error("Super Admin details cannot be modified!");
+      toast.danger("Super Admin details cannot be modified!");
       return;
     }
 
@@ -110,7 +110,7 @@ export default function UserDetailPage() {
       router.push("/settings/users");
     } catch (error: any) {
       console.error("Error updating user:", error);
-      toast.error(error.response?.data?.message || "Failed to update user");
+      toast.danger(error.response?.data?.message || "Failed to update user");
     } finally {
       setIsSaving(false);
     }
@@ -118,7 +118,7 @@ export default function UserDetailPage() {
 
   const handleStatusChange = async (newStatus: User["status"]) => {
     if (user?.isSuperAdmin) {
-      toast.error("Super Admin status cannot be changed!");
+      toast.danger("Super Admin status cannot be changed!");
       return;
     }
 
@@ -132,7 +132,7 @@ export default function UserDetailPage() {
       loadData();
     } catch (error: any) {
       console.error("Error changing status:", error);
-      toast.error(error.response?.data?.message || "Failed to change status");
+      toast.danger(error.response?.data?.message || "Failed to change status");
     }
   };
 

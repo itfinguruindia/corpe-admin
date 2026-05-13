@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { adminApi } from "@/lib/api";
 import { Role } from "@/types/roles";
-import toast from "react-hot-toast";
+import { toast } from "@heroui/react";
 import { Eye, EyeOff } from "lucide-react";
 
 interface UserCreateFormProps {

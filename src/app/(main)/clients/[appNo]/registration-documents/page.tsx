@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 
 import { Search, Edit, Upload, Download, Eye, ChevronDown } from "lucide-react";
-import { toast } from "@heroui/react";
+import { toast, Card, Spinner } from "@heroui/react";
 
 import { clientsApi } from "@/lib/api/clients";
 import {
@@ -125,7 +125,7 @@ export default function RegistrationDocumentsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Loading...</div>
+        <Spinner size="lg" />
       </div>
     );
   }

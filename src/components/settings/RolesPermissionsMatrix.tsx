@@ -9,7 +9,7 @@ import {
 import { roleApi } from "@/lib/api";
 import { Chip } from "@/components/ui";
 import { Check, X, Plus, Edit2, Trash2, Users, Shield } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "@heroui/react";
 
 interface RolesPermissionsMatrixProps {
   onCreateRole?: () => void;
@@ -91,7 +91,7 @@ export default function RolesPermissionsMatrix({
         loadData();
       } catch (error: any) {
         console.error("Error deleting role:", error);
-        toast.error(error.response?.data?.message || "Failed to delete role");
+        toast.danger(error.response?.data?.message || "Failed to delete role");
       }
     }
   };

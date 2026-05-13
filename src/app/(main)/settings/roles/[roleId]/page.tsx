@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import RoleForm from "@/components/settings/RoleForm";
 import { roleApi } from "@/lib/api/roles";
-import toast from "react-hot-toast";
+import { toast } from "@heroui/react";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { Role } from "@/types/roles";
 
@@ -35,7 +35,7 @@ export default function EditRolePage() {
       const errorMessage =
         error.response?.data?.message || "Failed to load role";
       setError(errorMessage);
-      toast.error(errorMessage);
+      toast.danger(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +56,7 @@ export default function EditRolePage() {
       console.error("Error updating role:", error);
       const errorMessage =
         error.response?.data?.message || "Failed to update role";
-      toast.error(errorMessage);
+      toast.danger(errorMessage);
     } finally {
       setIsSaving(false);
     }
