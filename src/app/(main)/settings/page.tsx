@@ -17,6 +17,7 @@ import { parsePhoneNumber } from "react-phone-number-input";
 import { useDispatch, useSelector } from "react-redux";
 import { setProfilePictureUrl } from "@/redux/slices/authSlice";
 import { RootState } from "@/redux/store";
+import { Button } from "@heroui/react";
 
 export default function SettingPage() {
   const router = useRouter();
@@ -578,18 +579,21 @@ export default function SettingPage() {
 
       {/* Bottom Actions */}
       <div className="flex items-center justify-end gap-4 pt-4">
-        <button
+        <Button
+          type="button"
+          variant="ghost"
           onClick={handleDeleteAccount}
-          className="text-base font-medium text-red-600 hover:text-red-700 transition-colors"
+          className="h-auto min-w-0 px-2 py-1 text-base font-medium text-red-600 hover:text-red-700"
         >
           Delete Account
-        </button>
-        <button
+        </Button>
+        <Button
+          type="button"
           onClick={handleLogout}
           className="rounded-lg bg-[#FF6A3D] px-8 py-2 text-base font-medium text-white transition-all hover:bg-[#e55a2d]"
         >
           Log out
-        </button>
+        </Button>
       </div>
     </div>
   );

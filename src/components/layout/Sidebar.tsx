@@ -31,6 +31,7 @@ import axiosInstance from "@/lib/axios";
 import { setProfilePictureUrl } from "@/redux/slices/authSlice";
 import { logoutAdmin } from "@/utils/auth";
 import useSwal from "@/utils/useSwal";
+import { Button } from "@heroui/react";
 
 const SIDEBAR_EXPANDED = 260;
 const SIDEBAR_COLLAPSED = 68;
@@ -196,6 +197,8 @@ export default function Sidebar() {
                 src={profilePictureUrl}
                 alt={admin?.name || "User"}
                 fill
+                sizes={collapsed ? "44px" : "88px"}
+                priority
                 className="object-cover"
               />
             ) : (
@@ -229,11 +232,12 @@ export default function Sidebar() {
           </div>
 
           {/* Desktop: collapse toggle */}
-          <button
+          <Button
             type="button"
             onClick={() => dispatch(toggleSidebar())}
             className={clsx(
               "absolute top-4 text-blue-200 hover:text-white transition-colors hidden md:block",
+              "bg-transparent shadow-none border-0 ring-0 outline-none min-h-0 h-auto p-0 rounded-md",
               collapsed ? "right-1/2 translate-x-1/2" : "right-4",
             )}
           >
@@ -242,16 +246,16 @@ export default function Sidebar() {
             ) : (
               <PanelRightOpen size={20} />
             )}
-          </button>
+          </Button>
 
           {/* Mobile: close button */}
-          <button
+          <Button
             type="button"
             onClick={() => dispatch(closeMobileSidebar())}
-            className="absolute top-4 right-4 text-blue-200 hover:text-white transition-colors md:hidden"
+            className="absolute top-4 right-4 text-blue-200 hover:text-white transition-colors md:hidden bg-transparent shadow-none border-0 ring-0 outline-none min-h-0 h-auto p-0 rounded-md"
           >
             <X size={22} />
-          </button>
+          </Button>
         </div>
 
         <Divider />
@@ -373,9 +377,13 @@ export default function Sidebar() {
           collapsed={effectiveCollapsed}
           icon={<LogOut size={18} />}
         >
-          <button onClick={handleLogout} type="button" className="text-left">
+          <Button
+            onClick={handleLogout}
+            type="button"
+            className="text-left w-full justify-start bg-transparent shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none px-0 py-0 font-[inherit]"
+          >
             Logout
-          </button>
+          </Button>
         </SidebarTooltip>
       </aside>
     </>
@@ -526,14 +534,15 @@ function SidebarSection({
   if (collapsed) {
     return (
       <>
-        <button
+        <Button
           ref={btnRef}
           type="button"
           className={clsx(
-            "sidebar-row w-full gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
+            "sidebar-row grid! w-full gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
+            "shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none [background-image:none]",
             active
               ? "text-yellow-400 bg-yellow-400/10"
-              : "text-blue-100 hover:bg-white/8 hover:text-white",
+              : "bg-transparent text-blue-100 hover:bg-white/8 hover:text-white",
           )}
           data-collapsed={collapsed}
           onMouseEnter={showFlyout}
@@ -545,7 +554,7 @@ function SidebarSection({
             {icon}
           </span>
           <span className="sidebar-label">{title}</span>
-        </button>
+        </Button>
 
         {/* Fixed flyout popover */}
         <div
@@ -570,14 +579,15 @@ function SidebarSection({
   /* ---- Expanded: normal accordion ---- */
   return (
     <div>
-      <button
+      <Button
         type="button"
         onClick={handleClick}
         className={clsx(
-          "sidebar-row w-full gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
+          "sidebar-row grid! w-full gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
+          "shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none [background-image:none]",
           active
             ? "text-yellow-400 bg-yellow-400/10"
-            : "text-blue-100 hover:bg-white/8 hover:text-white",
+            : "bg-transparent text-blue-100 hover:bg-white/8 hover:text-white",
         )}
         data-collapsed={collapsed}
       >
@@ -594,7 +604,7 @@ function SidebarSection({
             <ChevronRight size={14} className="opacity-40 shrink-0 ml-2" />
           )}
         </span>
-      </button>
+      </Button>
 
       {/* Accordion body */}
       <div

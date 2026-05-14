@@ -135,7 +135,7 @@ const Modal = ({
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
             {title && (
-              <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+              <h2 className="text-lg font-semibold text-black">{title}</h2>
             )}
             <button
               onClick={handleClose}

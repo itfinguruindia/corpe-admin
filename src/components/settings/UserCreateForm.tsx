@@ -1,9 +1,10 @@
 "use client";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { adminApi } from "@/lib/api";
 import { Role } from "@/types/roles";
-import { toast } from "@heroui/react";
+import { Button, Input, Label, TextField, toast } from "@heroui/react";
 import { Eye, EyeOff } from "lucide-react";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 interface UserCreateFormProps {
   roles: Role[];
@@ -22,11 +23,16 @@ const UserCreateForm = ({ roles, onSuccess }: UserCreateFormProps) => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const roleOptions = useMemo(
+    () => [
+      { id: "", label: "Select Role" },
+      ...roles.map((role) => ({
+        id: String(role._id),
+        label: role.name,
+      })),
+    ],
+    [roles],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,94 +81,95 @@ const UserCreateForm = ({ roles, onSuccess }: UserCreateFormProps) => {
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
-      <div>
-        <label className="block text-sm font-medium mb-1">Name</label>
-        <input
-          type="text"
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          className="w-full border border-gray-400 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
+      <TextField
+        value={form.name}
+        onChange={(v) => setForm({ ...form, name: v })}
+        name="name"
+      >
+        <Label className="mb-1 block text-sm font-medium text-black">Name</Label>
+        <Input
+          className="w-full rounded border border-gray-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
           required
         />
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Email</label>
-        <input
-          type="email"
-          name="email"
-          value={form.email}
-          onChange={handleChange}
-          className="w-full border border-gray-400 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
+      </TextField>
+
+      <TextField
+        value={form.email}
+        onChange={(v) => setForm({ ...form, email: v })}
+        type="email"
+        name="email"
+      >
+        <Label className="mb-1 block text-sm font-medium text-black">Email</Label>
+        <Input
+          className="w-full rounded border border-gray-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
           required
         />
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Password</label>
+      </TextField>
+
+      <TextField
+        value={form.password}
+        onChange={(v) => setForm({ ...form, password: v })}
+        type={showPassword ? "text" : "password"}
+        name="password"
+      >
+        <Label className="mb-1 block text-sm font-medium text-black">Password</Label>
         <div className="relative">
-          <input
-            type={showPassword ? "text" : "password"}
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            className="w-full border border-gray-400 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D] pr-10"
+          <Input
             placeholder="min. 8 chars, 1 uppercase, 1 special char"
+            className="w-full rounded border border-gray-400 py-2 pr-10 pl-3 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
             required
             minLength={8}
           />
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute right-1 top-1/2 min-h-8 min-w-8 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
+          </Button>
         </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Phone Number</label>
-        <input
-          type="tel"
-          name="phoneNumber"
-          value={form.phoneNumber}
-          onChange={(e) => {
-            const value = e.target.value.replace(/\D/g, ""); // remove non-digits
-            if (value.length <= 10) {
-              setForm({ ...form, phoneNumber: value });
-            }
-          }}
-          className="w-full border border-gray-400 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
+      </TextField>
+
+      <TextField
+        value={form.phoneNumber}
+        onChange={(v) => {
+          const digits = v.replace(/\D/g, "");
+          if (digits.length <= 10) {
+            setForm({ ...form, phoneNumber: digits });
+          }
+        }}
+        name="phoneNumber"
+      >
+        <Label className="mb-1 block text-sm font-medium text-black">Phone Number</Label>
+        <Input
+          className="w-full rounded border border-gray-400 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
           required
           inputMode="numeric"
           pattern="[0-9]*"
           placeholder="Enter 10-digit number"
         />
-      </div>
+      </TextField>
+
       <div>
-        <label className="block text-sm font-medium mb-1">Role</label>
-        <select
-          name="roleId"
+        <Label className="mb-1 block text-sm font-medium text-black">Role</Label>
+        <CustomSelect
           value={form.roleId}
-          onChange={handleChange}
-          className="w-full border border-gray-400 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
-          required
-        >
-          <option value="">Select Role</option>
-          {roles.map((role) => (
-            <option key={role._id} value={role._id}>
-              {role.name}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setForm({ ...form, roleId: v })}
+          options={roleOptions}
+        />
       </div>
-      {error && <div className="text-red-500 text-sm">{error}</div>}
-      <button
+
+      {error && <div className="text-sm text-red-500">{error}</div>}
+
+      <Button
         type="submit"
-        className="w-full bg-[#FF6A3D] text-white py-2 rounded font-semibold hover:bg-[#e55a35] transition-colors"
-        disabled={loading}
+        isDisabled={loading}
+        className="w-full rounded bg-[#FF6A3D] py-2 font-semibold text-white hover:bg-[#e55a35] data-[disabled]:opacity-70"
       >
         {loading ? "Creating..." : "Create User"}
-      </button>
+      </Button>
     </form>
   );
 };

@@ -11,8 +11,6 @@ import {
   Shield,
   Calendar,
   Clock,
-  User as UserIcon,
-  Phone,
 } from "lucide-react";
 import { Chip } from "@/components/ui";
 import { toast } from "@heroui/react";
@@ -191,8 +189,9 @@ export default function UserDetailPage() {
         {/* Header */}
         <div className="mb-6">
           <button
+            type="button"
             onClick={() => router.push("/settings/users")}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            className="mb-4 flex items-center gap-2 text-gray-600 transition-colors hover:text-gray-900"
           >
             <ArrowLeft size={20} />
             Back to Users
@@ -262,33 +261,36 @@ export default function UserDetailPage() {
                   </h3>
                   <div className="grid grid-cols-1 gap-2">
                     <button
+                      type="button"
                       onClick={() => handleStatusChange("active")}
                       disabled={user.status === "active"}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                         user.status === "active"
-                          ? "bg-green-100 text-green-800 border-2 border-green-500 cursor-not-allowed"
+                          ? "cursor-not-allowed border-2 border-green-500 bg-green-100 text-green-800"
                           : "bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-800"
                       }`}
                     >
                       ✓ Active
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleStatusChange("in-active")}
                       disabled={user.status === "in-active"}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                         user.status === "in-active"
-                          ? "bg-gray-200 text-gray-800 border-2 border-gray-500 cursor-not-allowed"
+                          ? "cursor-not-allowed border-2 border-gray-500 bg-gray-200 text-gray-800"
                           : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-800"
                       }`}
                     >
                       ○ Inactive
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleStatusChange("suspended")}
                       disabled={user.status === "suspended"}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                         user.status === "suspended"
-                          ? "bg-red-100 text-red-800 border-2 border-red-500 cursor-not-allowed"
+                          ? "cursor-not-allowed border-2 border-red-500 bg-red-100 text-red-800"
                           : "bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-800"
                       }`}
                     >
@@ -327,7 +329,7 @@ export default function UserDetailPage() {
                     value={formData.name}
                     onChange={handleInputChange}
                     disabled={user.isSuperAdmin}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
                   />
                 </div>
@@ -343,7 +345,7 @@ export default function UserDetailPage() {
                     value={formData.email}
                     onChange={handleInputChange}
                     disabled={user.isSuperAdmin}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
                   />
                 </div>
@@ -359,8 +361,7 @@ export default function UserDetailPage() {
                     value={formData.phoneNumber}
                     onChange={handleInputChange}
                     disabled={user.isSuperAdmin}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    placeholder="Enter phone number"
+                    className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -374,7 +375,7 @@ export default function UserDetailPage() {
                     value={formData.roleId}
                     onChange={handleInputChange}
                     disabled={user.isSuperAdmin}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
                   >
                     <option value="">Select a role</option>
@@ -385,7 +386,7 @@ export default function UserDetailPage() {
                     ))}
                   </select>
                   <p className="mt-2 text-sm text-gray-500">
-                    Changing the role will update the user's permissions
+                    Changing the role will update the user&apos;s permissions
                   </p>
                 </div>
 
