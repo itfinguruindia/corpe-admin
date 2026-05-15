@@ -13,6 +13,7 @@ import {
 import notificationService from "@/services/notification.service";
 import { Notification, NotificationCategory } from "@/types/notification";
 import clsx from "clsx";
+import { Button } from "@heroui/react";
 
 const CATEGORY_ICONS: Record<NotificationCategory, React.ReactNode> = {
   clients: <User size={16} className="text-blue-500" />,
@@ -120,11 +121,15 @@ export default function NotificationBell() {
   return (
     <div className="relative" ref={containerRef}>
       {/* Bell Button */}
-      <button 
+      <Button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={clsx(
           "relative flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 outline-none",
-          isOpen ? "bg-primary-100 text-primary-600 shadow-inner" : "text-primary-500 hover:bg-gray-100"
+          "shadow-none border-0 ring-0 min-h-0 min-w-0 p-0 [background-image:none]",
+          isOpen
+            ? "bg-primary-100 text-primary-600 shadow-inner"
+            : "bg-transparent text-primary-500 hover:bg-gray-100"
         )}
       >
         <Bell className="h-6 w-6 md:h-8 md:w-8" />
@@ -140,7 +145,7 @@ export default function NotificationBell() {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
           </span>
         )}
-      </button>
+      </Button>
       
       {/* Dropdown Card */}
       {isOpen && (
@@ -156,13 +161,14 @@ export default function NotificationBell() {
               </div>
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
-                  <button 
+                  <Button
+                    type="button"
                     onClick={handleMarkAllAsRead}
-                    className="flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-bold text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-bold text-primary-600 hover:bg-primary-50 rounded-lg transition-colors shadow-none border-0 ring-0 outline-none min-h-0 h-auto [background-image:none]"
                   >
                     <Check size={14} />
                     <span>Mark all read</span>
-                  </button>
+                  </Button>
                 )}
                 <Link 
                   href="/settings?tab=notifications" 

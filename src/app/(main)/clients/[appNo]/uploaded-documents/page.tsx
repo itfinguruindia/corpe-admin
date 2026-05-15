@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Users, UserCheck } from "lucide-react";
 import { clientsApi } from "@/lib/api/clients";
 import TabCard from "@/components/dashboard/TabCard";
+import { Spinner } from "@heroui/react";
 
 export default function UploadedDocumentsPage() {
   const { appNo } = useParams();
@@ -64,7 +65,7 @@ export default function UploadedDocumentsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600 animate-pulse">Loading documents...</div>
+        <Spinner size="lg" />
       </div>
     );
   }

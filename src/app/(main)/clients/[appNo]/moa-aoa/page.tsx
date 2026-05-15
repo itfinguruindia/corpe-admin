@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import { toast, Card, Spinner } from "@heroui/react";
 import { MoaAoaDocument } from "@/types/moaAoa";
 import { clientsApi } from "@/lib/api/clients";
 import { Eye, Download, Edit, Upload } from "lucide-react";
@@ -222,7 +222,7 @@ export default function MoaAoaPage() {
         );
       } catch (error) {
         console.error("Error uploading misc document:", error);
-        toast.error("Could not upload document.");
+        toast("Could not upload document.", { variant: "danger" });
       }
     };
     input.click();
@@ -240,7 +240,7 @@ export default function MoaAoaPage() {
     } catch (error: any) {
       const status = error?.response?.status;
       if (status === 404) {
-        toast.error("No document available yet.");
+        toast("No document available yet.", { variant: "danger" });
         setCompanyMiscDocs((prev) =>
           prev.map((item) =>
             item.key === row.key
@@ -250,7 +250,7 @@ export default function MoaAoaPage() {
         );
       } else {
         console.error("Error viewing misc document:", error);
-        toast.error("Could not open document.");
+        toast("Could not open document.", { variant: "danger" });
       }
     }
   };
@@ -286,7 +286,7 @@ export default function MoaAoaPage() {
     } catch (error: any) {
       const status = error?.response?.status;
       if (status === 404) {
-        toast.error("No document available yet.");
+        toast("No document available yet.", { variant: "danger" });
         setCompanyMiscDocs((prev) =>
           prev.map((item) =>
             item.key === row.key
@@ -296,7 +296,7 @@ export default function MoaAoaPage() {
         );
       } else {
         console.error("Error downloading misc document:", error);
-        toast.error("Could not download document.");
+        toast("Could not download document.", { variant: "danger" });
       }
     }
   };
@@ -341,7 +341,7 @@ export default function MoaAoaPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Loading...</div>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -360,7 +360,7 @@ export default function MoaAoaPage() {
         </div>
 
         {/* MOA, AOA & Company Misc Documents Section */}
-        <div className="bg-white rounded-lg shadow-md p-8">
+        <Card className="p-8">
           {/* Documents List */}
           <div className="space-y-0">
             {documents.length === 0 ? (
@@ -484,7 +484,7 @@ export default function MoaAoaPage() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

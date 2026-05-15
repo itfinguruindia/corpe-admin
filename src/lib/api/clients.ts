@@ -546,4 +546,60 @@ export const clientsApi = {
     );
     return response.data?.data ?? response.data;
   },
+
+  // Get company registration data (CIN, companyStatus, and files: PAN, TAN, COI)
+  getRegistrationData: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/registration-data`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  // Update CIN and Company Status
+  updateCinAndStatus: async (
+    applicationNo: string,
+    cin: string,
+    companyStatus: string,
+  ) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/registration-data/cin-status`,
+      { cin, companyStatus },
+    );
+    return response.data;
+  },
+
+  // Upload registration document (docType can be "pan", "tan", "coi")
+  uploadRegistrationDocument: async (
+    applicationNo: string,
+    docType: string,
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/registration-data/upload/${docType}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  // Download registration document
+  downloadRegistrationDocument: async (
+    applicationNo: string,
+    docType: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/registration-data/download/${docType}`,
+      {
+        responseType: "blob",
+      },
+    );
+    return response.data as Blob;
+  },
 };

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Modal from "../ui/Modal";
 import { Link as LinkIcon, Mail, Check } from "lucide-react";
+import { Button, Input, Label, TextField } from "@heroui/react";
 
 interface InviteUserModalProps {
   isOpen: boolean;
@@ -21,8 +22,6 @@ export default function InviteUserModal({
       setRegisterLink(`${window.location.origin}/register`);
     }
   }, []);
-  
-  // add
 
   const handleCopy = async () => {
     try {
@@ -125,24 +124,32 @@ export default function InviteUserModal({
         </p>
 
         <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-          <input
-            type="text"
-            readOnly
+          <TextField
             value={registerLink}
-            className="flex-1 bg-transparent border-none outline-none text-sm text-gray-700 truncate"
-          />
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-2 p-2 px-3 rounded-md hover:bg-gray-200 transition-colors text-gray-700 font-medium text-sm border border-gray-300 bg-white shadow-sm"
-            title="Copy link"
+            onChange={setRegisterLink}
+            isReadOnly
+            name="registerLink"
+            className="min-w-0 flex-1"
           >
-            {copied ? (
-              <Check size={16} className="text-green-600" />
-            ) : (
-              <LinkIcon size={16} />
-            )}
-            {copied ? "Copied" : "Copy"}
-          </button>
+            <Label className="sr-only">Registration link</Label>
+            <Input className="border-0 bg-transparent px-0 py-0 text-sm text-gray-700 shadow-none outline-none focus:ring-0 truncate" />
+          </TextField>
+          <span title="Copy link" className="inline-flex shrink-0">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleCopy}
+              aria-label="Copy registration link"
+              className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-200"
+            >
+              {copied ? (
+                <Check size={16} className="text-green-600" />
+              ) : (
+                <LinkIcon size={16} />
+              )}
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          </span>
         </div>
 
         <div>

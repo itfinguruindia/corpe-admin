@@ -3,6 +3,7 @@
 import { Trash2, RefreshCw, FileDown, Plus } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useEffect, useState } from "react";
+import { Button, Input, Label, TextField } from "@heroui/react";
 import { newsletterApi, Newsletter } from "@/lib/api/newsletter";
 import useSwal from "@/utils/useSwal";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
@@ -110,13 +111,17 @@ export default function NewsLetter() {
       label: "Action",
       render: (item) => (
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleDelete(item._id)}
-            className="cursor-pointer p-2 text-red-600 transition-colors hover:text-red-800"
-            title="Delete subscriber"
-          >
-            <Trash2 size={18} />
-          </button>
+          <span title="Delete subscriber" className="inline-flex">
+            <Button
+              onClick={() => handleDelete(item._id)}
+              className="min-w-0 h-auto p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
+              aria-label="Delete subscriber"
+              variant="ghost"
+              type="button"
+            >
+              <Trash2 size={18} />
+            </Button>
+          </span>
         </div>
       ),
     },
@@ -145,42 +150,52 @@ export default function NewsLetter() {
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <input
-                type="email"
-                placeholder="Enter email..."
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full sm:w-64 bg-transparent px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:outline-none rounded-xl border border-gray-200 shadow-sm h-[38px]"
-              />
-              <button
-                onClick={handleAdd}
-                className="flex items-center justify-center p-2 text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors border shadow-sm border-transparent h-[38px] px-3 font-medium text-sm"
-                title="Add/Subscribe"
-                type="button"
-              >
-                <Plus size={18} className="mr-1" /> Add
-              </button>
+              <div className="w-full sm:w-64">
+                <TextField value={email} onChange={setEmail} name="newsletterEmail">
+                  <Label className="sr-only">Subscriber email</Label>
+                  <Input
+                    type="email"
+                    placeholder="Enter email..."
+                    className="w-full bg-transparent px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:outline-none rounded-xl border border-gray-200 shadow-sm h-[38px]"
+                  />
+                </TextField>
+              </div>
+              <span title="Add/Subscribe" className="inline-flex">
+                <Button
+                  onClick={handleAdd}
+                  className="flex items-center justify-center h-[38px] px-3 font-medium text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors border shadow-sm border-transparent"
+                  type="button"
+                >
+                  <Plus size={18} className="mr-1 shrink-0" /> Add
+                </Button>
+              </span>
             </div>
 
             <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
 
             <div className="flex items-center gap-2 self-end sm:self-auto">
-              <button
-                onClick={handleRefresh}
-                className="flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                title="Refresh"
-                type="button"
-              >
-                <RefreshCw size={18} />
-              </button>
-              <button
-                onClick={handleExport}
-                className="flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                title="Export to Excel"
-                type="button"
-              >
-                <FileDown size={18} />
-              </button>
+              <span title="Refresh" className="inline-flex">
+                <Button
+                  onClick={handleRefresh}
+                  className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
+                  aria-label="Refresh subscribers"
+                  type="button"
+                  variant="ghost"
+                >
+                  <RefreshCw size={18} />
+                </Button>
+              </span>
+              <span title="Export to Excel" className="inline-flex">
+                <Button
+                  onClick={handleExport}
+                  className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
+                  aria-label="Export subscribers to Excel"
+                  type="button"
+                  variant="ghost"
+                >
+                  <FileDown size={18} />
+                </Button>
+              </span>
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Eye, Download, Upload, RefreshCw, Trash2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "@heroui/react";
 
 import { Director } from "@/types/director";
 import { DirectorDocument } from "@/types/directorDocuments";
@@ -235,7 +235,7 @@ export default function DirectorDocumentsPage() {
       toast.success(`${documentType} status refreshed`);
     } catch (error) {
       console.error(`Error refreshing ${documentType} status:`, error);
-      toast.error(`Failed to refresh ${documentType} status`);
+      toast.danger(`Failed to refresh ${documentType} status`);
     } finally {
       setIsRefreshing((prev) => ({ ...prev, [docTypeKey]: false }));
     }
@@ -345,7 +345,7 @@ export default function DirectorDocumentsPage() {
       );
       setIsPreviewOpen(true);
     } catch {
-      toast.error("Could not open document.");
+      toast.danger("Could not open document.");
     }
   };
 
@@ -370,7 +370,7 @@ export default function DirectorDocumentsPage() {
       URL.revokeObjectURL(url);
       toast.success("Document downloaded");
     } catch {
-      toast.error("Could not download document.");
+      toast.danger("Could not download document.");
     }
   };
 
@@ -399,7 +399,7 @@ export default function DirectorDocumentsPage() {
       await refreshDocStatus(documentType, docTypeKey);
     } catch (error) {
       console.error(`Error deleting ${fileSource}:`, error);
-      toast.error(`Failed to delete ${fileSource}`);
+      toast.danger(`Failed to delete ${fileSource}`);
     }
   };
 
@@ -426,7 +426,7 @@ export default function DirectorDocumentsPage() {
         // Refresh status after upload
         await refreshDocStatus(documentType, docTypeKey);
       } catch {
-        toast.error(`Could not upload ${documentType} document.`);
+        toast.danger(`Could not upload ${documentType} document.`);
       }
     };
     input.click();

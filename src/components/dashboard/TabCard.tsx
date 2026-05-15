@@ -1,11 +1,11 @@
 import React from "react";
-import clsx from "clsx";
+import { Card, cn } from "@heroui/react";
 
 interface TabCardProps {
   label: string;
   active?: boolean;
   onClick?: () => void;
-  className?: string; // Added to support customization like text-left
+  className?: string;
 }
 
 export default function TabCard({
@@ -15,17 +15,17 @@ export default function TabCard({
   className = "",
 }: TabCardProps) {
   return (
-    <div
-      onClick={onClick}
-      className={clsx(
-        "rounded-xl px-6 py-4 text-center text-lg font-medium shadow-sm cursor-pointer transition-all duration-300 border",
+    <Card
+      className={cn(
+        "px-6 py-4 text-center text-lg font-medium shadow-sm cursor-pointer transition-all duration-300 border",
         active
           ? "bg-white text-secondary border-primary/30 ring-4 ring-primary/5 shadow-md scale-[1.02]"
           : "bg-white text-gray-500 border-gray-100 hover:border-gray-200 hover:shadow-md hover:text-secondary",
         className,
       )}
+      onClick={onClick}
     >
       {label}
-    </div>
+    </Card>
   );
 }

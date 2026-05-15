@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Modal from "@/components/ui/Modal";
 import UserCreateForm from "@/components/settings/UserCreateForm";
 import { User, Role } from "@/types/roles";
@@ -11,7 +11,6 @@ import {
   Edit2,
   Trash2,
   Search,
-  Filter,
   UserX,
   UserCheck,
   Mail,
@@ -20,7 +19,8 @@ import {
   Users as UsersIcon,
   Shield,
 } from "lucide-react";
-import { toast } from "@heroui/react";
+import { Button, Input, Label, TextField, toast } from "@heroui/react";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 interface UserManagementProps {
   onEditUser?: (userId: string) => void;
@@ -39,6 +39,27 @@ export default function UserManagement({
   const [selectedRole, setSelectedRole] = useState<string | "all">("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const roleFilterOptions = useMemo(
+    () => [
+      { id: "all", label: "All Roles" },
+      ...allRoles.map((role) => ({
+        id: String(role._id || role.id),
+        label: role.name,
+      })),
+    ],
+    [allRoles],
+  );
+
+  const statusFilterOptions = useMemo(
+    () => [
+      { id: "all", label: "All Statuses" },
+      { id: "active", label: "Active" },
+      { id: "in-active", label: "Inactive" },
+      { id: "suspended", label: "Suspended" },
+    ],
+    [],
+  );
 
   useEffect(() => {
     loadData();
@@ -193,13 +214,14 @@ export default function UserManagement({
             Manage system users and their access
           </p>
         </div>
-        <button
+        <Button
+          type="button"
           onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 px-6 py-2.5 bg-[#FF6A3D] text-white rounded-lg hover:bg-[#e55a35] transition-colors font-medium"
+          className="flex items-center gap-2 rounded-lg bg-[#FF6A3D] px-6 py-2.5 font-medium text-white hover:bg-[#e55a35]"
         >
           <Plus size={20} />
           Add New User
-        </button>
+        </Button>
         {/* User Create Modal */}
         <Modal
           isOpen={isCreateModalOpen}
@@ -286,53 +308,39 @@ export default function UserManagement({
           <div className="flex-1">
             <div className="relative">
               <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-gray-400"
                 size={20}
               />
-              <input
-                type="text"
-                placeholder="Search by name or email..."
+              <TextField
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent"
-              />
+                onChange={setSearchQuery}
+                name="userSearch"
+              >
+                <Label className="sr-only">Search users</Label>
+                <Input
+                  placeholder="Search by name or email..."
+                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#3D63A4]"
+                />
+              </TextField>
             </div>
           </div>
 
           {/* Role Filter */}
           <div className="lg:w-64">
-            <div className="relative">
-              <Filter
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={20}
-              />
-              <select
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent appearance-none bg-white"
-              >
-                <option value="all">All Roles</option>
-                {allRoles.map((role) => (
-                  <option key={role._id} value={role._id}>
-                    {role.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <CustomSelect
+              value={selectedRole}
+              onChange={(v) => setSelectedRole(v)}
+              options={roleFilterOptions}
+            />
           </div>
 
           {/* Status Filter */}
           <div className="lg:w-48">
-            <select
+            <CustomSelect
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent appearance-none bg-white"
-            >
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="in-active">Inactive</option>
-              <option value="suspended">Suspended</option>
-            </select>
+              onChange={(v) => setSelectedStatus(v)}
+              options={statusFilterOptions}
+            />
           </div>
         </div>
 
@@ -460,23 +468,31 @@ export default function UserManagement({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() =>
-                            onEditUser?.(user._id || user.id || "")
-                          }
-                          className="p-2 text-gray-600 hover:text-secondary hover:bg-blue-50 rounded transition-colors"
-                          title="Edit User"
-                        >
-                          <Edit2 size={16} />
-                        </button>
+                        <span title="Edit User" className="inline-flex">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() =>
+                              onEditUser?.(user._id || user.id || "")
+                            }
+                            aria-label="Edit user"
+                            className="min-h-0 min-w-0 p-2 text-gray-600 hover:bg-blue-50 hover:text-secondary"
+                          >
+                            <Edit2 size={16} />
+                          </Button>
+                        </span>
 
-                        <button
-                          onClick={() => handleDeleteUser(user)}
-                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Delete User"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <span title="Delete User" className="inline-flex">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => handleDeleteUser(user)}
+                            aria-label="Delete user"
+                            className="min-h-0 min-w-0 p-2 text-gray-600 hover:bg-red-50 hover:text-red-600"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </span>
                       </div>
                     </td>
                   </tr>

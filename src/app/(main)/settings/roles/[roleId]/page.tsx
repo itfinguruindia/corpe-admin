@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import RoleForm from "@/components/settings/RoleForm";
 import { roleApi } from "@/lib/api/roles";
-import toast from "react-hot-toast";
+import { Button, Spinner, toast } from "@heroui/react";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { Role } from "@/types/roles";
 
@@ -35,7 +35,7 @@ export default function EditRolePage() {
       const errorMessage =
         error.response?.data?.message || "Failed to load role";
       setError(errorMessage);
-      toast.error(errorMessage);
+      toast.danger(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +56,7 @@ export default function EditRolePage() {
       console.error("Error updating role:", error);
       const errorMessage =
         error.response?.data?.message || "Failed to update role";
-      toast.error(errorMessage);
+      toast.danger(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -72,8 +72,8 @@ export default function EditRolePage() {
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-center min-h-100">
-            <div className="text-center">
-              <div className="h-12 w-12 border-4 border-[#3D63A4] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <div className="text-center flex flex-col items-center gap-4">
+              <Spinner className="text-[#3D63A4]" size="lg" />
               <p className="text-lg text-gray-600">Loading role...</p>
             </div>
           </div>
@@ -87,25 +87,28 @@ export default function EditRolePage() {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto">
-          <button
+          <Button
+            type="button"
+            variant="ghost"
             onClick={handleCancel}
-            className="flex items-center gap-2 text-gray-600 hover:text-secondary mb-4 transition-colors"
+            className="mb-4 h-auto min-w-0 justify-start gap-2 px-2 py-1 text-gray-600 hover:text-secondary"
           >
             <ArrowLeft size={20} />
             <span>Back to Roles</span>
-          </button>
+          </Button>
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <AlertCircle className="mx-auto text-red-500 mb-4" size={48} />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Error Loading Role
             </h2>
             <p className="text-gray-600 mb-6">{error || "Role not found"}</p>
-            <button
+            <Button
+              type="button"
               onClick={loadRole}
-              className="px-6 py-2.5 bg-[#FF6A3D] text-white rounded-lg hover:bg-[#e55a35] transition-colors font-medium"
+              className="rounded-lg bg-[#FF6A3D] px-6 py-2.5 font-medium text-white hover:bg-[#e55a35]"
             >
               Try Again
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -149,13 +152,15 @@ export default function EditRolePage() {
     <div className="min-h-screen">
       {/* Header */}
       <div className="mb-6">
-        <button
+        <Button
+          type="button"
+          variant="ghost"
           onClick={handleCancel}
-          className="flex items-center gap-2 text-gray-600 hover:text-secondary mb-4 transition-colors"
+          className="mb-4 h-auto min-w-0 justify-start gap-2 px-2 py-1 text-gray-600 hover:text-secondary"
         >
           <ArrowLeft size={20} />
           <span>Back to Roles</span>
-        </button>
+        </Button>
         <h1 className="text-4xl font-bold text-[#FF6A3D]">Edit Role</h1>
         <p className="mt-2 text-base text-gray-600">
           Update role information and permissions

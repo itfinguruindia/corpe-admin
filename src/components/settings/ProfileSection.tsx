@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useRef } from "react";
+import React from "react";
 import Image from "next/image";
 import { Upload, Edit2, Trash2, Loader2 } from "lucide-react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
+import { Button, Input, Label, TextField } from "@heroui/react";
 
 interface ProfileSectionProps {
   profileData: {
@@ -79,13 +80,17 @@ export default function ProfileSection({
           </label>
           {/* Remove picture button */}
           {profileImage && handleRemoveProfilePicture && !isUploadingImage && (
-            <button
-              onClick={handleRemoveProfilePicture}
-              className="absolute top-0 right-0 h-8 w-8 rounded-full bg-red-500 flex items-center justify-center cursor-pointer hover:bg-red-600 transition-colors shadow-md"
-              title="Remove photo"
-            >
-              <Trash2 className="h-4 w-4 text-white" />
-            </button>
+            <span title="Remove photo" className="absolute top-0 right-0 inline-flex">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleRemoveProfilePicture}
+                aria-label="Remove photo"
+                className="h-8 w-8 min-h-8 min-w-8 rounded-full bg-red-500 p-0 text-white hover:bg-red-600 shadow-md"
+              >
+                <Trash2 className="h-4 w-4 text-white" />
+              </Button>
+            </span>
           )}
         </div>
 
@@ -97,7 +102,8 @@ export default function ProfileSection({
         </div>
 
         {/* Centralized Edit Button */}
-        <button
+        <Button
+          type="button"
           onClick={() => setIsEditingProfile(!isEditingProfile)}
           className="flex items-center gap-2 rounded-lg bg-[#FF6A3D] px-4 py-2 text-white hover:bg-[#e55a2d] transition-colors"
         >
@@ -105,28 +111,27 @@ export default function ProfileSection({
           <span className="font-medium">
             {isEditingProfile ? "Cancel" : "Edit"}
           </span>
-        </button>
+        </Button>
       </div>
 
       {/* Profile Fields */}
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-secondary mb-2">
+        <TextField
+          value={profileData.displayName}
+          onChange={(v) =>
+            setProfileData({
+              ...profileData,
+              displayName: v,
+            })
+          }
+          name="displayName"
+          isDisabled={!isEditingProfile}
+        >
+          <Label className="block text-sm font-medium text-secondary mb-2">
             Display Name
-          </label>
-          <input
-            type="text"
-            value={profileData.displayName}
-            onChange={(e) =>
-              setProfileData({
-                ...profileData,
-                displayName: e.target.value,
-              })
-            }
-            disabled={!isEditingProfile}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm sm:text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20 disabled:bg-gray-50"
-          />
-        </div>
+          </Label>
+          <Input className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm sm:text-base text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20 disabled:bg-gray-50" />
+        </TextField>
 
         <div>
           <label className="block text-sm font-medium text-secondary mb-2">
@@ -147,24 +152,23 @@ export default function ProfileSection({
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-secondary mb-2">
+        <TextField
+          value={profileData.email}
+          onChange={(v) => setProfileData({ ...profileData, email: v })}
+          type="email"
+          name="email"
+          isDisabled={!isEditingProfile}
+        >
+          <Label className="block text-sm font-medium text-secondary mb-2">
             E-mail
-          </label>
-          <input
-            type="email"
-            value={profileData.email}
-            onChange={(e) =>
-              setProfileData({ ...profileData, email: e.target.value })
-            }
-            disabled={!isEditingProfile}
-            className="w-full rounded-lg text-sm sm:text-base border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20 disabled:bg-gray-50"
-          />
-        </div>
+          </Label>
+          <Input className="w-full rounded-lg text-sm sm:text-base border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20 disabled:bg-gray-50" />
+        </TextField>
 
         {/* Save Button */}
-        <button
-          disabled={!isEditingProfile || isLoading}
+        <Button
+          type="button"
+          isDisabled={!isEditingProfile || isLoading}
           onClick={handleProfileSave}
           className={`w-full flex items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-6 py-3 text-sm sm:text-base font-medium text-white transition-all hover:bg-[#e55a2d] ${(!isEditingProfile || isLoading) ? "opacity-50 cursor-not-allowed" : ""}`}
         >
@@ -179,7 +183,7 @@ export default function ProfileSection({
           ) : (
             "Save Changes"
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

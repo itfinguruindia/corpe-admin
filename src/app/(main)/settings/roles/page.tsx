@@ -2,7 +2,6 @@
 
 import React from "react";
 import RolesPermissionsMatrix from "@/components/settings/RolesPermissionsMatrix";
-import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
 export default function RolesPermissionsPage() {

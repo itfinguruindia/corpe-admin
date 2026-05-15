@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { TrackingStatus as TrackingStatusType } from "@/types/trackingStatus";
 import { fetchTrackingStatus } from "@/lib/data/mockTrackingStatusData";
 import { Check, FileText, Edit3, Building2, Clock } from "lucide-react";
+import { Card, Spinner } from "@heroui/react";
 
 export default function TrackingStatusPage() {
   const { appNo } = useParams();
@@ -120,7 +121,7 @@ export default function TrackingStatusPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Loading...</div>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -160,7 +161,7 @@ export default function TrackingStatusPage() {
         </div>
 
         {/* Status Card */}
-        <div className="bg-white rounded-lg shadow-md p-8">
+        <Card className="p-8">
           {/* Overall Status Banner */}
           {isAllCompleted && (
             <div className="mb-8 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
@@ -289,7 +290,7 @@ export default function TrackingStatusPage() {
               );
             })}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
