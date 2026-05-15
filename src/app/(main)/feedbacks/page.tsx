@@ -188,6 +188,7 @@ export default function FeedbacksPage() {
 
             <div className="h-[38px] w-full sm:w-auto min-w-[140px]">
               <CustomSelect
+                ariaLabel="Filter by rating"
                 value={rating}
                 onChange={setRating}
                 options={ratingSelectOptions}

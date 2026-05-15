@@ -213,6 +213,7 @@ export default function RaisedTicketsPage() {
       label: "Status",
       render: (row) => (
         <CustomSelect
+          ariaLabel={`Status for ticket ${row.applicationNo || row.id}`}
           value={row.status}
           onChange={(value) =>
             handleStatusChange(row.id, value as TicketStatus)
@@ -250,6 +251,7 @@ export default function RaisedTicketsPage() {
       label: "Priority",
       render: (row) => (
         <CustomSelect
+          ariaLabel={`Priority for ticket ${row.applicationNo || row.id}`}
           value={row.priority}
           onChange={(value) =>
             handlePriorityChange(row.id, value as TicketPriority)
@@ -336,6 +338,7 @@ export default function RaisedTicketsPage() {
                 }
               />
               <CustomSelect
+                ariaLabel="Filter by priority"
                 value={priorityFilter}
                 onChange={handlePriorityFilterChange}
                 options={PrioritySelectOptions}

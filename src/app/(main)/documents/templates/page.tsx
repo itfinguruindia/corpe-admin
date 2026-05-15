@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { templates } from "@/lib/data/mockTempletesUrlData";
-import { Search, FileText, Download, Upload, Eye, X } from "lucide-react";
+import { Search, FileText, Download, Upload, Eye } from "lucide-react";
 import {
   Button,
   Card,
@@ -88,7 +88,7 @@ const TemplatesPage = () => {
           </div>
           <Button
             type="button"
-            onClick={handleImport}
+            onPress={handleImport}
             className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 shrink-0"
           >
             <Upload className="w-5 h-5" />
@@ -111,7 +111,7 @@ const TemplatesPage = () => {
         {filteredTemplates.map((template) => (
           <Card
             key={template.id}
-            className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-200"
+            className="flex flex-col h-full bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden border border-gray-200"
           >
             {/* Preview Container */}
             <div className="relative h-64 bg-gray-100 overflow-hidden">
@@ -122,20 +122,21 @@ const TemplatesPage = () => {
               />
             </div>
 
-            <Card.Content className="p-4 space-y-3">
+            <Card.Content className="flex flex-col flex-1 p-4">
               {/* File Icon and Name */}
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-2 min-h-12 mb-3">
                 <FileText className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                <h3 className="font-semibold text-gray-900 line-clamp-2 flex-1">
+                <h3 className="font-semibold text-gray-900 line-clamp-2 flex-1 leading-snug">
                   {template.fileName}
                 </h3>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 mt-auto">
                 <Button
                   type="button"
-                  onClick={() => handlePreview(template.url, template.fileName)}
+                  isIconOnly
+                  onPress={() => handlePreview(template.url, template.fileName)}
                   className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
                   aria-label={`Preview ${template.fileName}`}
                 >
@@ -143,7 +144,7 @@ const TemplatesPage = () => {
                 </Button>
                 <Button
                   type="button"
-                  onClick={() =>
+                  onPress={() =>
                     handleDownload(template.url, template.fileName)
                   }
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
@@ -182,15 +183,10 @@ const TemplatesPage = () => {
                     {previewFileName}
                   </Modal.Heading>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={closePreview}
-                  className="min-w-0 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200 shrink-0"
+                <Modal.CloseTrigger
+                  className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 shrink-0"
                   aria-label="Close preview"
-                >
-                  <X className="w-6 h-6 text-gray-600" />
-                </Button>
+                />
               </Modal.Header>
 
               <Modal.Body className="flex-1 min-h-0 overflow-hidden bg-gray-100 p-0">
@@ -206,14 +202,14 @@ const TemplatesPage = () => {
               <Modal.Footer className="p-4 border-t border-gray-200 flex justify-end gap-3 shrink-0">
                 <Button
                   type="button"
-                  onClick={closePreview}
+                  onPress={closePreview}
                   className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors duration-200 font-medium"
                 >
                   Close
                 </Button>
                 <Button
                   type="button"
-                  onClick={() => {
+                  onPress={() => {
                     if (previewUrl) {
                       handleDownload(previewUrl, previewFileName);
                     }
