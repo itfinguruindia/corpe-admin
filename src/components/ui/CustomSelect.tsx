@@ -8,23 +8,35 @@ interface CustomSelectProps {
   ariaLabel: string;
   label?: string;
   renderValue?: (value: string) => React.ReactNode;
+  isDisabled?: boolean;
+  className?: string;
 }
 
 const CustomSelect = (props: CustomSelectProps) => {
-  const { options, label, ariaLabel, value, onChange, renderValue } = props;
+  const {
+    options,
+    label,
+    ariaLabel,
+    value,
+    onChange,
+    renderValue,
+    isDisabled,
+    className,
+  } = props;
   return (
     <Select
-      className="min-w-32 w-full"
+      className={className ?? "min-w-32 w-full"}
       value={value}
       onChange={(value) => onChange(value as string)}
       aria-label={ariaLabel}
+      isDisabled={isDisabled}
     >
       {label ? (
         <Label>{label}</Label>
       ) : (
         <Label className="sr-only">{ariaLabel}</Label>
       )}
-      <Select.Trigger>
+      <Select.Trigger className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm">
         {renderValue && value ? renderValue(value) : <Select.Value />}
         <Select.Indicator />
       </Select.Trigger>

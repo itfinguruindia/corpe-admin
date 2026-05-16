@@ -3,6 +3,13 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { toast } from "@heroui/react";
 
+function isAuthRequest(url?: string) {
+  if (!url) return false;
+  return (
+    url.includes("/admin/auth/login") || url.includes("/admin/auth/register")
+  );
+}
+
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
   headers: {
@@ -37,7 +44,8 @@ axiosInstance.interceptors.response.use(
     if (
       response.data &&
       response.data.success === false &&
-      response.data.message
+      response.data.message &&
+      !isAuthRequest(response.config?.url)
     ) {
       toast.danger(response.data.message);
     }
@@ -50,6 +58,16 @@ axiosInstance.interceptors.response.use(
     const message =
       error.response?.data?.message || error.message || "Something went wrong";
 
+    const onAuthPage =
+      typeof window !== "undefined" &&
+      (window.location.pathname === "/login" ||
+        window.location.pathname === "/register");
+
+    // Failed login/register — login/register pages show their own toast
+    if (status === 401 && (isAuthRequest(error.config?.url) || onAuthPage)) {
+      return Promise.reject(error);
+    }
+
     // 401 → logout
     if (status === 401 && typeof window !== "undefined") {
       logoutAdmin();
@@ -58,8 +76,10 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Other errors → toast
-    toast.danger(message);
+    // Other errors → toast (auth forms handle their own messages)
+    if (!isAuthRequest(error.config?.url)) {
+      toast.danger(message);
+    }
 
     return Promise.reject(error);
   },

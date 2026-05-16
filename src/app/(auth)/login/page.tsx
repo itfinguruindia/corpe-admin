@@ -2,57 +2,68 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { checkSuperAdmin, loginAdmin } from "@/utils/auth";
+import { redirectAfterAuth } from "@/utils/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import {
-  Alert,
   Button,
   Card,
-  Checkbox,
   Input,
   Label,
   Spinner,
   TextField,
+  toast,
 } from "@heroui/react";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const [hasSuperAdmin, setHasSuperAdmin] = useState<boolean | null>(null);
 
-  const checkSuperAdminHandler = async () => {
-    try {
-      const hasSuper = await checkSuperAdmin();
-      setHasSuperAdmin(hasSuper);
-      if (!hasSuper) router.push("/register");
-    } catch {
-      setHasSuperAdmin(true);
-    }
-  };
-
   useEffect(() => {
-    checkSuperAdminHandler();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const hasSuper = await checkSuperAdmin();
+        if (cancelled) return;
+        setHasSuperAdmin(hasSuper);
+        if (!hasSuper) redirectAfterAuth("/register");
+      } catch {
+        if (!cancelled) setHasSuperAdmin(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+
+    if (!email.trim() || !password) {
+      toast.danger("Please enter your email and password.");
+      return;
+    }
+
     setIsLoading(true);
     try {
       await loginAdmin({ email, password });
-      router.push("/dashboard");
-    } catch (error: any) {
-      setError(
+      toast.success("Signed in successfully!");
+      redirectAfterAuth("/dashboard");
+    } catch (err: unknown) {
+      const error = err as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      const message =
         error.response?.data?.message ||
-          error.message ||
-          "An error occurred during login",
-      );
+        error.message ||
+        "Invalid email or password. Please try again.";
+      toast.danger(message);
     } finally {
       setIsLoading(false);
     }
@@ -79,15 +90,6 @@ export default function LoginPage() {
         </Card.Header>
 
         <Card.Content className="px-8 py-6 flex flex-col gap-5">
-          {error && (
-            <Alert status="danger">
-              <Alert.Indicator />
-              <Alert.Content>
-                <Alert.Description>{error}</Alert.Description>
-              </Alert.Content>
-            </Alert>
-          )}
-
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {/* Email */}
             <TextField
@@ -123,7 +125,8 @@ export default function LoginPage() {
             </TextField>
 
             {/* Remember me + Forgot password */}
-            <div className="flex items-center justify-between">
+          
+            {/* <div className="flex items-center justify-between">
               <Checkbox id="remember-me">
                 <Label htmlFor="remember-me" className="text-sm text-black">
                   Remember me
@@ -135,8 +138,7 @@ export default function LoginPage() {
               >
                 Forgot Password?
               </Link>
-            </div>
-
+            </div> */}
             <Button
               type="submit"
               isDisabled={isLoading}

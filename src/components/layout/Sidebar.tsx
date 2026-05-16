@@ -185,51 +185,57 @@ export default function Sidebar() {
         `}</style>
 
         <div className="relative flex shrink-0 flex-col items-center px-4 pt-8 pb-6">
-          <div
-            className="sidebar-avatar relative rounded-full bg-yellow-400 flex items-center justify-center my-5 overflow-hidden border-2 border-white/20 shadow-lg transition-all duration-300"
-            style={{
-              width: collapsed ? 44 : 88,
-              height: collapsed ? 44 : 88,
-            }}
+          <Link
+            href="/settings"
+            aria-label="Go to settings"
+            className="flex flex-col items-center rounded-lg outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white/40"
           >
-            {profilePictureUrl ? (
-              <Image
-                src={profilePictureUrl}
-                alt={admin?.name || "User"}
-                fill
-                sizes={collapsed ? "44px" : "88px"}
-                priority
-                className="object-cover"
-              />
-            ) : (
-              <span
-                className="font-extrabold text-[#2d4a8a] tracking-wide leading-none"
-                style={{
-                  fontSize: collapsed ? 16 : 28,
-                }}
-              >
-                {getInitials(admin?.name)}
-              </span>
-            )}
-          </div>
+            <div
+              className="sidebar-avatar relative rounded-full bg-yellow-400 flex items-center justify-center my-5 overflow-hidden border-2 border-white/20 shadow-lg transition-all duration-300"
+              style={{
+                width: collapsed ? 44 : 88,
+                height: collapsed ? 44 : 88,
+              }}
+            >
+              {profilePictureUrl ? (
+                <Image
+                  src={profilePictureUrl}
+                  alt={admin?.name || "User"}
+                  fill
+                  sizes={collapsed ? "44px" : "88px"}
+                  priority
+                  className="object-cover"
+                />
+              ) : (
+                <span
+                  className="font-extrabold text-[#2d4a8a] tracking-wide leading-none"
+                  style={{
+                    fontSize: collapsed ? 16 : 28,
+                  }}
+                >
+                  {getInitials(admin?.name)}
+                </span>
+              )}
+            </div>
 
-          {/* Role label — clip with overflow */}
-          <div
-            className="overflow-hidden transition-all duration-300"
-            style={{
-              maxHeight: collapsed ? 0 : 32,
-              opacity: collapsed ? 0 : 1,
-            }}
-          >
-            <p className="text-[10px] text-blue-300 text-center font-medium uppercase tracking-widest whitespace-nowrap">
-              {admin?.isSuperAdmin
-                ? "Super Admin"
-                : admin?.role?.name || "Admin"}
-            </p>
-            <p className="text-sm text-primary text-center font-semibold uppercase tracking-widest whitespace-nowrap">
-              {admin?.name || ""}
-            </p>
-          </div>
+            {/* Role label — clip with overflow */}
+            <div
+              className="overflow-hidden transition-all duration-300"
+              style={{
+                maxHeight: collapsed ? 0 : 32,
+                opacity: collapsed ? 0 : 1,
+              }}
+            >
+              <p className="text-[10px] text-blue-300 text-center font-medium uppercase tracking-widest whitespace-nowrap">
+                {admin?.isSuperAdmin
+                  ? "Super Admin"
+                  : admin?.role?.name || "Admin"}
+              </p>
+              <p className="text-sm text-primary text-center font-semibold uppercase tracking-widest whitespace-nowrap">
+                {admin?.name || ""}
+              </p>
+            </div>
+          </Link>
 
           {/* Desktop: collapse toggle */}
           <Button

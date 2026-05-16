@@ -1,7 +1,6 @@
-import { Toast } from "@heroui/react";
 import "./globals.css";
 import { Inter } from "next/font/google";
-import ReduxProvider from "@/redux/ReduxProvider";
+import AppProviders from "@/components/providers/AppProviders";
 import NextTopLoader from "nextjs-toploader";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -15,8 +14,7 @@ export default function RootLayout({
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <NextTopLoader color="var(--primary-500)" />
-        <ReduxProvider>{children}</ReduxProvider>
-        <Toast.Provider placement="top end" />
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );
