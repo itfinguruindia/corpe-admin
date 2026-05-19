@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { ChevronDown, Upload, Download, RefreshCw, Eye } from "lucide-react";
 import { toast, Spinner } from "@heroui/react";
 import TabCard from "@/components/dashboard/TabCard";
+import { FileUploadComponent } from "@/components/upload";
 import Modal from "@/components/ui/Modal";
 import { clientsApi } from "@/lib/api/clients";
 import { getFileType } from "@/utils/helpers";
@@ -85,29 +86,21 @@ export default function NameApplicationPage() {
     }
   };
 
-  const handleObjectClauseUpload = () => {
-    const input = window.document.createElement("input");
-    input.type = "file";
-    input.accept = ".pdf,.doc,.docx";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file || !appNo) return;
-      try {
-        await clientsApi.uploadObjectClauseDocument(appNo as string, file);
-        toast.success("Object Clause uploaded. Client can now download it.");
+  const handleObjectClauseFileSelected = async (file: File) => {
+    if (!file || !appNo) return;
+    try {
+      await clientsApi.uploadObjectClauseDocument(appNo as string, file);
+      toast.success("Object Clause uploaded. Client can now download it.");
 
-        // Refresh status to update UI
-        const statusData = await clientsApi.getObjectClauseStatus(
-          appNo as string,
-        );
-        setAdminFile(statusData.adminFile);
-        setClientFile(statusData.clientFile);
-      } catch (error) {
-        console.error("Error uploading Object Clause:", error);
-        toast("Failed to upload Object Clause", { variant: "danger" });
-      }
-    };
-    input.click();
+      const statusData = await clientsApi.getObjectClauseStatus(
+        appNo as string,
+      );
+      setAdminFile(statusData.adminFile);
+      setClientFile(statusData.clientFile);
+    } catch (error) {
+      console.error("Error uploading Object Clause:", error);
+      toast("Failed to upload Object Clause", { variant: "danger" });
+    }
   };
 
   const handleObjectClauseDownload = async (source?: "admin" | "client") => {
@@ -370,13 +363,23 @@ export default function NameApplicationPage() {
                     className={`cursor-pointer text-secondary hover:text-primary ${isRefreshing ? "animate-spin" : ""}`}
                   />
                 </div>
-                <div title="Upload Object Clause (Admin)">
-                  <Upload
-                    size={20}
-                    onClick={handleObjectClauseUpload}
-                    className="cursor-pointer text-primary hover:text-secondary"
-                  />
-                </div>
+                <FileUploadComponent
+                  context="clients"
+                  allowedFileTypes=".pdf,.doc,.docx"
+                  title="Upload Object Clause"
+                  subtitle="Upload from your computer, Google Drive, or existing documents."
+                  dropLabel="Drag and drop your file here"
+                  onFileSelect={handleObjectClauseFileSelected}
+                  renderTrigger={(openPicker) => (
+                    <div title="Upload Object Clause (Admin)">
+                      <Upload
+                        size={20}
+                        onClick={openPicker}
+                        className="cursor-pointer text-primary hover:text-secondary"
+                      />
+                    </div>
+                  )}
+                />
               </div>
             </div>
 
