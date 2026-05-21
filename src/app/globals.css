@@ -116,7 +116,7 @@ button:hover {
   grid-template-columns: 20px 1fr;
   align-items: center;
   transition: grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .sidebar-row[data-collapsed="true"] {
@@ -438,4 +438,19 @@ button:hover {
 
 .card-accent-top:hover::before {
   opacity: 1;
+}
+
+/* DOCX thumbnail preview on template cards */
+.docx-card-preview .docx-wrapper {
+  transform: scale(0.38);
+  transform-origin: top left;
+  width: 263%;
+  padding: 8px !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.docx-card-preview .docx-wrapper > section.docx {
+  padding: 12px !important;
+  box-shadow: none !important;
 }

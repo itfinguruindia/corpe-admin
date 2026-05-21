@@ -155,6 +155,7 @@ const UserCreateForm = ({ roles, onSuccess }: UserCreateFormProps) => {
       <div>
         <Label className="mb-1 block text-sm font-medium text-black">Role</Label>
         <CustomSelect
+          ariaLabel="Role"
           value={form.roleId}
           onChange={(v) => setForm({ ...form, roleId: v })}
           options={roleOptions}

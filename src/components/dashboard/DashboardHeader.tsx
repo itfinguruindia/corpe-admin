@@ -46,6 +46,7 @@ export default function DashboardHeader() {
               <Tooltip.Trigger>
                 <Button
                   isIconOnly
+                  aria-label="Go back"
                   onPress={() => router.back()}
                   className="rounded-full text-primary-500 border border-gray-100 shadow-sm bg-white hover:bg-gray-50 h-9 w-9"
                 >
@@ -59,6 +60,7 @@ export default function DashboardHeader() {
             <Tooltip.Trigger>
               <Button
                 isIconOnly
+                aria-label="Refresh page"
                 onPress={() => router.refresh()}
                 className="rounded-full text-primary-500 border border-gray-100 shadow-sm bg-white hover:bg-gray-50 h-9 w-9"
               >

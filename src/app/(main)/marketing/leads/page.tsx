@@ -215,7 +215,10 @@ export default function LeadsPage() {
       id: "message",
       label: "Message",
       render: (lead) => (
-        <span className="max-w-xs truncate block text-gray-700">
+        <span
+          className="max-w-xs truncate block text-gray-700"
+          title={lead.message || "-"}
+        >
           {lead.message || "-"}
         </span>
       ),
@@ -225,7 +228,9 @@ export default function LeadsPage() {
       label: "Created",
       render: (lead) => (
         <span className="text-gray-700 whitespace-nowrap">
-          {new Date(lead.createdAt).toLocaleDateString()}
+          {lead.createdAt
+            ? new Date(lead.createdAt).toLocaleString()
+            : "-"}
         </span>
       ),
     },
@@ -286,19 +291,21 @@ export default function LeadsPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-            <div className="relative w-full sm:w-72">
+            <div className="relative w-full sm:w-80">
               <Search className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-gray-400 size-5" />
               <TextField value={search} onChange={setSearch} name="searchLeads">
                 <Label className="sr-only">Search leads</Label>
                 <Input
+                  aria-label="Search leads"
                   placeholder="Search leads..."
                   className="w-full bg-transparent pl-10 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:outline-none rounded-xl border border-gray-200 shadow-sm"
                 />
               </TextField>
             </div>
 
-            <div className="h-[38px] w-full sm:w-auto min-w-[140px]">
+            <div className="h-[38px] w-full sm:w-auto min-w-[168px]">
               <CustomSelect
+                ariaLabel="Filter by country"
                 value={country}
                 onChange={setCountry}
                 options={countrySelectOptions}
@@ -308,28 +315,26 @@ export default function LeadsPage() {
             <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
 
             <div className="flex items-center gap-2 self-end sm:self-auto">
-              <span title="Refresh" className="inline-flex">
-                <Button
-                  onClick={handleRefresh}
-                  className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                  aria-label="Refresh leads"
-                  type="button"
-                  variant="ghost"
-                >
-                  <RefreshCw size={18} />
-                </Button>
-              </span>
-              <span title="Export to Excel" className="inline-flex">
-                <Button
-                  onClick={handleExport}
-                  className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                  aria-label="Export leads to Excel"
-                  type="button"
-                  variant="ghost"
-                >
-                  <FileDown size={18} />
-                </Button>
-              </span>
+              <Button
+                isIconOnly
+                onClick={handleRefresh}
+                className="h-10 w-10 min-w-10 shrink-0 rounded-lg border border-gray-200 bg-white p-0 text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Refresh leads"
+                type="button"
+                variant="ghost"
+              >
+                <RefreshCw size={18} />
+              </Button>
+              <Button
+                isIconOnly
+                onClick={handleExport}
+                className="h-10 w-10 min-w-10 shrink-0 rounded-lg border border-gray-200 bg-white p-0 text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Export leads to Excel"
+                type="button"
+                variant="ghost"
+              >
+                <FileDown size={18} />
+              </Button>
             </div>
           </div>
         </div>

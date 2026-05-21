@@ -8,7 +8,6 @@ import {
 import FloatingActionButton from "@/components/dashboard/FloatingActionButton";
 import RaisedTicketsWidget from "@/components/dashboard/RaisedTicketsWidget";
 import RecentlyOnboardedWidget from "@/components/dashboard/RecentlyOnboardedWidget";
-import { Zap } from "lucide-react";
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
 import { Chip } from "@heroui/react";
@@ -48,7 +47,7 @@ export default async function Dashboard() {
         <StatCard label="Delay status" value="40%" subValue="" />
 
         {/* Highlight/Notification Card - Spans 3 columns for better balance */}
-        <ContentCard
+        {/* <ContentCard
           id="highlights"
           title="Highlights/Notifications"
           className="bg-gray-50/50 md:col-span-3 col-span-2"
@@ -65,7 +64,7 @@ export default async function Dashboard() {
               &ldquo;Chhaya completed KYC&rdquo;
             </Chip>
           </div>
-        </ContentCard>
+        </ContentCard> */}
       </section>
 
       {/* SECTION 2: Active Monitoring (Raised Tickets & Target) */}

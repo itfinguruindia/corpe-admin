@@ -1,8 +1,14 @@
-import { Toast } from "@heroui/react";
+import type { Metadata } from "next";
 import "./globals.css";
 import { Inter } from "next/font/google";
-import ReduxProvider from "@/redux/ReduxProvider";
+import AppProviders from "@/components/providers/AppProviders";
 import NextTopLoader from "nextjs-toploader";
+
+export const metadata: Metadata = {
+  title: "CorpE - Admin Portal",
+  description:
+    "CorpE admin portal for managing company incorporation, clients, documents, and MCA filings in India.",
+};
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -12,11 +18,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <NextTopLoader color="var(--primary-500)" />
-        <ReduxProvider>{children}</ReduxProvider>
-        <Toast.Provider placement="top end" />
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

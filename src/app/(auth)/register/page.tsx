@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { checkSuperAdmin, registerSuperAdmin } from "@/utils/auth";
+import { redirectAfterAuth } from "@/utils/navigation";
 import { toast } from "@heroui/react";
 import { Eye, EyeOff } from "lucide-react";
 import {
@@ -91,7 +92,7 @@ export default function RegisterPage() {
         setPassword("");
         setConfirmPassword("");
       } else {
-        router.push("/dashboard");
+        redirectAfterAuth("/dashboard");
       }
     } catch (error: any) {
       setError(

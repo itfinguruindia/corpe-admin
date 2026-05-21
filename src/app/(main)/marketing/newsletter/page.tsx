@@ -150,7 +150,7 @@ export default function NewsLetter() {
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="w-full sm:w-64">
+              <div className="w-full sm:w-72">
                 <TextField value={email} onChange={setEmail} name="newsletterEmail">
                   <Label className="sr-only">Subscriber email</Label>
                   <Input
@@ -174,28 +174,26 @@ export default function NewsLetter() {
             <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
 
             <div className="flex items-center gap-2 self-end sm:self-auto">
-              <span title="Refresh" className="inline-flex">
-                <Button
-                  onClick={handleRefresh}
-                  className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                  aria-label="Refresh subscribers"
-                  type="button"
-                  variant="ghost"
-                >
-                  <RefreshCw size={18} />
-                </Button>
-              </span>
-              <span title="Export to Excel" className="inline-flex">
-                <Button
-                  onClick={handleExport}
-                  className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                  aria-label="Export subscribers to Excel"
-                  type="button"
-                  variant="ghost"
-                >
-                  <FileDown size={18} />
-                </Button>
-              </span>
+              <Button
+                isIconOnly
+                onClick={handleRefresh}
+                className="h-10 w-10 min-w-10 shrink-0 rounded-lg border border-gray-200 bg-white p-0 text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Refresh subscribers"
+                type="button"
+                variant="ghost"
+              >
+                <RefreshCw size={18} />
+              </Button>
+              <Button
+                isIconOnly
+                onClick={handleExport}
+                className="h-10 w-10 min-w-10 shrink-0 rounded-lg border border-gray-200 bg-white p-0 text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Export subscribers to Excel"
+                type="button"
+                variant="ghost"
+              >
+                <FileDown size={18} />
+              </Button>
             </div>
           </div>
         </div>
