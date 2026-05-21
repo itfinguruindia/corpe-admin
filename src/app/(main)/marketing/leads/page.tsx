@@ -215,7 +215,10 @@ export default function LeadsPage() {
       id: "message",
       label: "Message",
       render: (lead) => (
-        <span className="max-w-xs truncate block text-gray-700">
+        <span
+          className="max-w-xs truncate block text-gray-700"
+          title={lead.message || "-"}
+        >
           {lead.message || "-"}
         </span>
       ),
@@ -225,7 +228,9 @@ export default function LeadsPage() {
       label: "Created",
       render: (lead) => (
         <span className="text-gray-700 whitespace-nowrap">
-          {new Date(lead.createdAt).toLocaleDateString()}
+          {lead.createdAt
+            ? new Date(lead.createdAt).toLocaleString()
+            : "-"}
         </span>
       ),
     },

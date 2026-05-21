@@ -12,7 +12,6 @@ import {
   toast,
   useOverlayState,
 } from "@heroui/react";
-import AddTemplateCard from "@/components/documents/AddTemplateCard";
 import TemplateCard from "@/components/documents/TemplateCard";
 import TemplateCardSkeleton from "@/components/documents/TemplateCardSkeleton";
 import TemplateImportModal from "@/components/documents/TemplateImportModal";
@@ -218,7 +217,6 @@ const TemplatesPage = () => {
           id="templates-grid"
           className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
         >
-          <AddTemplateCard onClick={openImport} />
           {filteredTemplates.map((template) => (
             <TemplateCard
               key={template.id}
