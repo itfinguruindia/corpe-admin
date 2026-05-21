@@ -323,6 +323,7 @@ export default function RaisedTicketsPage() {
 
             <div className="w-full flex justify-between gap-2 col-span-full md:col-[2/3] lg:col-[3/4] row-[2/3] lg:row-[1/2]">
               <CustomSelect
+                ariaLabel="Filter by status"
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
                 options={StatusSelectOptions}

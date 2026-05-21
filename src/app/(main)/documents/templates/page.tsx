@@ -12,6 +12,7 @@ import {
   toast,
   useOverlayState,
 } from "@heroui/react";
+import DocxPreview from "@/components/documents/DocxPreview";
 import TemplateCard from "@/components/documents/TemplateCard";
 import TemplateCardSkeleton from "@/components/documents/TemplateCardSkeleton";
 import TemplateImportModal from "@/components/documents/TemplateImportModal";
@@ -29,6 +30,7 @@ const TemplatesPage = () => {
   const [previewTemplate, setPreviewTemplate] =
     useState<DocumentTemplate | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [actionTemplateId, setActionTemplateId] = useState<string | null>(null);
 
@@ -47,6 +49,7 @@ const TemplatesPage = () => {
       if (!open) {
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
+        setPreviewBlob(null);
         setPreviewTemplate(null);
       }
     },
@@ -122,6 +125,8 @@ const TemplatesPage = () => {
   const handlePreview = async (template: DocumentTemplate) => {
     setIsPreviewLoading(true);
     setPreviewTemplate(template);
+    setPreviewUrl(null);
+    setPreviewBlob(null);
     previewOverlay.open();
 
     try {
@@ -132,8 +137,11 @@ const TemplatesPage = () => {
         return;
       }
 
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
+      if (template.fileType === "pdf") {
+        setPreviewUrl(URL.createObjectURL(blob));
+      } else if (template.fileType === "docx") {
+        setPreviewBlob(blob);
+      }
     } catch {
       toast.danger("Failed to load preview.");
       previewOverlay.close();
@@ -275,11 +283,17 @@ const TemplatesPage = () => {
                     title={previewTemplate.templateName}
                     className="h-full w-full border-0"
                   />
+                ) : previewTemplate?.fileType === "docx" && previewBlob ? (
+                  <DocxPreview
+                    blob={previewBlob}
+                    title={previewTemplate.templateName}
+                    className="h-full"
+                  />
                 ) : (
                   <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
                     <FileText className="h-12 w-12 text-gray-400" />
                     <p className="text-sm font-medium text-gray-800">
-                      Inline preview is available for PDF files only.
+                      Inline preview is available for PDF and DOCX files.
                     </p>
                     <p className="text-xs text-gray-500">
                       {previewTemplate?.fileType

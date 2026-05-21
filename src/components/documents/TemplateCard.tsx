@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Card, Spinner } from "@heroui/react";
+import DocxPreview from "@/components/documents/DocxPreview";
 import { Chip } from "@/components/ui/Chip";
 import { FILE_TYPE_LABELS } from "@/lib/templates/constants";
 import { formatFileSize, formatUploadDate } from "@/utils/fileFromSource";
@@ -49,15 +50,19 @@ export default function TemplateCard({
   onDelete,
 }: TemplateCardProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [docxPreviewFailed, setDocxPreviewFailed] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(
-    template.fileType === "pdf",
+    template.fileType === "pdf" || template.fileType === "docx",
   );
 
   const style = FILE_TYPE_STYLES[template.fileType];
   const TypeIcon = style.icon;
 
   useEffect(() => {
-    if (template.fileType !== "pdf") {
+    const supportsInlinePreview =
+      template.fileType === "pdf" || template.fileType === "docx";
+    if (!supportsInlinePreview) {
       setPreviewLoading(false);
       return;
     }
@@ -66,11 +71,20 @@ export default function TemplateCard({
     let objectUrl: string | null = null;
 
     const loadPreview = async () => {
+      setDocxPreviewFailed(false);
+      setPreviewBlob(null);
+      setPreviewUrl(null);
+
       try {
         const blob = await getBlob(template);
         if (revoked || !blob) return;
-        objectUrl = URL.createObjectURL(blob);
-        setPreviewUrl(objectUrl);
+
+        if (template.fileType === "pdf") {
+          objectUrl = URL.createObjectURL(blob);
+          setPreviewUrl(objectUrl);
+        } else {
+          setPreviewBlob(blob);
+        }
       } finally {
         if (!revoked) setPreviewLoading(false);
       }
@@ -102,6 +116,15 @@ export default function TemplateCard({
             src={previewUrl}
             title={template.templateName}
             className="pointer-events-none h-full w-full origin-top-left scale-[1.02] border-0 bg-white"
+          />
+        ) : template.fileType === "docx" &&
+          previewBlob &&
+          !docxPreviewFailed ? (
+          <DocxPreview
+            blob={previewBlob}
+            title={template.templateName}
+            compact
+            onError={() => setDocxPreviewFailed(true)}
           />
         ) : (
           <div
@@ -169,10 +192,10 @@ export default function TemplateCard({
             type="button"
             disabled={busy}
             onClick={() => onDownload(template)}
-            className="inline-flex min-w-0 flex-[2] items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-w-0 flex-1 items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label={`Download ${template.templateName}`}
           >
-            <Download className="h-4 w-4 shrink-0" />
-            Download
+            <Download className="h-4 w-4" />
           </button>
           <button
             type="button"

@@ -169,7 +169,8 @@ function requestAccessToken(
     }, OAUTH_TIMEOUT_MS);
 
     const googleAccounts = (
-      window as Window & {
+      // Cast via `unknown` first to avoid incompatible-window structural checks
+      window as unknown as Window & {
         google?: {
           accounts: {
             oauth2: {
@@ -289,7 +290,8 @@ function openPickerDialog(
     const picker = builder
       .setCallback((data: { action: string; docs?: PickerDocument[] }) => {
         if (data.action === googlePicker.Action.PICKED && data.docs?.[0]) {
-          settle(() => resolve(data.docs[0]));
+          const doc0 = data.docs[0]!;
+          settle(() => resolve(doc0));
           return;
         }
         if (data.action === googlePicker.Action.CANCEL) {

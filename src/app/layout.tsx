@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import "./globals.css";
 import { Inter } from "next/font/google";
 import AppProviders from "@/components/providers/AppProviders";
 import NextTopLoader from "nextjs-toploader";
+
+export const metadata: Metadata = {
+  title: "CorpE - Admin Portal",
+  description:
+    "CorpE admin portal for managing company incorporation, clients, documents, and MCA filings in India.",
+};
 
 const inter = Inter({ subsets: ["latin"] });
 

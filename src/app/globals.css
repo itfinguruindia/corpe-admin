@@ -439,3 +439,18 @@ button:hover {
 .card-accent-top:hover::before {
   opacity: 1;
 }
+
+/* DOCX thumbnail preview on template cards */
+.docx-card-preview .docx-wrapper {
+  transform: scale(0.38);
+  transform-origin: top left;
+  width: 263%;
+  padding: 8px !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.docx-card-preview .docx-wrapper > section.docx {
+  padding: 12px !important;
+  box-shadow: none !important;
+}
