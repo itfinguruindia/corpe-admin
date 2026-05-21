@@ -31,6 +31,7 @@ import axiosInstance from "@/lib/axios";
 import { setProfilePictureUrl } from "@/redux/slices/authSlice";
 import { logoutAdmin } from "@/utils/auth";
 import useSwal from "@/utils/useSwal";
+import { Button } from "@heroui/react";
 
 const SIDEBAR_EXPANDED = 260;
 const SIDEBAR_COLLAPSED = 68;
@@ -164,7 +165,7 @@ export default function Sidebar() {
 
       <aside
         className={clsx(
-          "sidebar h-screen bg-[#2d4a8a] flex flex-col fixed left-0 top-0 z-50",
+          "sidebar flex h-screen min-h-0 flex-col overflow-hidden bg-[#2d4a8a] fixed left-0 top-0 z-50",
           /* Mobile: full-width drawer, slides in/out */
           "max-md:w-[260px] max-md:transition-transform max-md:duration-300",
           isMobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full",
@@ -183,57 +184,66 @@ export default function Sidebar() {
           }
         `}</style>
 
-        <div className="relative flex flex-col items-center px-4 pt-8 pb-6">
-          <div
-            className="sidebar-avatar relative rounded-full bg-yellow-400 flex items-center justify-center my-5 overflow-hidden border-2 border-white/20 shadow-lg transition-all duration-300"
-            style={{
-              width: collapsed ? 44 : 88,
-              height: collapsed ? 44 : 88,
-            }}
+        <div className="relative flex shrink-0 flex-col items-center px-4 pt-8 pb-6">
+          <Link
+            href="/settings"
+            aria-label="Go to settings"
+            className="flex flex-col items-center rounded-lg outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white/40"
           >
-            {profilePictureUrl ? (
-              <Image
-                src={profilePictureUrl}
-                alt={admin?.name || "User"}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <span
-                className="font-extrabold text-[#2d4a8a] tracking-wide leading-none"
-                style={{
-                  fontSize: collapsed ? 16 : 28,
-                }}
-              >
-                {getInitials(admin?.name)}
-              </span>
-            )}
-          </div>
+            <div
+              className="sidebar-avatar relative rounded-full bg-yellow-400 flex items-center justify-center my-5 overflow-hidden border-2 border-white/20 shadow-lg transition-all duration-300"
+              style={{
+                width: collapsed ? 44 : 88,
+                height: collapsed ? 44 : 88,
+              }}
+            >
+              {profilePictureUrl ? (
+                <Image
+                  src={profilePictureUrl}
+                  alt={admin?.name || "User"}
+                  fill
+                  sizes={collapsed ? "44px" : "88px"}
+                  priority
+                  className="object-cover"
+                />
+              ) : (
+                <span
+                  className="font-extrabold text-[#2d4a8a] tracking-wide leading-none"
+                  style={{
+                    fontSize: collapsed ? 16 : 28,
+                  }}
+                >
+                  {getInitials(admin?.name)}
+                </span>
+              )}
+            </div>
 
-          {/* Role label — clip with overflow */}
-          <div
-            className="overflow-hidden transition-all duration-300"
-            style={{
-              maxHeight: collapsed ? 0 : 32,
-              opacity: collapsed ? 0 : 1,
-            }}
-          >
-            <p className="text-[10px] text-blue-300 text-center font-medium uppercase tracking-widest whitespace-nowrap">
-              {admin?.isSuperAdmin
-                ? "Super Admin"
-                : admin?.role?.name || "Admin"}
-            </p>
-            <p className="text-sm text-primary text-center font-semibold uppercase tracking-widest whitespace-nowrap">
-              {admin?.name || ""}
-            </p>
-          </div>
+            {/* Role label — clip with overflow */}
+            <div
+              className="overflow-hidden transition-all duration-300"
+              style={{
+                maxHeight: collapsed ? 0 : 32,
+                opacity: collapsed ? 0 : 1,
+              }}
+            >
+              <p className="text-[10px] text-blue-300 text-center font-medium uppercase tracking-widest whitespace-nowrap">
+                {admin?.isSuperAdmin
+                  ? "Super Admin"
+                  : admin?.role?.name || "Admin"}
+              </p>
+              <p className="text-sm text-primary text-center font-semibold uppercase tracking-widest whitespace-nowrap">
+                {admin?.name || ""}
+              </p>
+            </div>
+          </Link>
 
           {/* Desktop: collapse toggle */}
-          <button
+          <Button
             type="button"
             onClick={() => dispatch(toggleSidebar())}
             className={clsx(
               "absolute top-4 text-blue-200 hover:text-white transition-colors hidden md:block",
+              "bg-transparent shadow-none border-0 ring-0 outline-none min-h-0 h-auto p-0 rounded-md",
               collapsed ? "right-1/2 translate-x-1/2" : "right-4",
             )}
           >
@@ -242,21 +252,21 @@ export default function Sidebar() {
             ) : (
               <PanelRightOpen size={20} />
             )}
-          </button>
+          </Button>
 
           {/* Mobile: close button */}
-          <button
+          <Button
             type="button"
             onClick={() => dispatch(closeMobileSidebar())}
-            className="absolute top-4 right-4 text-blue-200 hover:text-white transition-colors md:hidden"
+            className="absolute top-4 right-4 text-blue-200 hover:text-white transition-colors md:hidden bg-transparent shadow-none border-0 ring-0 outline-none min-h-0 h-auto p-0 rounded-md"
           >
             <X size={22} />
-          </button>
+          </Button>
         </div>
 
         <Divider />
 
-        <nav className="flex flex-col flex-1 py-2 overflow-y-auto overflow-x-hidden scrollbar-hide">
+        <nav className="flex min-h-0 flex-1 flex-col gap-0 overflow-y-auto overflow-x-hidden py-2 scrollbar-hide [&>*]:shrink-0">
           <SidebarLink
             label="Dashboard"
             href="/dashboard"
@@ -352,7 +362,9 @@ export default function Sidebar() {
               collapsed={effectiveCollapsed}
             />
           </SidebarSection>
+        </nav>
 
+        <div className="shrink-0 pb-2">
           <Divider />
 
           <SidebarLink
@@ -362,21 +374,24 @@ export default function Sidebar() {
             active={pathname === "/settings"}
             collapsed={effectiveCollapsed}
           />
-        </nav>
 
-        <Divider />
+          <Divider />
 
-        {/* Logout Button */}
-        <SidebarTooltip
-          label="Logout"
-          active={false}
-          collapsed={effectiveCollapsed}
-          icon={<LogOut size={18} />}
-        >
-          <button onClick={handleLogout} type="button" className="text-left">
-            Logout
-          </button>
-        </SidebarTooltip>
+          <SidebarTooltip
+            label="Logout"
+            active={false}
+            collapsed={effectiveCollapsed}
+            icon={<LogOut size={18} />}
+          >
+            <Button
+              onClick={handleLogout}
+              type="button"
+              className="text-left w-full justify-start bg-transparent shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none px-0 py-0 font-[inherit]"
+            >
+              Logout
+            </Button>
+          </SidebarTooltip>
+        </div>
       </aside>
     </>
   );
@@ -385,7 +400,7 @@ export default function Sidebar() {
 /* -------------------- Components -------------------- */
 
 function Divider() {
-  return <div className="h-px bg-white/10 mx-5 my-1" />;
+  return <div className="h-px shrink-0 bg-white/10 mx-5 my-1" />;
 }
 
 function SidebarTooltip({
@@ -427,7 +442,7 @@ function SidebarTooltip({
         ref={ref}
         onClick={handleRowClick}
         className={clsx(
-          "sidebar-row gap-3 px-6 py-3.5 text-sm font-semibold transition-colors duration-150",
+          "sidebar-row relative z-0 w-full! shrink-0 gap-3 px-6 py-3.5 text-sm font-semibold transition-colors duration-150",
           active
             ? "text-yellow-400 bg-yellow-400/10"
             : "text-blue-100 hover:bg-white/8 hover:text-white",
@@ -473,9 +488,11 @@ function SidebarLink(linkProps: {
 }) {
   return (
     <SidebarTooltip {...linkProps}>
-      <Link href={linkProps.href} className="sidebar-label">
-        {linkProps.label}
-      </Link>
+      <div className="flex">
+        <Link href={linkProps.href} className="flex-1">
+          {linkProps.label}
+        </Link>
+      </div>
     </SidebarTooltip>
   );
 }
@@ -524,14 +541,15 @@ function SidebarSection({
   if (collapsed) {
     return (
       <>
-        <button
+        <Button
           ref={btnRef}
           type="button"
           className={clsx(
-            "sidebar-row w-full gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
+            "sidebar-row relative z-0 grid! w-full shrink-0 gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
+            "shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none [background-image:none]",
             active
               ? "text-yellow-400 bg-yellow-400/10"
-              : "text-blue-100 hover:bg-white/8 hover:text-white",
+              : "bg-transparent text-blue-100 hover:bg-white/8 hover:text-white",
           )}
           data-collapsed={collapsed}
           onMouseEnter={showFlyout}
@@ -543,7 +561,7 @@ function SidebarSection({
             {icon}
           </span>
           <span className="sidebar-label">{title}</span>
-        </button>
+        </Button>
 
         {/* Fixed flyout popover */}
         <div
@@ -567,15 +585,16 @@ function SidebarSection({
 
   /* ---- Expanded: normal accordion ---- */
   return (
-    <div>
-      <button
+    <div className="shrink-0">
+      <Button
         type="button"
         onClick={handleClick}
         className={clsx(
-          "sidebar-row w-full gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
+          "sidebar-row relative z-0 grid! w-full shrink-0 gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
+          "shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none [background-image:none]",
           active
             ? "text-yellow-400 bg-yellow-400/10"
-            : "text-blue-100 hover:bg-white/8 hover:text-white",
+            : "bg-transparent text-blue-100 hover:bg-white/8 hover:text-white",
         )}
         data-collapsed={collapsed}
       >
@@ -592,17 +611,18 @@ function SidebarSection({
             <ChevronRight size={14} className="opacity-40 shrink-0 ml-2" />
           )}
         </span>
-      </button>
+      </Button>
 
       {/* Accordion body */}
       <div
-        className="overflow-hidden transition-all duration-300"
-        style={{
-          maxHeight: open ? 300 : 0,
-          opacity: open ? 1 : 0,
-        }}
+        className={clsx(
+          "grid transition-[grid-template-rows] duration-300 ease-out",
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
       >
-        <div className="flex flex-col pb-1">{children}</div>
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex flex-col pb-1">{children}</div>
+        </div>
       </div>
     </div>
   );
@@ -649,7 +669,7 @@ function SubItem({
     <Link
       href={href}
       className={clsx(
-        "sidebar-row-sub gap-2.5 pl-12 pr-6 py-2.5 text-[13px] font-medium transition-colors duration-150",
+        "sidebar-row-sub shrink-0 gap-2.5 pl-12 pr-6 py-2.5 text-[13px] font-medium transition-colors duration-150",
         active
           ? "text-yellow-400 bg-yellow-400/8"
           : "text-blue-300 hover:bg-white/6 hover:text-blue-100",

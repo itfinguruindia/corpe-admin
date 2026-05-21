@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { checkSuperAdmin, registerSuperAdmin } from "@/utils/auth";
+import { redirectAfterAuth } from "@/utils/navigation";
 import { toast } from "@heroui/react";
 import { Eye, EyeOff } from "lucide-react";
 import {
@@ -91,7 +92,7 @@ export default function RegisterPage() {
         setPassword("");
         setConfirmPassword("");
       } else {
-        router.push("/dashboard");
+        redirectAfterAuth("/dashboard");
       }
     } catch (error: any) {
       setError(
@@ -139,7 +140,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {/* Full Name */}
             <TextField isRequired value={name} onChange={setName} name="name">
-              <Label>Full Name</Label>
+              <Label className="text-black">Full Name</Label>
               <Input placeholder="Enter your full name" />
             </TextField>
 
@@ -151,7 +152,7 @@ export default function RegisterPage() {
               type="email"
               name="email"
             >
-              <Label>Email Address</Label>
+              <Label className="text-black">Email Address</Label>
               <Input placeholder="Enter your email" />
             </TextField>
 
@@ -165,7 +166,7 @@ export default function RegisterPage() {
               }}
               name="phoneNumber"
             >
-              <Label>Phone Number</Label>
+              <Label className="text-black">Phone Number</Label>
               <Input
                 placeholder="Enter your 10-digit phone number"
                 inputMode="numeric"
@@ -181,20 +182,20 @@ export default function RegisterPage() {
               type={showPassword ? "text" : "password"}
               name="password"
             >
-              <Label>Password</Label>
+              <Label className="text-black">Password</Label>
               <div className="relative">
                 <Input
                   placeholder="min. 8 chars, 1 uppercase, 1 special char"
                   className="w-full"
                   minLength={8}
                 />
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none bg-transparent shadow-none border-0 ring-0 min-h-0 h-auto w-auto p-0 rounded-md [background-image:none]"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+                </Button>
               </div>
             </TextField>
 
@@ -206,24 +207,24 @@ export default function RegisterPage() {
               type={showConfirmPassword ? "text" : "password"}
               name="confirmPassword"
             >
-              <Label>Confirm Password</Label>
+              <Label className="text-black">Confirm Password</Label>
               <div className="relative">
                 <Input
                   placeholder="Confirm your password"
                   className="w-full"
                   minLength={8}
                 />
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none bg-transparent shadow-none border-0 ring-0 min-h-0 h-auto w-auto p-0 rounded-md [background-image:none]"
                 >
                   {showConfirmPassword ? (
                     <EyeOff size={20} />
                   ) : (
                     <Eye size={20} />
                   )}
-                </button>
+                </Button>
               </div>
             </TextField>
 

@@ -4,8 +4,8 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CompanyOverview } from "@/types/company";
 import { clientsApi } from "@/lib/api/clients";
-import { InfoField, Switch } from "@/components/ui";
-import { Chip } from "@/components/ui";
+import { InfoField } from "@/components/ui";
+import { Chip, Spinner, Switch } from "@heroui/react";
 
 export default function CompanyOverviewPage() {
   const { appNo } = useParams();
@@ -74,8 +74,7 @@ export default function CompanyOverviewPage() {
     }
   }, [appNo]);
 
-  const handleDocsToggle = async () => {
-    const newValue = !allDocsVerify;
+  const handleDocsToggle = async (newValue: boolean) => {
     try {
       await clientsApi.updateAllDocsVerified(appNo as string, newValue);
       setAllDocsVerified(newValue);
@@ -99,7 +98,7 @@ export default function CompanyOverviewPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Loading...</div>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -127,12 +126,14 @@ export default function CompanyOverviewPage() {
           </div>
 
           {/* KYC Verified Toggle */}
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-medium text-gray-700">
+          <Switch isSelected={allDocsVerify} onChange={handleDocsToggle}>
+            <Switch.Control>
+              <Switch.Thumb />
+            </Switch.Control>
+            <Switch.Content className="text-lg font-medium text-gray-700">
               All Docs Verified
-            </span>
-            <Switch checked={allDocsVerify} onChange={handleDocsToggle} />
-          </div>
+            </Switch.Content>
+          </Switch>
         </div>
 
         {/* Company Details */}
@@ -192,21 +193,33 @@ export default function CompanyOverviewPage() {
               Status
             </label>
             <Chip
-              label={companyData.status}
-              variant={companyData.status === "Approved" ? "green" : "gray"}
-            />
+              variant="soft"
+              size="sm"
+              className={
+                companyData.status === "Approved"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-100 text-gray-700"
+              }
+            >
+              {companyData.status}
+            </Chip>
           </div>
-          {/*Payment Status as Chip */}
+          {/* Payment Status as Chip */}
           <div className="flex items-center justify-between border-b border-[#F9A826] py-4 max-w-xl">
             <label className="text-sm font-semibold text-gray-900">
               Payment Status
             </label>
             <Chip
-              label={companyData.paymentStatus}
-              variant={
-                companyData.paymentStatus === "Approved" ? "green" : "gray"
+              variant="soft"
+              size="sm"
+              className={
+                companyData.paymentStatus === "Approved"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-100 text-gray-700"
               }
-            />
+            >
+              {companyData.paymentStatus}
+            </Chip>
           </div>
 
           <InfoField label="Plan Choose" value={companyData.planChoose} />

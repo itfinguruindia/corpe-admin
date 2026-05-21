@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { navigationIndex, SearchItem } from "@/data/navigationIndex";
 import clsx from "clsx";
+import { Button, Input, Label, TextField } from "@heroui/react";
 
 const RECENT_SEARCHES_KEY = "corpe_recent_searches";
 const MAX_RECENT = 5;
@@ -129,21 +130,26 @@ export default function GlobalSearch() {
   return (
     <div ref={containerRef} className="relative w-full md:max-w-lg">
       <div className="relative group">
-        <input
-          ref={inputRef}
-          type="text"
+        <TextField
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setIsOpen(true)}
-          onKeyDown={handleKeyDown}
-          placeholder="Search pages or sections..."
-          className={clsx(
-            "h-11 w-full rounded-2xl border bg-white pl-11 pr-16 text-sm transition-all duration-200 outline-none text-secondary-900 placeholder:text-gray-400",
-            isOpen
-              ? "border-primary-500 ring-4 ring-primary-50 shadow-md"
-              : "border-gray-200 hover:border-primary-300 focus:border-primary-500 shadow-sm",
-          )}
-        />
+          onChange={(v) => setQuery(v)}
+          name="globalSearch"
+        >
+          <Label className="sr-only">Search pages or sections</Label>
+          <Input
+            ref={inputRef}
+            type="text"
+            onFocus={() => setIsOpen(true)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search pages or sections..."
+            className={clsx(
+              "h-11 w-full rounded-2xl border bg-white pl-11 pr-16 text-sm transition-all duration-200 outline-none text-secondary-900 placeholder:text-gray-400",
+              isOpen
+                ? "border-primary-500 ring-4 ring-primary-50 shadow-md"
+                : "border-gray-200 hover:border-primary-300 focus:border-primary-500 shadow-sm",
+            )}
+          />
+        </TextField>
         <Search
           className={clsx(
             "absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 transition-colors duration-200",
@@ -181,12 +187,14 @@ export default function GlobalSearch() {
 
             <div className="mt-1 space-y-1 max-h-[400px] overflow-y-auto custom-scrollbar">
               {currentItems.map((item, index) => (
-                <button
+                <Button
                   key={`${item.id}-${index}`}
+                  type="button"
                   onClick={() => handleSelect(item)}
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={clsx(
                     "flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition-all duration-150",
+                    "shadow-none border-0 ring-0 outline-none min-h-0 h-auto [background-image:none]",
                     index === selectedIndex
                       ? "bg-primary-50 text-secondary-900"
                       : "text-gray-600 hover:bg-gray-50",
@@ -229,7 +237,7 @@ export default function GlobalSearch() {
                       ENTER
                     </span>
                   )}
-                </button>
+                </Button>
               ))}
 
               {!hasResults && query.trim() && (

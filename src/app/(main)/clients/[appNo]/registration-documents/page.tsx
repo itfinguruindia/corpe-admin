@@ -1,49 +1,163 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Search, Edit, Upload, Download, Eye, ChevronDown } from "lucide-react";
-import { fetchRegistrationData } from "@/lib/data/mockRegistrationDocumentsData";
-import {
-  RegistrationData,
-  RegistrationDocument,
-} from "@/types/registrationDocuments";
+import { useEffect, useState, useRef } from "react";
+
+import { Edit, Upload, Download, Eye } from "lucide-react";
+import { toast, Spinner } from "@heroui/react";
+
+import { clientsApi } from "@/lib/api/clients";
+import CustomSelect from "@/components/ui/CustomSelect";
+import { RegistrationData } from "@/types/registrationDocuments";
+
+const COMPANY_STATUS_OPTIONS = [
+  { id: "pending", label: "Pending" },
+  { id: "under-process", label: "Under Process" },
+  { id: "delayed", label: "Delayed" },
+  { id: "completed", label: "Completed" },
+];
+
+function formatStatusLabel(status: string) {
+  return (
+    COMPANY_STATUS_OPTIONS.find((o) => o.id === status)?.label ??
+    status
+      .split("-")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ")
+  );
+}
 
 export default function RegistrationDocumentsPage() {
   const { appNo } = useParams();
   const [data, setData] = useState<RegistrationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [cinInput, setCinInput] = useState("");
-  const [isEditingCin, setIsEditingCin] = useState(false); // To toggle readonly if needed
   const [companyStatus, setCompanyStatus] = useState<string>("pending");
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [activeUploadDocType, setActiveUploadDocType] = useState<string | null>(
+    null,
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadData = async () => {
+    if (!appNo) return;
+    try {
+      setIsLoading(true);
+      const result = await clientsApi.getRegistrationData(appNo as string);
+      setData(result);
+      if (result?.cin) setCinInput(result.cin);
+      if (result?.companyStatus) setCompanyStatus(result.companyStatus);
+    } catch (error) {
+      console.error("Failed to load registration data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!appNo) return;
-      try {
-        setIsLoading(true);
-        const result = await fetchRegistrationData("GUJC000001" as string);
-        setData(result);
-        if (result?.cin) setCinInput(result.cin);
-      } catch (error) {
-        console.error("Failed to load registration data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     loadData();
   }, [appNo]);
 
-  const handleCinSubmit = () => {
-    console.log("Submitting CIN:", cinInput);
-    // TODO: Implement API call
+  const handleCinSubmit = async () => {
+    if (!appNo) return;
+    try {
+      await clientsApi.updateCinAndStatus(
+        appNo as string,
+        cinInput,
+        companyStatus,
+      );
+      toast.success("CIN updated successfully!");
+      loadData();
+    } catch (error) {
+      console.error("Failed to update CIN:", error);
+      toast.danger("Failed to update CIN.");
+    }
+  };
+
+  const handleStatusChange = async (status: string) => {
+    if (!appNo) return;
+    try {
+      setCompanyStatus(status);
+      await clientsApi.updateCinAndStatus(appNo as string, cinInput, status);
+      toast.success(`Company status updated to ${formatStatusLabel(status)}!`);
+      loadData();
+    } catch (error) {
+      console.error("Failed to update company status:", error);
+      toast.danger("Failed to update company status.");
+    }
+  };
+
+  const handleUploadClick = (docType: string) => {
+    setActiveUploadDocType(docType);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !activeUploadDocType || !appNo) return;
+
+    const file = files[0];
+    try {
+      setIsLoading(true);
+      await clientsApi.uploadRegistrationDocument(
+        appNo as string,
+        activeUploadDocType,
+        file,
+      );
+      toast.success(
+        `${activeUploadDocType.toUpperCase()} document uploaded successfully!`,
+      );
+      loadData();
+    } catch (error) {
+      console.error("Failed to upload document:", error);
+      toast.danger("Failed to upload document.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDownload = async (docType: string, fileName: string) => {
+    if (!appNo) return;
+    try {
+      const blob = await clientsApi.downloadRegistrationDocument(
+        appNo as string,
+        docType,
+      );
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName || `${docType}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download document:", error);
+      toast.danger("No file uploaded yet or download failed.");
+    }
+  };
+
+  const handleView = async (docType: string) => {
+    if (!appNo) return;
+    try {
+      const blob = await clientsApi.downloadRegistrationDocument(
+        appNo as string,
+        docType,
+      );
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Failed to view document:", error);
+      toast.danger("No file uploaded yet or view failed.");
+    }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center">
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -63,6 +177,15 @@ export default function RegistrationDocumentsPage() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans p-6">
       <div className="max-w-full">
+        {/* Hidden Input for S3 upload */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept=".pdf,.png,.jpg,.jpeg"
+        />
+
         {/* Header: App No */}
         <h1 className="text-3xl font-bold text-primary mb-8">{appNo}</h1>
 
@@ -73,7 +196,6 @@ export default function RegistrationDocumentsPage() {
                 Registration Documents
               </h2>
             </div>
-            {/* Gradient shadow/blur effect behind/below if needed, simplified for first pass */}
           </div>
 
           {/* Status Badge */}
@@ -85,38 +207,39 @@ export default function RegistrationDocumentsPage() {
         </div>
 
         {/* Company Status */}
-        <div className="mb-8 relative">
+        <div className="mb-8 max-w-sm">
+          <label className="mb-2 block text-sm font-semibold text-secondary">
+            Company Status
+          </label>
           <div
-            onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-            className="flex items-center gap-2 cursor-pointer text-secondary font-medium hover:text-[#2c4a7c] transition-colors w-fit"
+            className={!data?.cin ? "cursor-not-allowed" : undefined}
+            onClick={() => {
+              if (!data?.cin) {
+                toast.warning(
+                  "Please submit a valid CIN first to unlock company status updates.",
+                );
+              }
+            }}
           >
-            <span>Company Status: {companyStatus}</span>
-            <ChevronDown
-              size={18}
-              className={`transition-transform ${isStatusDropdownOpen ? "rotate-180" : ""}`}
+            <CustomSelect
+              ariaLabel="Company status"
+              value={companyStatus}
+              onChange={handleStatusChange}
+              options={COMPANY_STATUS_OPTIONS}
+              isDisabled={!data?.cin}
+              className="w-full min-w-[220px]"
+              renderValue={(val) => (
+                <span className="text-sm font-medium text-gray-900">
+                  {formatStatusLabel(val)}
+                </span>
+              )}
             />
           </div>
-          {isStatusDropdownOpen && (
-            <div className="absolute top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[200px]">
-              {["pending", "under-process", "delayed", "completed"].map(
-                (status) => (
-                  <div
-                    key={status}
-                    onClick={() => {
-                      setCompanyStatus(status);
-                      setIsStatusDropdownOpen(false);
-                    }}
-                    className={`px-4 py-3 cursor-pointer hover:bg-orange-50 transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                      companyStatus === status
-                        ? "bg-orange-50 text-[#F46A45] font-semibold"
-                        : "text-secondary"
-                    }`}
-                  >
-                    {status}
-                  </div>
-                ),
-              )}
-            </div>
+          {!data?.cin && (
+            <p className="mt-2 text-xs font-medium text-amber-600">
+              * Please enter and submit the CIN first to unlock company status
+              updates.
+            </p>
           )}
         </div>
 
@@ -128,7 +251,7 @@ export default function RegistrationDocumentsPage() {
               type="text"
               value={cinInput}
               onChange={(e) => setCinInput(e.target.value)}
-              className="flex-1 border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#F46A45]/20 focus:border-[#F46A45] transition-all bg-white"
+              className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#F46A45] focus:outline-none focus:ring-2 focus:ring-[#F46A45]/20 [color-scheme:light]"
               placeholder="Enter CIN"
             />
             <button
@@ -151,32 +274,44 @@ export default function RegistrationDocumentsPage() {
               key={doc.id}
               className="flex items-center justify-between py-6 border-b border-gray-200 last:border-0 hover:bg-gray-50/50 transition-colors"
             >
-              <span className="text-lg font-bold text-black">{doc.name}</span>
+              <div className="flex flex-col">
+                <span className="text-lg font-bold text-black">{doc.name}</span>
+                {(doc as { fileName?: string }).fileName && (
+                  <span className="text-sm text-gray-500 font-normal mt-1">
+                    {(doc as { fileName?: string }).fileName}
+                  </span>
+                )}
+              </div>
 
               <div className="flex items-center gap-6">
                 {/* View */}
                 <button
+                  onClick={() => handleView(doc.name)}
                   className="text-primary hover:text-[#d55a39] transition-colors p-1"
                   title="View"
+                  disabled={doc.status === "pending"}
+                  style={{ opacity: doc.status === "pending" ? 0.3 : 1 }}
                 >
                   <Eye size={24} />
                 </button>
                 {/* Download */}
                 <button
+                  onClick={() =>
+                    handleDownload(
+                      doc.name,
+                      (doc as { fileName?: string }).fileName ?? "",
+                    )
+                  }
                   className="text-primary hover:text-[#d55a39] transition-colors p-1"
                   title="Download"
+                  disabled={doc.status === "pending"}
+                  style={{ opacity: doc.status === "pending" ? 0.3 : 1 }}
                 >
                   <Download size={24} />
                 </button>
-                {/* Edit */}
+                {/* Edit / Upload */}
                 <button
-                  className="text-primary hover:text-[#d55a39] transition-colors p-1"
-                  title="Edit"
-                >
-                  <Edit size={24} />
-                </button>
-                {/* Upload/Share */}
-                <button
+                  onClick={() => handleUploadClick(doc.name)}
                   className="text-primary hover:text-[#d55a39] transition-colors p-1"
                   title="Upload"
                 >

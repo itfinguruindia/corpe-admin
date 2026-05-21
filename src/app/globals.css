@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "@heroui/styles";
 
-
 /* -----------------------------
    Base Design Tokens
 ------------------------------*/
@@ -117,7 +116,7 @@ button:hover {
   grid-template-columns: 20px 1fr;
   align-items: center;
   transition: grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .sidebar-row[data-collapsed="true"] {
@@ -138,7 +137,7 @@ button:hover {
 .sidebar-label {
   overflow: hidden;
   white-space: nowrap;
-  min-width: 0;
+  width: 100%;
 }
 
 /* ---- Avatar transition ---- */
@@ -243,12 +242,14 @@ button:hover {
 
 /* ---- Backdrop transition ---- */
 .sidebar-backdrop {
-  transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+  transition:
+    opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
     visibility 0ms linear 0ms;
 }
 
 .sidebar-backdrop.invisible {
-  transition: opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
+  transition:
+    opacity 300ms cubic-bezier(0.4, 0, 0.2, 1),
     visibility 0ms linear 300ms;
 }
 
@@ -299,7 +300,7 @@ button:hover {
   cursor: not-allowed;
 }
 
-.phone-input-custom .PhoneInputCountrySelect:disabled+.PhoneInputCountryIcon {
+.phone-input-custom .PhoneInputCountrySelect:disabled + .PhoneInputCountryIcon {
   opacity: 0.5;
 }
 
@@ -337,18 +338,35 @@ button:hover {
 .stagger-children > * {
   animation: fadeSlideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
-.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
-.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
-.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
-.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
-.stagger-children > *:nth-child(7) { animation-delay: 360ms; }
-.stagger-children > *:nth-child(8) { animation-delay: 420ms; }
+.stagger-children > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.stagger-children > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+.stagger-children > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.stagger-children > *:nth-child(4) {
+  animation-delay: 180ms;
+}
+.stagger-children > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+.stagger-children > *:nth-child(6) {
+  animation-delay: 300ms;
+}
+.stagger-children > *:nth-child(7) {
+  animation-delay: 360ms;
+}
+.stagger-children > *:nth-child(8) {
+  animation-delay: 420ms;
+}
 
 /* Notification pulse dot */
 @keyframes pulseGlow {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -408,11 +426,31 @@ button:hover {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--primary-500), var(--primary-300), var(--secondary-400));
+  background: linear-gradient(
+    90deg,
+    var(--primary-500),
+    var(--primary-300),
+    var(--secondary-400)
+  );
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
 .card-accent-top:hover::before {
   opacity: 1;
+}
+
+/* DOCX thumbnail preview on template cards */
+.docx-card-preview .docx-wrapper {
+  transform: scale(0.38);
+  transform-origin: top left;
+  width: 263%;
+  padding: 8px !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.docx-card-preview .docx-wrapper > section.docx {
+  padding: 12px !important;
+  box-shadow: none !important;
 }

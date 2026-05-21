@@ -3,7 +3,6 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import UserManagement from "@/components/settings/UserManagement";
-import toast from "react-hot-toast";
 
 export default function UserManagementPage() {
   const router = useRouter();

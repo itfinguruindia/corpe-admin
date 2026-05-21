@@ -9,7 +9,7 @@ import {
 import { roleApi } from "@/lib/api";
 import { Chip } from "@/components/ui";
 import { Check, X, Plus, Edit2, Trash2, Users, Shield } from "lucide-react";
-import toast from "react-hot-toast";
+import { Button, toast } from "@heroui/react";
 
 interface RolesPermissionsMatrixProps {
   onCreateRole?: () => void;
@@ -91,7 +91,7 @@ export default function RolesPermissionsMatrix({
         loadData();
       } catch (error: any) {
         console.error("Error deleting role:", error);
-        toast.error(error.response?.data?.message || "Failed to delete role");
+        toast.danger(error.response?.data?.message || "Failed to delete role");
       }
     }
   };
@@ -112,22 +112,23 @@ export default function RolesPermissionsMatrix({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-[#FF6A3D]">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-[#FF6A3D] sm:text-4xl">
             Roles & Permissions Matrix
           </h1>
-          <p className="mt-2 text-base text-gray-600">
+          <p className="mt-2 text-sm text-gray-600 sm:text-base">
             Manage roles and their associated permissions
           </p>
         </div>
-        <button
+        <Button
+          type="button"
           onClick={onCreateRole}
-          className="flex items-center gap-2 px-6 py-2.5 bg-[#FF6A3D] text-white rounded-lg hover:bg-[#e55a35] transition-colors font-medium"
+          className="flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#e55a35] sm:w-auto sm:justify-start"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           Create New Role
-        </button>
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -185,21 +186,23 @@ export default function RolesPermissionsMatrix({
           Filter by Module:
         </label>
         <div className="flex flex-wrap gap-2">
-          <button
+          <Button
+            type="button"
             onClick={() => setSelectedModule("all")}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
               selectedModule === "all"
                 ? "bg-[#3D63A4] text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
             All Modules
-          </button>
+          </Button>
           {modules.map((module) => (
-            <button
+            <Button
+              type="button"
               key={module}
               onClick={() => setSelectedModule(module)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
                 selectedModule === module
                   ? "bg-[#3D63A4] text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -209,7 +212,7 @@ export default function RolesPermissionsMatrix({
               <span className="text-xs opacity-75">
                 ({permissionsByModule[module]?.length || 0})
               </span>
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -232,21 +235,29 @@ export default function RolesPermissionsMatrix({
                 )}
               </div>
               <div className="flex gap-1">
-                <button
-                  onClick={() => handleEditRole(role)}
-                  className="p-1.5 text-gray-600 hover:text-secondary hover:bg-gray-100 rounded transition-colors"
-                  title="Edit Role"
-                >
-                  <Edit2 size={16} />
-                </button>
-                {!role.isSystemRole && (
-                  <button
-                    onClick={() => handleDeleteRole(role)}
-                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                    title="Delete Role"
+                <span title="Edit Role" className="inline-flex">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => handleEditRole(role)}
+                    aria-label="Edit role"
+                    className="min-h-0 min-w-0 p-1.5 text-gray-600 hover:bg-gray-100 hover:text-secondary"
                   >
-                    <Trash2 size={16} />
-                  </button>
+                    <Edit2 size={16} />
+                  </Button>
+                </span>
+                {!role.isSystemRole && (
+                  <span title="Delete Role" className="inline-flex">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => handleDeleteRole(role)}
+                      aria-label="Delete role"
+                      className="min-h-0 min-w-0 p-1.5 text-gray-600 hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </span>
                 )}
               </div>
             </div>

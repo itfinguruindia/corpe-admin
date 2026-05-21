@@ -12,7 +12,14 @@ import type { Ticket, TicketStatus, TicketPriority } from "@/types/tickets";
 import { Chip, SearchSelect, SearchSelectOption } from "@/components/ui";
 import type { ChipVariant } from "@/components/ui/Chip";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
-import { Drawer, useOverlayState } from "@heroui/react";
+import {
+  Button,
+  Drawer,
+  Input,
+  Label,
+  TextField,
+  useOverlayState,
+} from "@heroui/react";
 import { adminApi } from "@/lib/api";
 import CustomSelect from "@/components/ui/CustomSelect";
 import Link from "next/link";
@@ -126,8 +133,8 @@ export default function RaisedTicketsPage() {
     setCurrentPage(page);
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
     setCurrentPage(1);
   };
 
@@ -206,6 +213,7 @@ export default function RaisedTicketsPage() {
       label: "Status",
       render: (row) => (
         <CustomSelect
+          ariaLabel={`Status for ticket ${row.applicationNo || row.id}`}
           value={row.status}
           onChange={(value) =>
             handleStatusChange(row.id, value as TicketStatus)
@@ -243,6 +251,7 @@ export default function RaisedTicketsPage() {
       label: "Priority",
       render: (row) => (
         <CustomSelect
+          ariaLabel={`Priority for ticket ${row.applicationNo || row.id}`}
           value={row.priority}
           onChange={(value) =>
             handlePriorityChange(row.id, value as TicketPriority)
@@ -271,16 +280,17 @@ export default function RaisedTicketsPage() {
       label: "Actions",
       render: (row) => (
         <div className="flex justify-center">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => {
               setSelectedTicket(row);
               drawerState.open();
             }}
-            className="text-base font-medium text-gray-700 underline hover:text-secondary transition-colors"
+            className="h-auto min-w-0 px-1 py-0 text-base font-medium text-gray-700 underline hover:text-secondary"
           >
-            <span>view</span>
-          </button>
+            view
+          </Button>
         </div>
       ),
     },
@@ -296,21 +306,24 @@ export default function RaisedTicketsPage() {
               Raised Tickets
             </h1>
 
-            <div className="relative lg:justify-self-end col-span-full md:col-[1/2] lg:col-[2/3] row-[3/4] md:row-[2/3] lg:row-[1/2]">
-              <input
-                type="text"
-                placeholder="Search by Application No..."
+            <div className="relative w-full md:w-64 lg:justify-self-end col-span-full md:col-[1/2] lg:col-[2/3] row-[3/4] md:row-[2/3] lg:row-[1/2]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-[18px] -translate-y-1/2 text-gray-400" />
+              <TextField
                 value={search}
                 onChange={handleSearchChange}
-                className="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20 focus:border-[#FF6A3D] text-sm text-gray-900 bg-white"
-              />
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <Search size={18} />
-              </div>
+                name="searchTickets"
+              >
+                <Label className="sr-only">Search by application number</Label>
+                <Input
+                  placeholder="Search by Application No..."
+                  className="w-full bg-white pl-10 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20 rounded-lg border border-gray-200"
+                />
+              </TextField>
             </div>
 
             <div className="w-full flex justify-between gap-2 col-span-full md:col-[2/3] lg:col-[3/4] row-[2/3] lg:row-[1/2]">
               <CustomSelect
+                ariaLabel="Filter by status"
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
                 options={StatusSelectOptions}
@@ -326,6 +339,7 @@ export default function RaisedTicketsPage() {
                 }
               />
               <CustomSelect
+                ariaLabel="Filter by priority"
                 value={priorityFilter}
                 onChange={handlePriorityFilterChange}
                 options={PrioritySelectOptions}
@@ -343,25 +357,31 @@ export default function RaisedTicketsPage() {
 
               <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
               <div className="flex items-center gap-2">
-                <button
-                  className="flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                  title="Refresh"
-                  type="button"
-                  onClick={loadTickets}
-                  disabled={isLoading}
-                >
-                  <RefreshCw
-                    size={18}
-                    className={isLoading ? "animate-spin" : ""}
-                  />
-                </button>
-                <button
-                  className="flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                  title="Export"
-                  type="button"
-                >
-                  <FileDown size={18} />
-                </button>
+                <span title="Refresh" className="inline-flex">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={loadTickets}
+                    isDisabled={isLoading}
+                    aria-label="Refresh tickets"
+                    className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
+                  >
+                    <RefreshCw
+                      size={18}
+                      className={isLoading ? "animate-spin" : ""}
+                    />
+                  </Button>
+                </span>
+                <span title="Export" className="inline-flex">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    aria-label="Export tickets"
+                    className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
+                  >
+                    <FileDown size={18} />
+                  </Button>
+                </span>
               </div>
             </div>
           </div>
@@ -430,16 +450,28 @@ export default function RaisedTicketsPage() {
                         rows={6}
                         className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder-gray-400 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20"
                       />
-                      <div className="flex items-center gap-4">
-                        <button className="flex items-center gap-2 rounded-lg bg-[#FFE5DD] px-6 py-2 text-base font-medium text-secondary transition-all hover:bg-[#ffd5c5]">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="rounded-lg bg-[#FFE5DD] px-6 py-2 text-base font-medium text-secondary transition-all hover:bg-[#ffd5c5]"
+                        >
                           Reply via Email
-                        </button>
-                        <button className="flex items-center gap-2 rounded-lg px-6 py-2 text-base font-medium text-secondary transition-all hover:bg-gray-100">
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="rounded-lg px-6 py-2 text-base font-medium text-secondary transition-all hover:bg-gray-100"
+                        >
                           Reply via Dashboard Chat
-                        </button>
-                        <button className="flex items-center gap-2 rounded-lg px-6 py-2 text-base font-medium text-secondary transition-all hover:bg-gray-100">
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="rounded-lg px-6 py-2 text-base font-medium text-secondary transition-all hover:bg-gray-100"
+                        >
                           Call Back
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>

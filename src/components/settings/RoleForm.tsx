@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { PermissionModule, PermissionAction, Role } from "@/types/roles";
+import { PermissionModule, Role } from "@/types/roles";
 import {
   allPermissions,
   getPermissionsByModule,
 } from "@/lib/data/mockRolesData";
 import { Check, X, ChevronDown, ChevronUp, Shield } from "lucide-react";
+import { Button, Input, Label, TextField } from "@heroui/react";
 
 interface RoleFormProps {
   initialValues?: Partial<Role>;
@@ -175,20 +176,25 @@ export default function RoleForm({
         <div className="space-y-4">
           {/* Role Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="mb-2 block text-sm font-medium text-gray-700">
               Role Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="name"
+            </Label>
+            <TextField
               value={form.name}
-              onChange={handleChange}
-              className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] transition-colors ${
-                errors.name ? "border-red-500" : "border-gray-300"
-              }`}
-              placeholder="e.g., Sales Manager, Support Agent"
-              disabled={isLoading}
-            />
+              onChange={(v) => {
+                setForm({ ...form, name: v });
+                if (errors.name) setErrors({ ...errors, name: "" });
+              }}
+              name="name"
+              isDisabled={isLoading}
+            >
+              <Input
+                placeholder="e.g., Sales Manager, Support Agent"
+                className={`w-full rounded-lg border px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-[#3D63A4] ${
+                  errors.name ? "border-red-500" : "border-gray-300"
+                }`}
+              />
+            </TextField>
             {errors.name && (
               <p className="mt-1 text-sm text-red-500">{errors.name}</p>
             )}
@@ -222,26 +228,34 @@ export default function RoleForm({
             </label>
             <div className="flex flex-wrap gap-3">
               {colorOptions.map((colorOption) => (
-                <button
+                <span
                   key={colorOption.value}
-                  type="button"
-                  onClick={() => setForm({ ...form, color: colorOption.value })}
-                  className={`relative h-10 w-10 rounded-full transition-transform hover:scale-110 ${
-                    form.color === colorOption.value
-                      ? "ring-2 ring-offset-2 ring-gray-400"
-                      : ""
-                  }`}
-                  style={{ backgroundColor: colorOption.value }}
                   title={colorOption.name}
-                  disabled={isLoading}
+                  className="inline-flex"
                 >
-                  {form.color === colorOption.value && (
-                    <Check
-                      className="absolute inset-0 m-auto text-white"
-                      size={20}
-                    />
-                  )}
-                </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() =>
+                      setForm({ ...form, color: colorOption.value })
+                    }
+                    isDisabled={isLoading}
+                    aria-label={colorOption.name}
+                    className={`relative h-10 w-10 min-h-10 min-w-10 rounded-full p-0 transition-transform hover:scale-110 ${
+                      form.color === colorOption.value
+                        ? "ring-2 ring-gray-400 ring-offset-2"
+                        : ""
+                    }`}
+                    style={{ backgroundColor: colorOption.value }}
+                  >
+                    {form.color === colorOption.value && (
+                      <Check
+                        className="absolute inset-0 m-auto text-white"
+                        size={20}
+                      />
+                    )}
+                  </Button>
+                </span>
               ))}
             </div>
           </div>
@@ -283,22 +297,24 @@ export default function RoleForm({
                 {/* Module Header */}
                 <div className="bg-gray-50  flex items-center justify-between cursor-pointer">
                   <div className="flex items-center gap-3 flex-1 px-4 py-3">
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => handleModuleToggle(module)}
-                      className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
+                      isDisabled={isLoading}
+                      aria-label={`Toggle all permissions for ${module}`}
+                      className={`flex h-5 w-5 min-h-5 min-w-5 items-center justify-center rounded border-2 transition-colors ${
                         isFullySelected
-                          ? "bg-[#3D63A4] border-[#3D63A4]"
+                          ? "border-[#3D63A4] bg-[#3D63A4]"
                           : isPartiallySelected
-                            ? "bg-gray-400 border-gray-400"
+                            ? "border-gray-400 bg-gray-400"
                             : "border-gray-300 bg-white"
                       }`}
-                      disabled={isLoading}
                     >
                       {(isFullySelected || isPartiallySelected) && (
                         <Check className="text-white" size={14} />
                       )}
-                    </button>
+                    </Button>
                     <span className="font-semibold text-gray-900">
                       {module}
                     </span>
@@ -307,20 +323,22 @@ export default function RoleForm({
                     </span>
                   </div>
                   <div
-                    className="w-full h-full flex justify-end px-4 py-3"
+                    className="flex h-full w-full justify-end px-4 py-3"
                     onClick={() => toggleModuleExpansion(module)}
                   >
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => toggleModuleExpansion(module)}
-                      className="text-gray-500 hover:text-gray-700 transition-colors"
+                      aria-label={isExpanded ? "Collapse module" : "Expand module"}
+                      className="text-gray-500 hover:text-gray-700"
                     >
                       {isExpanded ? (
                         <ChevronUp size={20} />
                       ) : (
                         <ChevronDown size={20} />
                       )}
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -373,31 +391,32 @@ export default function RoleForm({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 justify-end">
+      <div className="flex justify-end gap-3">
         {onCancel && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={onCancel}
-            className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            disabled={isLoading}
+            isDisabled={isLoading}
+            className="rounded-lg border border-gray-300 px-6 py-2.5 font-medium text-gray-700 hover:bg-gray-50"
           >
             Cancel
-          </button>
+          </Button>
         )}
-        <button
+        <Button
           type="submit"
-          className="px-6 py-2.5 bg-[#FF6A3D] text-white rounded-lg hover:bg-[#e55a35] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          disabled={isLoading}
+          isDisabled={isLoading}
+          className="flex items-center gap-2 rounded-lg bg-[#FF6A3D] px-6 py-2.5 font-medium text-white hover:bg-[#e55a35] data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
         >
           {isLoading ? (
             <>
-              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
               <span>Saving...</span>
             </>
           ) : (
             <span>{initialValues ? "Update Role" : "Create Role"}</span>
           )}
-        </button>
+        </Button>
       </div>
     </form>
   );

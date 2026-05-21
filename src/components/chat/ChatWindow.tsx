@@ -29,6 +29,7 @@ import {
 import { Socket } from "socket.io-client";
 import MessageBubble from "./MessageBubble";
 import chatService from "@/services/chat.service";
+import { Button, Card, EmptyState, Spinner } from "@heroui/react";
 
 const EmojiPicker = lazy(() => import("emoji-picker-react"));
 
@@ -220,17 +221,18 @@ const InputArea = (props: InputAreaProps) => {
               onEnded={() => setIsPlaying(false)}
               className="hidden"
             />
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={togglePlayback}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition-all"
+              className="flex h-8 w-8 min-w-0 shrink-0 items-center justify-center rounded-full bg-blue-100 p-0 text-blue-600 hover:bg-blue-200"
             >
               {isPlaying ? (
                 <Pause className="size-4" />
               ) : (
                 <Play className="size-4 ml-0.5" />
               )}
-            </button>
+            </Button>
 
             <div className="flex flex-1 items-center gap-1 h-6 overflow-hidden">
               {[...Array(20)].map((_, i) => (
@@ -252,13 +254,14 @@ const InputArea = (props: InputAreaProps) => {
               {formatTime(recordingTime)}
             </span>
 
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={handleDiscardAudio}
-              className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+              className="min-w-0 h-auto p-1 text-gray-400 hover:text-red-500"
             >
               <Trash2 className="size-4" />
-            </button>
+            </Button>
           </div>
         ) : (
           <>
@@ -293,45 +296,51 @@ const InputArea = (props: InputAreaProps) => {
                     {formatTime(recordingTime)}
                   </span>
                   <div className="flex items-center gap-2 border-l border-gray-200 pl-2">
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() =>
                         recorderStatus === "recording"
                           ? audioRecorder?.pause()
                           : audioRecorder?.resume()
                       }
-                      className="hover:text-[#FF6A3D] transition-colors"
+                      className="min-w-0 h-auto p-0 hover:text-[#FF6A3D]"
                     >
                       {recorderStatus === "recording" ? (
                         <Pause className="size-4 text-secondary" />
                       ) : (
                         <Play className="size-4 text-secondary" />
                       )}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => audioRecorder?.stop()}
-                      className="hover:text-red-500 transition-colors"
+                      className="min-w-0 h-auto p-0 hover:text-red-500"
                     >
                       <CircleStop className="size-4 text-secondary" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
                 <>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="min-w-0 h-auto p-1"
                   >
                     <Smile className="size-5 text-secondary" />
-                  </button>
+                  </Button>
 
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => imageInputRef.current?.click()}
+                    className="min-w-0 h-auto p-1"
                   >
                     <ImageIcon className="size-5 text-secondary" />
-                  </button>
+                  </Button>
                   <input
                     type="file"
                     ref={imageInputRef}
@@ -344,12 +353,14 @@ const InputArea = (props: InputAreaProps) => {
                     }}
                   />
 
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => documentInputRef.current?.click()}
+                    className="min-w-0 h-auto p-1"
                   >
                     <Paperclip className="size-5 text-secondary" />
-                  </button>
+                  </Button>
                   <input
                     type="file"
                     ref={documentInputRef}
@@ -362,9 +373,14 @@ const InputArea = (props: InputAreaProps) => {
                     }}
                   />
 
-                  <button type="button" onClick={handleAudioPermission}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleAudioPermission}
+                    className="min-w-0 h-auto p-1"
+                  >
                     <Mic className="size-5 text-secondary" />
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -373,8 +389,8 @@ const InputArea = (props: InputAreaProps) => {
         <div className="absolute bottom-10 z-50">
           <Suspense
             fallback={
-              <div className="min-w-48 min-h-32">
-                <Loader2 className="animate-spin size-4 absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2" />
+              <div className="min-w-48 min-h-32 flex items-center justify-center relative">
+                <Spinner size="sm" className="text-[#FF6A3D]" />
               </div>
             }
           >
@@ -388,21 +404,22 @@ const InputArea = (props: InputAreaProps) => {
           </Suspense>
         </div>
       </div>
-      <button
+      <Button
+        type="button"
         onClick={handleSendAction}
-        disabled={
+        isDisabled={
           (!inputValue.trim() && !previewUrl) ||
           isSending ||
           recorderStatus !== "inactive"
         }
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#3D63A4] text-white transition-all hover:bg-[#2d4d7f] active:scale-95 disabled:bg-gray-300 disabled:cursor-not-allowed"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#3D63A4] p-0 text-white transition-all hover:bg-[#2d4d7f] active:scale-95 disabled:bg-gray-300"
       >
         {isSending ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <Send className="h-4 w-4" />
         )}
-      </button>
+      </Button>
     </div>
   );
 };
@@ -615,17 +632,19 @@ export default function ChatWindow({
   // Empty state — no room selected
   if (!room) {
     return (
-      <div className="flex h-full flex-col items-center justify-center bg-[#FAFBFD] text-center px-8">
-        <div className="rounded-2xl bg-white p-8 shadow-sm border border-gray-100">
-          <MessageSquare className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700">
-            Select a conversation
-          </h3>
-          <p className="mt-2 text-sm text-gray-400 max-w-[280px]">
-            Choose a conversation from the list or start a new one to begin
-            messaging.
-          </p>
-        </div>
+      <div className="flex h-full w-full flex-1 flex-col items-center justify-center bg-[#FAFBFD] text-center px-8">
+        <Card className="w-full max-w-sm rounded-2xl border border-gray-100 shadow-sm">
+          <Card.Content className="p-8 text-center">
+            <MessageSquare className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-700">
+              Select a conversation
+            </h3>
+            <p className="mx-auto mt-2 max-w-[280px] text-sm text-gray-400">
+              Choose a conversation from the list or start a new one to begin
+              messaging.
+            </p>
+          </Card.Content>
+        </Card>
       </div>
     );
   }
@@ -640,12 +659,15 @@ export default function ChatWindow({
       <div className="border-b border-gray-200 bg-white px-4 md:px-6 py-3">
         <div className="flex items-center gap-3">
           {onBack && (
-            <button
+            <Button
+              type="button"
+              variant="ghost"
               onClick={onBack}
-              className="md:hidden p-1 -ml-1 text-gray-500 hover:text-gray-700"
+              className="md:hidden min-w-0 h-auto p-1 -ml-1 text-gray-500 hover:text-gray-700"
+              aria-label="Back to conversations"
             >
               <ChevronLeft className="h-6 w-6" />
-            </button>
+            </Button>
           )}
           <div className="flex-1 overflow-hidden">
             <div className="flex items-center justify-between">
@@ -676,10 +698,12 @@ export default function ChatWindow({
         {/* Load more button */}
         {hasMore && (
           <div className="flex justify-center mb-4">
-            <button
+            <Button
+              type="button"
+              variant="ghost"
               onClick={loadMore}
-              disabled={isLoadingMore}
-              className="flex items-center gap-1.5 rounded-full bg-white px-4 py-1.5 text-xs font-medium text-gray-500 shadow-sm border border-gray-200 transition-all hover:bg-gray-50 disabled:opacity-50"
+              isDisabled={isLoadingMore}
+              className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-xs font-medium text-gray-500 shadow-sm transition-all hover:bg-gray-50 h-auto min-h-0 disabled:opacity-50"
             >
               {isLoadingMore ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -687,20 +711,20 @@ export default function ChatWindow({
                 <ChevronUp className="h-3 w-3" />
               )}
               Load earlier messages
-            </button>
+            </Button>
           </div>
         )}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-[#FF6A3D]" />
+            <Spinner className="text-[#FF6A3D]" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
+          <EmptyState className="flex flex-col items-center justify-center py-12 text-center">
             <p className="text-sm text-gray-400">
               No messages yet. Start the conversation!
             </p>
-          </div>
+          </EmptyState>
         ) : (
           messages.map((msg) => (
             <MessageBubble

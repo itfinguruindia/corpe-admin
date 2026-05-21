@@ -8,9 +8,9 @@ import {
 import FloatingActionButton from "@/components/dashboard/FloatingActionButton";
 import RaisedTicketsWidget from "@/components/dashboard/RaisedTicketsWidget";
 import RecentlyOnboardedWidget from "@/components/dashboard/RecentlyOnboardedWidget";
-import { Zap } from "lucide-react";
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
+import { Chip } from "@heroui/react";
 
 export default async function Dashboard() {
   const data = await adminApi.getDashboardData();
@@ -47,7 +47,7 @@ export default async function Dashboard() {
         <StatCard label="Delay status" value="40%" subValue="" />
 
         {/* Highlight/Notification Card - Spans 3 columns for better balance */}
-        <ContentCard
+        {/* <ContentCard
           id="highlights"
           title="Highlights/Notifications"
           className="bg-gray-50/50 md:col-span-3 col-span-2"
@@ -57,11 +57,14 @@ export default async function Dashboard() {
               <Zap className="h-5 w-5 text-primary" />
               <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary animate-pulse-glow" />
             </div>
-            <p className="text-sm font-medium text-secondary italic">
+            <Chip
+              variant="soft"
+              className="bg-secondary-50 text-secondary font-medium italic"
+            >
               &ldquo;Chhaya completed KYC&rdquo;
-            </p>
+            </Chip>
           </div>
-        </ContentCard>
+        </ContentCard> */}
       </section>
 
       {/* SECTION 2: Active Monitoring (Raised Tickets & Target) */}
@@ -108,6 +111,11 @@ export default async function Dashboard() {
               <LegendItem color="#F36541" label="Completed" value="59%" />
               <LegendItem color="#3D63A4" label="In Progress" value="21%" />
               <LegendItem color="#F7C948" label="Pending" value="20%" />
+              <div className="col-span-2 flex justify-center pt-2">
+                <Chip variant="soft" size="sm" className="bg-green-50 text-green-700 font-semibold">
+                  On Track
+                </Chip>
+              </div>
             </div>
           </div>
         </ChartCard>

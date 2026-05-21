@@ -3,11 +3,13 @@
 import { Trash2, Search, RefreshCw, FileDown } from "lucide-react";
 import * as XLSX from "xlsx";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { marketingApi, Lead } from "@/lib/api/marketing";
 import useSwal from "@/utils/useSwal";
 import { useDebouncedCallback } from "@/utils/helpers";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
+import { Button, Input, Label, TextField } from "@heroui/react";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 export default function LeadsPage() {
   const [leadsData, setLeadsData] = useState<Lead[]>([]);
@@ -159,6 +161,14 @@ export default function LeadsPage() {
     }
   }, [leadsData]);
 
+  const countrySelectOptions = useMemo(
+    () => [
+      { id: "", label: "All Countries" },
+      ...countries.map((c) => ({ id: c, label: c })),
+    ],
+    [countries],
+  );
+
   const columns: ColumnDef<Lead>[] = [
     {
       id: "name",
@@ -205,7 +215,10 @@ export default function LeadsPage() {
       id: "message",
       label: "Message",
       render: (lead) => (
-        <span className="max-w-xs truncate block text-gray-700">
+        <span
+          className="max-w-xs truncate block text-gray-700"
+          title={lead.message || "-"}
+        >
           {lead.message || "-"}
         </span>
       ),
@@ -215,7 +228,9 @@ export default function LeadsPage() {
       label: "Created",
       render: (lead) => (
         <span className="text-gray-700 whitespace-nowrap">
-          {new Date(lead.createdAt).toLocaleDateString()}
+          {lead.createdAt
+            ? new Date(lead.createdAt).toLocaleString()
+            : "-"}
         </span>
       ),
     },
@@ -242,13 +257,17 @@ export default function LeadsPage() {
       label: "Action",
       render: (lead) => (
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleDelete(lead._id)}
-            className="cursor-pointer p-2 text-red-600 transition-colors hover:text-red-800"
-            title="Delete lead"
-          >
-            <Trash2 size={18} />
-          </button>
+          <span title="Delete lead" className="inline-flex">
+            <Button
+              onClick={() => handleDelete(lead._id)}
+              className="min-w-0 h-auto p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
+              aria-label="Delete lead"
+              variant="ghost"
+              type="button"
+            >
+              <Trash2 size={18} />
+            </Button>
+          </span>
         </div>
       ),
     },
@@ -272,49 +291,50 @@ export default function LeadsPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-5" />
-              <input
-                type="text"
-                placeholder="Search leads..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-transparent pl-10 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:outline-none rounded-xl border border-gray-200 shadow-sm"
-              />
+            <div className="relative w-full sm:w-80">
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-gray-400 size-5" />
+              <TextField value={search} onChange={setSearch} name="searchLeads">
+                <Label className="sr-only">Search leads</Label>
+                <Input
+                  aria-label="Search leads"
+                  placeholder="Search leads..."
+                  className="w-full bg-transparent pl-10 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:outline-none rounded-xl border border-gray-200 shadow-sm"
+                />
+              </TextField>
             </div>
 
-            <select
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              className="h-[38px] w-full sm:w-auto min-w-[140px] appearance-none rounded-xl border border-gray-200 bg-transparent px-4 pr-8 text-sm text-gray-900 transition-all hover:bg-gray-50 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 bg-no-repeat bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%20%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207.5L10%2012.5L15%207.5%22%20stroke%3D%22%236B7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-position-[right_0.5rem_center]"
-            >
-              <option value="">All Countries</option>
-              {countries.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <div className="h-[38px] w-full sm:w-auto min-w-[168px]">
+              <CustomSelect
+                ariaLabel="Filter by country"
+                value={country}
+                onChange={setCountry}
+                options={countrySelectOptions}
+              />
+            </div>
 
             <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
 
             <div className="flex items-center gap-2 self-end sm:self-auto">
-              <button
+              <Button
+                isIconOnly
                 onClick={handleRefresh}
-                className="flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                title="Refresh"
+                className="h-10 w-10 min-w-10 shrink-0 rounded-lg border border-gray-200 bg-white p-0 text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Refresh leads"
                 type="button"
+                variant="ghost"
               >
                 <RefreshCw size={18} />
-              </button>
-              <button
+              </Button>
+              <Button
+                isIconOnly
                 onClick={handleExport}
-                className="flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                title="Export to Excel"
+                className="h-10 w-10 min-w-10 shrink-0 rounded-lg border border-gray-200 bg-white p-0 text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900"
+                aria-label="Export leads to Excel"
                 type="button"
+                variant="ghost"
               >
                 <FileDown size={18} />
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
+import { Card, Spinner } from "@heroui/react";
 
 export default function ShareholdersPage() {
   const { appNo } = useParams();
@@ -83,7 +84,7 @@ export default function ShareholdersPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Loading...</div>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -91,10 +92,8 @@ export default function ShareholdersPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <h1 className="text-3xl font-bold text-primary mb-6">{appNo}</h1>
 
-        {/* Shareholder Tabs */}
         <div className="flex gap-4 mb-6">
           {shareholders.map((shareholder) => (
             <button
@@ -111,8 +110,7 @@ export default function ShareholdersPage() {
           ))}
         </div>
 
-        {/* Shareholders List View */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-secondary">
               Shareholders {shareholders.length}
@@ -121,10 +119,10 @@ export default function ShareholdersPage() {
 
           <div className="space-y-4">
             {shareholders.map((shareholder) => (
-              <div
+              <Card
                 key={shareholder.id}
+                className="p-4 border border-gray-200 hover:border-[#F46A45] hover:shadow-md transition-all cursor-pointer"
                 onClick={() => handleShareholderClick(shareholder)}
-                className="p-4 border border-gray-200 rounded-lg hover:border-[#F46A45] hover:shadow-md transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -144,10 +142,10 @@ export default function ShareholdersPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
