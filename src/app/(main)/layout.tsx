@@ -4,6 +4,7 @@ import React from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useActivityLogTracker } from "@/hooks/useActivityLogTracker";
 
 export default function DashboardLayout({
   children,
@@ -12,6 +13,7 @@ export default function DashboardLayout({
 }) {
   // Initialize real-time notification listeners
   useNotifications();
+  useActivityLogTracker();
 
   return (
     <div className="flex h-screen w-full bg-[#F6FAFF]">

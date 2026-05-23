@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { checkSuperAdmin, loginAdmin } from "@/utils/auth";
+import { checkSuperAdmin, loginAdmin, resetLogoutState } from "@/utils/auth";
 import { redirectAfterAuth } from "@/utils/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import {
@@ -21,6 +21,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSuperAdmin, setHasSuperAdmin] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    resetLogoutState();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

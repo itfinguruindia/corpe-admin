@@ -408,18 +408,30 @@ export const allPermissions: Permission[] = [
     description: "Delete custom roles",
   },
 
-  // Audit Logs
+  // Audit Logs / System Activity Logs
+  {
+    id: "activity-logs.view",
+    module: "Audit Logs",
+    action: "view",
+    description: "View system activity logs",
+  },
+  {
+    id: "activity-logs.export",
+    module: "Audit Logs",
+    action: "export",
+    description: "Export system activity logs",
+  },
   {
     id: "audit-view",
     module: "Audit Logs",
     action: "view",
-    description: "View audit logs",
+    description: "View audit logs (legacy)",
   },
   {
     id: "audit-export",
     module: "Audit Logs",
     action: "export",
-    description: "Export audit logs",
+    description: "Export audit logs (legacy)",
   },
 
   // Reports

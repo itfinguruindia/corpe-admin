@@ -46,8 +46,7 @@ export default function AccessRolesSection({ id }: AccessRolesSectionProps) {
       label: "Audit log",
       icon: History,
       onClick: () => {
-        // TODO: Navigate to audit log page
-        console.log("Navigate to audit log");
+        router.push("/settings/activity-logs");
       },
     },
   ];

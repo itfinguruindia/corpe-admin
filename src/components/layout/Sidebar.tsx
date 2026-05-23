@@ -29,7 +29,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import axiosInstance from "@/lib/axios";
 import { setProfilePictureUrl } from "@/redux/slices/authSlice";
-import { logoutAdmin } from "@/utils/auth";
+import { performLogout } from "@/utils/auth";
 import useSwal from "@/utils/useSwal";
 import { Button } from "@heroui/react";
 
@@ -124,19 +124,7 @@ export default function Sidebar() {
 
     if (!result.isConfirmed) return;
 
-    try {
-      logoutAdmin();
-      await swal({
-        icon: "success",
-        title: "Logged out!",
-        text: "You have been logged out successfully.",
-        timer: 1200,
-        showConfirmButton: false,
-      });
-      window.location.href = "/login";
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
+    await performLogout({ recordActivity: true, redirectTo: "/login" });
   };
 
   const getInitials = (name?: string) => {

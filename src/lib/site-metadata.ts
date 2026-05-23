@@ -223,6 +223,14 @@ const ROUTE_RULES: RouteRule[] = [
     },
   },
   {
+    pattern: /^\/settings\/activity-logs$/,
+    meta: {
+      title: "System Activity Logs",
+      description:
+        "View immutable audit trail of admin actions across the panel.",
+    },
+  },
+  {
     pattern: /^\/settings$/,
     meta: {
       title: "Settings",
