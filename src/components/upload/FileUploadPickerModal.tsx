@@ -240,14 +240,11 @@ export default function FileUploadPickerModal({
                   ? "Pick a file from your uploaded document templates."
                   : subtitle}
               </p>
-              <Modal.CloseTrigger className="absolute right-4 top-4 shrink-0">
-                <button
-                  type="button"
-                  className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-                  aria-label="Close"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+              <Modal.CloseTrigger
+                className="absolute right-4 top-4 shrink-0 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
               </Modal.CloseTrigger>
             </Modal.Header>
 

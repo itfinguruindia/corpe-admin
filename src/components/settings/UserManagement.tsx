@@ -28,6 +28,9 @@ import {
   useOverlayState,
 } from "@heroui/react";
 import CustomSelect from "@/components/ui/CustomSelect";
+import PermissionGate from "@/components/rbac/PermissionGate";
+import { PERMISSIONS } from "@/utils/permissions";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface UserManagementProps {
   onEditUser?: (userId: string) => void;
@@ -38,6 +41,7 @@ export default function UserManagement({
   onEditUser,
   onDeleteUser,
 }: UserManagementProps) {
+  const { canEditUsers, hasPermission } = usePermissions();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [allRoles, setAllRoles] = useState<Role[]>([]);
@@ -87,15 +91,29 @@ export default function UserManagement({
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [fetchedUsers, fetchedRoles] = await Promise.all([
-        adminApi.getAllAdmins(),
-        roleApi.getAllRoles(),
-      ]);
-      setUsers(fetchedUsers);
-      setFilteredUsers(fetchedUsers);
-      setAllRoles(fetchedRoles);
-    } catch (error) {
+      const fetchedUsers = await adminApi.getAllAdmins();
+      const userList = Array.isArray(fetchedUsers)
+        ? fetchedUsers
+        : (fetchedUsers?.admins ?? []);
+      setUsers(userList);
+      setFilteredUsers(userList);
+
+      try {
+        const fetchedRoles = await roleApi.getAllRoles();
+        setAllRoles(Array.isArray(fetchedRoles) ? fetchedRoles : []);
+      } catch (rolesError) {
+        console.error("Error loading roles for filters:", rolesError);
+        setAllRoles([]);
+      }
+    } catch (error: unknown) {
       console.error("Error loading users:", error);
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message ||
+        "Failed to load users. You may need the user-view permission.";
+      toast.danger(message);
+      setUsers([]);
+      setFilteredUsers([]);
     } finally {
       setIsLoading(false);
     }
@@ -230,14 +248,16 @@ export default function UserManagement({
             Manage system users and their access
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#e55a35] sm:w-auto sm:justify-start"
-        >
-          <Plus size={18} />
-          Add New User
-        </Button>
+        <PermissionGate permissions={PERMISSIONS.USER_CREATE}>
+          <Button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#e55a35] sm:w-auto sm:justify-start"
+          >
+            <Plus size={18} />
+            Add New User
+          </Button>
+        </PermissionGate>
       </div>
 
       <Modal state={createModalState}>
@@ -499,31 +519,35 @@ export default function UserManagement({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <span title="Edit User" className="inline-flex">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() =>
-                              onEditUser?.(user._id || user.id || "")
-                            }
-                            aria-label="Edit user"
-                            className="min-h-0 min-w-0 p-2 text-gray-600 hover:bg-blue-50 hover:text-secondary"
-                          >
-                            <Edit2 size={16} />
-                          </Button>
-                        </span>
+                        {canEditUsers() && (
+                          <span title="Edit User" className="inline-flex">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() =>
+                                onEditUser?.(user._id || user.id || "")
+                              }
+                              aria-label="Edit user"
+                              className="min-h-0 min-w-0 p-2 text-gray-600 hover:bg-blue-50 hover:text-secondary"
+                            >
+                              <Edit2 size={16} />
+                            </Button>
+                          </span>
+                        )}
 
-                        <span title="Delete User" className="inline-flex">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => handleDeleteUser(user)}
-                            aria-label="Delete user"
-                            className="min-h-0 min-w-0 p-2 text-gray-600 hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </span>
+                        {hasPermission(PERMISSIONS.USER_DELETE) && (
+                          <span title="Delete User" className="inline-flex">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => handleDeleteUser(user)}
+                              aria-label="Delete user"
+                              className="min-h-0 min-w-0 p-2 text-gray-600 hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </span>
+                        )}
                       </div>
                     </td>
                   </tr>

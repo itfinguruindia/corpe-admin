@@ -10,6 +10,9 @@ import { DirectorDocument } from "@/types/directorDocuments";
 import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientEdit } from "@/utils/clientPermissions";
+import { notifyApiError } from "@/utils/apiErrors";
 
 /* =======================
    CONFIG / RULES
@@ -59,6 +62,7 @@ type DualSourceState = {
 
 export default function DirectorDocumentsPage() {
   const { appNo, id } = useParams();
+  const { admin } = usePermissions();
 
   const [director, setDirector] = useState<Director | null>(null);
   const [documents, setDocuments] = useState<DirectorDocument[]>([]);
@@ -399,11 +403,15 @@ export default function DirectorDocumentsPage() {
       await refreshDocStatus(documentType, docTypeKey);
     } catch (error) {
       console.error(`Error deleting ${fileSource}:`, error);
-      toast.danger(`Failed to delete ${fileSource}`);
+      notifyApiError(error, {
+        fallback: `Failed to delete ${fileSource}.`,
+        actionLabel: "delete this document",
+      });
     }
   };
 
   const handleUpload = (documentType: string) => {
+    if (!requireClientEdit(admin, "upload director documents")) return;
     const docTypeKey = getDocTypeKey(documentType);
     if (!docTypeKey) return;
 
@@ -425,8 +433,11 @@ export default function DirectorDocumentsPage() {
         );
         // Refresh status after upload
         await refreshDocStatus(documentType, docTypeKey);
-      } catch {
-        toast.danger(`Could not upload ${documentType} document.`);
+      } catch (error) {
+        notifyApiError(error, {
+          fallback: `Could not upload ${documentType} document.`,
+          actionLabel: "upload director documents",
+        });
       }
     };
     input.click();

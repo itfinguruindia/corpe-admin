@@ -7,6 +7,7 @@ import {
   deriveTemplateName,
   validateTemplateFile,
 } from "./templateValidation";
+import { isPermissionDenied } from "@/utils/apiErrors";
 
 export async function listTemplates(): Promise<DocumentTemplate[]> {
   return templatesApi.list();
@@ -37,7 +38,10 @@ export async function getTemplateFileBlob(
 ): Promise<Blob | null> {
   try {
     return await templatesApi.download(template.id);
-  } catch {
+  } catch (error) {
+    if (isPermissionDenied(error)) {
+      throw error;
+    }
     return null;
   }
 }

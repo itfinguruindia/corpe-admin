@@ -1,4 +1,10 @@
 import { getIsLoggingOut, performLogout } from "@/utils/auth";
+import {
+  getApiErrorMessage,
+  isPermissionDenied,
+  markErrorToastShown,
+  type MarkedApiError,
+} from "@/utils/apiErrors";
 import axios from "axios";
 import { toast } from "@heroui/react";
 
@@ -97,11 +103,14 @@ axiosInstance.interceptors.response.use(
     }
 
     if (!isAuthRequest(error.config?.url)) {
-      const displayMessage = isAbortedRequest(error)
-        ? null
-        : message;
-      if (displayMessage) {
-        toast.danger(displayMessage);
+      if (!isAbortedRequest(error)) {
+        const displayMessage = isPermissionDenied(error)
+          ? getApiErrorMessage(error)
+          : message;
+        if (displayMessage) {
+          toast.danger(displayMessage);
+          markErrorToastShown(error as MarkedApiError);
+        }
       }
     }
 

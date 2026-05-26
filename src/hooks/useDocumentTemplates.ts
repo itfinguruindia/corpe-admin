@@ -11,17 +11,35 @@ import type {
   DocumentTemplate,
   TemplateUploadSource,
 } from "@/types/documentTemplate";
+import {
+  getApiErrorMessage,
+  isPermissionDenied,
+} from "@/utils/apiErrors";
 
 export function useDocumentTemplates() {
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadForbidden, setLoadForbidden] = useState(false);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
+    setLoadForbidden(false);
     try {
       const data = await listTemplates();
       setTemplates(data);
+    } catch (error) {
+      const forbidden = isPermissionDenied(error);
+      setLoadForbidden(forbidden);
+      setLoadError(
+        getApiErrorMessage(error, {
+          fallback: "Failed to load document templates.",
+          actionLabel: forbidden ? "view document templates" : undefined,
+        }),
+      );
+      setTemplates([]);
     } finally {
       setIsLoading(false);
     }
@@ -70,6 +88,8 @@ export function useDocumentTemplates() {
     templates,
     isLoading,
     isSubmitting,
+    loadError,
+    loadForbidden,
     refresh,
     importTemplate,
     removeTemplate,

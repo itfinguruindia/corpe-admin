@@ -599,7 +599,7 @@ export default function ActivityLogsPage() {
                   placeholder="Search users, modules, descriptions, endpoints..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full h-11 pl-10 pr-4 text-sm border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-[#3D63A4]/15 focus:border-[#3D63A4] transition-all"
+                  className="w-full h-11 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-[#3D63A4]/15 focus:border-[#3D63A4] transition-all [color-scheme:light]"
                 />
               </div>
               <button
@@ -744,7 +744,7 @@ export default function ActivityLogsPage() {
                       setEndpointFilter(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="h-10 px-3 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#3D63A4]/15 focus:border-[#3D63A4]"
+                    className="h-10 px-3 text-sm text-gray-900 placeholder:text-gray-400 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#3D63A4]/15 focus:border-[#3D63A4] [color-scheme:light]"
                   />
                 </div>
                 <div className="flex flex-wrap gap-3 items-center">
@@ -757,7 +757,7 @@ export default function ActivityLogsPage() {
                       setPreset("");
                       setCurrentPage(1);
                     }}
-                    className="h-10 px-3 text-sm border border-gray-200 rounded-lg"
+                    className="h-10 px-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg [color-scheme:light]"
                   />
                   <span className="text-gray-400 text-sm">to</span>
                   <input
@@ -768,7 +768,7 @@ export default function ActivityLogsPage() {
                       setPreset("");
                       setCurrentPage(1);
                     }}
-                    className="h-10 px-3 text-sm border border-gray-200 rounded-lg"
+                    className="h-10 px-3 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg [color-scheme:light]"
                   />
                 </div>
               </div>
