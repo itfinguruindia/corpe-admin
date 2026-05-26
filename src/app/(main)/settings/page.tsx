@@ -12,7 +12,7 @@ import {
   NotificationsSection,
   DataManagementSection,
 } from "@/components/settings";
-import { requestEmailChange } from "@/utils/auth";
+import { performLogout, requestEmailChange } from "@/utils/auth";
 import { parsePhoneNumber } from "react-phone-number-input";
 import { useDispatch, useSelector } from "react-redux";
 import { setProfilePictureUrl } from "@/redux/slices/authSlice";
@@ -447,25 +447,8 @@ export default function SettingPage() {
     if (!result.isConfirmed) return;
 
     try {
-      // ✅ Clear tokens ONLY on success
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("adminInfo");
-      Cookies.remove("accessToken");
-      Cookies.remove("refreshToken");
-
-      // ✅ Success alert
-      await swal({
-        icon: "success",
-        title: "Logged out!",
-        text: "You have been logged out successfully.",
-        timer: 1200,
-        showConfirmButton: false,
-      });
-
-      router.push("/login");
+      await performLogout({ recordActivity: true, redirectTo: "/login" });
     } catch (error: any) {
-      // ❌ Failure alert
       await swal({
         icon: "error",
         title: "Logout failed",

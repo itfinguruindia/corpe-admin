@@ -29,9 +29,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import axiosInstance from "@/lib/axios";
 import { setProfilePictureUrl } from "@/redux/slices/authSlice";
-import { logoutAdmin } from "@/utils/auth";
+import { performLogout } from "@/utils/auth";
 import useSwal from "@/utils/useSwal";
 import { Button } from "@heroui/react";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 const SIDEBAR_EXPANDED = 260;
 const SIDEBAR_COLLAPSED = 68;
@@ -46,6 +48,17 @@ export default function Sidebar() {
     (state: RootState) => state.layout,
   );
   const swal = useSwal();
+  const { hasPermission } = usePermissions();
+
+  const showDashboard = hasPermission(PERMISSIONS.DASH_VIEW);
+  const showClients = hasPermission(PERMISSIONS.CLIENT_VIEW);
+  const showFeedbacks = hasPermission(PERMISSIONS.FEEDBACK_VIEW);
+  const showMarketing = hasPermission(PERMISSIONS.MARKETING_VIEW);
+  const showNewsletter = hasPermission(PERMISSIONS.NEWSLETTER_VIEW);
+  const showDocuments = hasPermission(PERMISSIONS.DOC_VIEW);
+  const showMessages = hasPermission(PERMISSIONS.MSG_VIEW);
+  const showTickets = hasPermission(PERMISSIONS.TICKET_VIEW);
+  const showSettings = hasPermission(PERMISSIONS.SETTINGS_VIEW);
 
   /* Detect mobile to override collapsed behavior */
   const [isMobile, setIsMobile] = useState(false);
@@ -124,19 +137,7 @@ export default function Sidebar() {
 
     if (!result.isConfirmed) return;
 
-    try {
-      logoutAdmin();
-      await swal({
-        icon: "success",
-        title: "Logged out!",
-        text: "You have been logged out successfully.",
-        timer: 1200,
-        showConfirmButton: false,
-      });
-      window.location.href = "/login";
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
+    await performLogout({ recordActivity: true, redirectTo: "/login" });
   };
 
   const getInitials = (name?: string) => {
@@ -267,113 +268,135 @@ export default function Sidebar() {
         <Divider />
 
         <nav className="flex min-h-0 flex-1 flex-col gap-0 overflow-y-auto overflow-x-hidden py-2 scrollbar-hide [&>*]:shrink-0">
-          <SidebarLink
-            label="Dashboard"
-            href="/dashboard"
-            icon={<LayoutDashboard size={18} />}
-            active={pathname === "/dashboard"}
-            collapsed={effectiveCollapsed}
-          />
-
-          <Divider />
-
-          <SidebarLink
-            label="Clients"
-            href="/clients"
-            icon={<Users size={18} />}
-            active={pathname.startsWith("/clients")}
-            collapsed={effectiveCollapsed}
-          />
-
-          <Divider />
-
-          <SidebarLink
-            label="Feedbacks"
-            href="/feedbacks"
-            icon={<Rss size={18} />}
-            active={pathname.startsWith("/feedbacks")}
-            collapsed={effectiveCollapsed}
-          />
-
-          <Divider />
-
-          <SidebarSection
-            title="Marketing"
-            icon={<Megaphone size={18} />}
-            active={pathname.startsWith("/marketing")}
-            collapsed={effectiveCollapsed}
-          >
-            <SubItem
-              label="Leads"
-              href="/marketing/leads"
-              icon={<UserRoundPlus size={15} />}
-              active={pathname === "/marketing/leads"}
+          {showDashboard && (
+            <SidebarLink
+              label="Dashboard"
+              href="/dashboard"
+              icon={<LayoutDashboard size={18} />}
+              active={pathname === "/dashboard"}
               collapsed={effectiveCollapsed}
             />
-            <SubItem
-              label="Newsletter"
-              href="/marketing/newsletter"
-              icon={<Mail size={15} />}
-              active={pathname === "/marketing/newsletter"}
+          )}
+
+          {showDashboard && (showClients || showFeedbacks) && <Divider />}
+
+          {showClients && (
+            <SidebarLink
+              label="Clients"
+              href="/clients"
+              icon={<Users size={18} />}
+              active={pathname.startsWith("/clients")}
               collapsed={effectiveCollapsed}
             />
-          </SidebarSection>
+          )}
 
-          <Divider />
+          {showClients && showFeedbacks && <Divider />}
 
-          <SidebarSection
-            title="Documents"
-            icon={<FileText size={18} />}
-            active={pathname.startsWith("/documents")}
-            collapsed={effectiveCollapsed}
-          >
-            <SubItem
-              label="Template Library"
-              href="/documents/templates"
-              icon={<Library size={15} />}
-              active={pathname === "/documents/templates"}
+          {showFeedbacks && (
+            <SidebarLink
+              label="Feedbacks"
+              href="/feedbacks"
+              icon={<Rss size={18} />}
+              active={pathname.startsWith("/feedbacks")}
               collapsed={effectiveCollapsed}
             />
-          </SidebarSection>
+          )}
 
-          <Divider />
+          {(showMarketing || showNewsletter) && <Divider />}
 
-          <SidebarSection
-            title="Communication"
-            icon={<MessageSquare size={18} />}
-            active={
-              pathname.startsWith("/messages") ||
-              pathname.startsWith("/tickets")
-            }
-            collapsed={effectiveCollapsed}
-          >
-            <SubItem
-              label="Client Message"
-              href="/messages"
-              icon={<MessageSquare size={15} />}
-              active={pathname === "/messages"}
+          {(showMarketing || showNewsletter) && (
+            <SidebarSection
+              title="Marketing"
+              icon={<Megaphone size={18} />}
+              active={pathname.startsWith("/marketing")}
               collapsed={effectiveCollapsed}
-            />
-            <SubItem
-              label="Raised Tickets"
-              href="/tickets"
-              icon={<Ticket size={15} />}
-              active={pathname === "/tickets"}
+            >
+              {showMarketing && (
+                <SubItem
+                  label="Leads"
+                  href="/marketing/leads"
+                  icon={<UserRoundPlus size={15} />}
+                  active={pathname === "/marketing/leads"}
+                  collapsed={effectiveCollapsed}
+                />
+              )}
+              {showNewsletter && (
+                <SubItem
+                  label="Newsletter"
+                  href="/marketing/newsletter"
+                  icon={<Mail size={15} />}
+                  active={pathname === "/marketing/newsletter"}
+                  collapsed={effectiveCollapsed}
+                />
+              )}
+            </SidebarSection>
+          )}
+
+          {showDocuments && <Divider />}
+
+          {showDocuments && (
+            <SidebarSection
+              title="Documents"
+              icon={<FileText size={18} />}
+              active={pathname.startsWith("/documents")}
               collapsed={effectiveCollapsed}
-            />
-          </SidebarSection>
+            >
+              <SubItem
+                label="Template Library"
+                href="/documents/templates"
+                icon={<Library size={15} />}
+                active={pathname === "/documents/templates"}
+                collapsed={effectiveCollapsed}
+              />
+            </SidebarSection>
+          )}
+
+          {(showMessages || showTickets) && <Divider />}
+
+          {(showMessages || showTickets) && (
+            <SidebarSection
+              title="Communication"
+              icon={<MessageSquare size={18} />}
+              active={
+                pathname.startsWith("/messages") ||
+                pathname.startsWith("/tickets")
+              }
+              collapsed={effectiveCollapsed}
+            >
+              {showMessages && (
+                <SubItem
+                  label="Client Message"
+                  href="/messages"
+                  icon={<MessageSquare size={15} />}
+                  active={pathname === "/messages"}
+                  collapsed={effectiveCollapsed}
+                />
+              )}
+              {showTickets && (
+                <SubItem
+                  label="Raised Tickets"
+                  href="/tickets"
+                  icon={<Ticket size={15} />}
+                  active={pathname === "/tickets"}
+                  collapsed={effectiveCollapsed}
+                />
+              )}
+            </SidebarSection>
+          )}
         </nav>
 
         <div className="shrink-0 pb-2">
           <Divider />
 
-          <SidebarLink
-            label="Settings"
-            href="/settings"
-            icon={<Settings size={18} />}
-            active={pathname === "/settings"}
-            collapsed={effectiveCollapsed}
-          />
+          {showSettings && (
+            <SidebarLink
+              label="Settings"
+              href="/settings"
+              icon={<Settings size={18} />}
+              active={pathname.startsWith("/settings")}
+              collapsed={effectiveCollapsed}
+            />
+          )}
 
           <Divider />
 

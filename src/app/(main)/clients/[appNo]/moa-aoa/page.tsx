@@ -7,9 +7,13 @@ import { MoaAoaDocument } from "@/types/moaAoa";
 import { clientsApi } from "@/lib/api/clients";
 import { Eye, Download, Upload } from "lucide-react";
 import { FileUploadComponent } from "@/components/upload";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientEdit } from "@/utils/clientPermissions";
+import { notifyApiError } from "@/utils/apiErrors";
 
 export default function MoaAoaPage() {
   const { appNo } = useParams();
+  const { admin } = usePermissions();
   const [documents, setDocuments] = useState<MoaAoaDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -190,6 +194,7 @@ export default function MoaAoaPage() {
 
   const handleMiscFileSelected = async (row: CompanyMiscRow, file: File) => {
     if (!file || !appNo) return;
+    if (!requireClientEdit(admin, "upload company documents")) return;
     try {
       await clientsApi.uploadCompanyMiscDocument(
         appNo as string,
@@ -214,7 +219,10 @@ export default function MoaAoaPage() {
       );
     } catch (error) {
       console.error("Error uploading misc document:", error);
-      toast("Could not upload document.", { variant: "danger" });
+      notifyApiError(error, {
+        fallback: "Could not upload document.",
+        actionLabel: "upload company documents",
+      });
     }
   };
 
@@ -293,6 +301,7 @@ export default function MoaAoaPage() {
 
   const handleMoaAoaFileSelected = async (documentType: string, file: File) => {
     if (!file || !appNo) return;
+    if (!requireClientEdit(admin, "upload MOA/AOA documents")) return;
     try {
       const docType =
         documentType.toLowerCase() === "aoa" ? "aoa" : "moa";
@@ -318,7 +327,10 @@ export default function MoaAoaPage() {
       );
     } catch (error) {
       console.error("Error uploading MOA/AOA document:", error);
-      toast("Could not upload document.", { variant: "danger" });
+      notifyApiError(error, {
+        fallback: "Could not upload document.",
+        actionLabel: "upload MOA/AOA documents",
+      });
     }
   };
 

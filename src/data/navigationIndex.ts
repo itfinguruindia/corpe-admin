@@ -91,6 +91,14 @@ export const navigationIndex: SearchItem[] = [
     keywords: ["admins", "team", "staff", "users"],
     description: "Manage administrative users.",
   },
+  {
+    id: "settings-activity-logs",
+    title: "System Activity Logs",
+    category: "System",
+    path: "/settings/activity-logs",
+    keywords: ["audit", "activity", "logs", "security", "trail"],
+    description: "View audit trail of admin panel actions.",
+  },
 
   // Sections on Dashboard
   {
