@@ -8,6 +8,8 @@ import { Skeleton, Tooltip, Chip, Button } from "@heroui/react";
 
 import { TicketApi } from "@/lib/api/tickets";
 import type { Ticket } from "@/types/tickets";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 function formatTime(dateString: string) {
   if (!dateString) return "—";
@@ -46,15 +48,22 @@ function TicketSkeleton() {
 }
 
 export default function RaisedTicketsWidget() {
+  const { hasPermission } = usePermissions();
+  const canViewTickets = hasPermission(PERMISSIONS.TICKET_VIEW);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(canViewTickets);
 
   useEffect(() => {
+    if (!canViewTickets) {
+      setLoading(false);
+      return;
+    }
+
     TicketApi.getAllTickets(1, 3)
       .then((res) => setTickets(res.tickets))
       .catch(() => setTickets([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [canViewTickets]);
 
   if (loading) {
     return (
@@ -138,15 +147,16 @@ export default function RaisedTicketsWidget() {
         </div>
       ))}
 
-      {/* View All Link */}
-      <Link href="/tickets">
-        <Button
-          className="w-full text-secondary/60 hover:text-primary font-bold uppercase tracking-wider text-xs bg-transparent"
-        >
-          View all tickets
-          <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-        </Button>
-      </Link>
+      {canViewTickets && (
+        <Link href="/tickets">
+          <Button
+            className="w-full text-secondary/60 hover:text-primary font-bold uppercase tracking-wider text-xs bg-transparent"
+          >
+            View all tickets
+            <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+          </Button>
+        </Link>
+      )}
     </div>
   );
 }

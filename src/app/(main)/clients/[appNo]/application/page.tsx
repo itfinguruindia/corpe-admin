@@ -11,7 +11,7 @@ import { clientsApi } from "@/lib/api/clients";
 import { getFileType } from "@/utils/helpers";
 import type { NameStatus } from "@/types/company";
 import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientEdit } from "@/utils/clientPermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
 import { notifyApiError } from "@/utils/apiErrors";
 
 export default function NameApplicationPage() {
@@ -83,7 +83,7 @@ export default function NameApplicationPage() {
   const handleStatusChange = async (index: number, status: NameStatus) => {
     setStatusMap((prev) => ({ ...prev, [index]: status }));
     if (!appNo) return;
-    if (!requireClientEdit(admin, "update name application status")) return;
+    if (!requireClientTabEdit(admin, "app")) return;
     try {
       await clientsApi.updateCompanyStatus(appNo as string, index, status);
     } catch (error) {
@@ -97,7 +97,7 @@ export default function NameApplicationPage() {
 
   const handleObjectClauseFileSelected = async (file: File) => {
     if (!file || !appNo) return;
-    if (!requireClientEdit(admin, "upload the Object Clause document")) return;
+    if (!requireClientTabEdit(admin, "app")) return;
     try {
       await clientsApi.uploadObjectClauseDocument(appNo as string, file);
       toast.success("Object Clause uploaded. Client can now download it.");
@@ -382,6 +382,7 @@ export default function NameApplicationPage() {
                   title="Upload Object Clause"
                   subtitle="Upload from your computer, Google Drive, or existing documents."
                   dropLabel="Drag and drop your file here"
+                  onBeforeOpen={() => requireClientTabEdit(admin, "app")}
                   onFileSelect={handleObjectClauseFileSelected}
                   renderTrigger={(openPicker) => (
                     <div title="Upload Object Clause (Admin)">

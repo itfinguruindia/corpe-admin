@@ -11,7 +11,7 @@ import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
 import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientEdit } from "@/utils/clientPermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
 import { notifyApiError } from "@/utils/apiErrors";
 
 export default function ShareholderDocumentsPage() {
@@ -195,6 +195,7 @@ export default function ShareholderDocumentsPage() {
 
   const handleInc9Delete = async (source: "admin" | "client") => {
     if (!appNo || !id) return;
+    if (!requireClientTabEdit(admin, "shareholder")) return;
 
     const fileSource = source === "admin" ? "Admin Upload" : "Client Upload";
     if (!confirm(`Are you sure you want to delete the ${fileSource}?`)) {
@@ -226,7 +227,7 @@ export default function ShareholderDocumentsPage() {
   };
 
   const handleUpload = (documentType: string) => {
-    if (!requireClientEdit(admin, "upload shareholder documents")) return;
+    if (!requireClientTabEdit(admin, "shareholder")) return;
     if (documentType === "INC-9 Shareholder") {
       const input = document.createElement("input");
       input.type = "file";

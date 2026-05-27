@@ -22,6 +22,51 @@ export const PERMISSIONS = {
   APP_EDIT: "app-edit",
   APP_DELETE: "app-delete",
 
+  // Company overview (client tab)
+  COMPANY_VIEW: "company-view",
+  COMPANY_EDIT: "company-edit",
+  COMPANY_EXPORT: "company-export",
+
+  // Directors (client tab)
+  DIRECTOR_VIEW: "director-view",
+  DIRECTOR_CREATE: "director-create",
+  DIRECTOR_EDIT: "director-edit",
+  DIRECTOR_DELETE: "director-delete",
+  DIRECTOR_EXPORT: "director-export",
+
+  // Shareholders (client tab)
+  SHAREHOLDER_VIEW: "shareholder-view",
+  SHAREHOLDER_CREATE: "shareholder-create",
+  SHAREHOLDER_EDIT: "shareholder-edit",
+  SHAREHOLDER_DELETE: "shareholder-delete",
+  SHAREHOLDER_EXPORT: "shareholder-export",
+
+  // MOA/AOA (client tab)
+  MOA_VIEW: "moa-view",
+  MOA_CREATE: "moa-create",
+  MOA_EDIT: "moa-edit",
+  MOA_DELETE: "moa-delete",
+
+  // Pricing & payment (client tab)
+  PRICING_VIEW: "pricing-view",
+  PRICING_EDIT: "pricing-edit",
+  PRICING_EXPORT: "pricing-export",
+
+  // Registration documents (client tab)
+  REG_DOC_VIEW: "reg-doc-view",
+  REG_DOC_CREATE: "reg-doc-create",
+  REG_DOC_EDIT: "reg-doc-edit",
+  REG_DOC_DELETE: "reg-doc-delete",
+
+  // Tracking status (client tab)
+  TRACK_VIEW: "track-view",
+  TRACK_EDIT: "track-edit",
+
+  // Uploaded documents (client tab)
+  UPLOAD_VIEW: "upload-view",
+  UPLOAD_CREATE: "upload-create",
+  UPLOAD_DELETE: "upload-delete",
+
   // Documents
   DOC_VIEW: "doc-view",
   DOC_CREATE: "doc-create",

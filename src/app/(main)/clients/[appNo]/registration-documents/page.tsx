@@ -10,7 +10,7 @@ import { clientsApi } from "@/lib/api/clients";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { RegistrationData } from "@/types/registrationDocuments";
 import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientEdit } from "@/utils/clientPermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
 import { notifyApiError } from "@/utils/apiErrors";
 
 const COMPANY_STATUS_OPTIONS = [
@@ -63,6 +63,7 @@ export default function RegistrationDocumentsPage() {
 
   const handleCinSubmit = async () => {
     if (!appNo) return;
+    if (!requireClientTabEdit(admin, "regDoc")) return;
     try {
       await clientsApi.updateCinAndStatus(
         appNo as string,
@@ -82,6 +83,7 @@ export default function RegistrationDocumentsPage() {
 
   const handleStatusChange = async (status: string) => {
     if (!appNo) return;
+    if (!requireClientTabEdit(admin, "regDoc")) return;
     try {
       setCompanyStatus(status);
       await clientsApi.updateCinAndStatus(appNo as string, cinInput, status);
@@ -97,7 +99,7 @@ export default function RegistrationDocumentsPage() {
   };
 
   const handleUploadClick = (docType: string) => {
-    if (!requireClientEdit(admin, "upload registration documents")) return;
+    if (!requireClientTabEdit(admin, "regDoc")) return;
     setActiveUploadDocType(docType);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
