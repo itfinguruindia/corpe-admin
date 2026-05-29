@@ -18,8 +18,17 @@ export interface IFeedbackResponse {
   totalPages: number;
 }
 
+export interface IFeedbackQueryParams {
+  search?: string;
+  rating?: string;
+  page?: number;
+  limit?: number;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 export const feedbackService = {
-  async getAllFeedbacks(params?: { search?: string; rating?: string; page?: number; limit?: number }) {
+  async getAllFeedbacks(params?: IFeedbackQueryParams) {
     try {
       const response = await axiosInstance.get<{ success: boolean; data: IFeedbackResponse }>("admin/feedbacks", {
         params,

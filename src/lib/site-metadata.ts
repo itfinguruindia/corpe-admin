@@ -301,6 +301,11 @@ export function getMetadataForPathname(pathname: string): Metadata {
   return {
     title: { absolute: fullTitle },
     description: desc,
+    icons: {
+      icon: "/favicon.png",
+      shortcut: "/favicon.png",
+      apple: "/favicon.png",
+    },
     robots: {
       index: false,
       follow: false,

@@ -152,7 +152,6 @@ const defaultFilters = () => ({
   moduleFilter: "",
   adminFilter: "",
   roleFilter: "",
-  endpointFilter: "",
   dateFrom: "",
   dateTo: "",
 });
@@ -190,7 +189,6 @@ export default function ActivityLogsPage() {
   const [moduleFilter, setModuleFilter] = useState("");
   const [adminFilter, setAdminFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
-  const [endpointFilter, setEndpointFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -219,7 +217,6 @@ export default function ActivityLogsPage() {
     if (moduleFilter) n++;
     if (adminFilter) n++;
     if (roleFilter) n++;
-    if (endpointFilter) n++;
     if (dateFrom || dateTo) n++;
     return n;
   }, [
@@ -230,7 +227,6 @@ export default function ActivityLogsPage() {
     moduleFilter,
     adminFilter,
     roleFilter,
-    endpointFilter,
     dateFrom,
     dateTo,
   ]);
@@ -247,7 +243,6 @@ export default function ActivityLogsPage() {
     setModuleFilter(d.moduleFilter);
     setAdminFilter(d.adminFilter);
     setRoleFilter(d.roleFilter);
-    setEndpointFilter(d.endpointFilter);
     setDateFrom(d.dateFrom);
     setDateTo(d.dateTo);
     setCurrentPage(1);
@@ -293,7 +288,6 @@ export default function ActivityLogsPage() {
           module: moduleFilter || undefined,
           adminId: adminFilter || undefined,
           roleId: roleFilter || undefined,
-          endpoint: endpointFilter || undefined,
           dateFrom: dateFrom || undefined,
           dateTo: dateTo || undefined,
           sort: "desc",
@@ -332,7 +326,6 @@ export default function ActivityLogsPage() {
     moduleFilter,
     adminFilter,
     roleFilter,
-    endpointFilter,
     dateFrom,
     dateTo,
   ]);
@@ -353,7 +346,6 @@ export default function ActivityLogsPage() {
         module: moduleFilter || undefined,
         adminId: adminFilter || undefined,
         roleId: roleFilter || undefined,
-        endpoint: endpointFilter || undefined,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
         sort: "desc",
@@ -385,7 +377,6 @@ export default function ActivityLogsPage() {
         module: moduleFilter || undefined,
         adminId: adminFilter || undefined,
         roleId: roleFilter || undefined,
-        endpoint: endpointFilter || undefined,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
         sort: "desc",
@@ -735,16 +726,6 @@ export default function ActivityLogsPage() {
                       setCurrentPage(1);
                     }}
                     options={roleOptions}
-                  />
-                  <input
-                    type="text"
-                    placeholder="API endpoint contains..."
-                    value={endpointFilter}
-                    onChange={(e) => {
-                      setEndpointFilter(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="h-10 px-3 text-sm text-gray-900 placeholder:text-gray-400 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#3D63A4]/15 focus:border-[#3D63A4] [color-scheme:light]"
                   />
                 </div>
                 <div className="flex flex-wrap gap-3 items-center">

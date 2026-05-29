@@ -3,15 +3,16 @@
 import { useState, useEffect } from "react";
 import {
   RefreshCw,
-  FileDown,
   Ticket as TicketIcon,
   Search,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { TicketApi } from "@/lib/api/tickets";
 import type { Ticket, TicketStatus, TicketPriority } from "@/types/tickets";
 import { Chip, SearchSelect, SearchSelectOption } from "@/components/ui";
 import type { ChipVariant } from "@/components/ui/Chip";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
+import ExportDropdown from "@/components/ui/ExportDropdown";
 import {
   Button,
   Drawer,
@@ -89,6 +90,7 @@ export default function RaisedTicketsPage() {
   const [search, setSearch] = useState("");
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
@@ -178,6 +180,76 @@ export default function RaisedTicketsPage() {
       await loadTickets();
     } catch {
       /* silent */
+    }
+  };
+
+  const handleExportTickets = async (
+    withDateRange: boolean,
+    dateFrom?: string,
+    dateTo?: string,
+  ) => {
+    try {
+      setIsExporting(true);
+      let page = 1;
+      let pages = 1;
+      const allTickets: Ticket[] = [];
+      while (page <= pages) {
+        const res = await TicketApi.getAllTickets(
+          page,
+          100,
+          search,
+          statusFilter,
+          priorityFilter,
+        );
+        allTickets.push(...res.tickets);
+        pages = res.totalPages || 1;
+        page += 1;
+      }
+
+      const fromDate = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null;
+      const toDate = dateTo ? new Date(`${dateTo}T23:59:59.999`) : null;
+      const rows =
+        withDateRange && (fromDate || toDate)
+          ? allTickets.filter((t) => {
+              const created = t.createdOn ? new Date(t.createdOn) : null;
+              if (!created || Number.isNaN(created.getTime())) return false;
+              if (fromDate && created < fromDate) return false;
+              if (toDate && created > toDate) return false;
+              return true;
+            })
+          : allTickets;
+
+      const wsData = [
+        [
+          "Application No.",
+          "Category",
+          "Subject",
+          "Status",
+          "Assignee",
+          "Priority",
+          "Created On",
+          "Description",
+        ],
+        ...rows.map((t) => [
+          t.applicationNo,
+          t.category,
+          t.subject,
+          t.status,
+          t.assignee?.name || "-",
+          t.priority,
+          t.createdOn ? new Date(t.createdOn).toLocaleString("en-IN") : "",
+          t.description || "",
+        ]),
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Tickets");
+      XLSX.writeFile(wb, `tickets-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (error) {
+      console.error("Failed to export tickets:", error);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -372,16 +444,17 @@ export default function RaisedTicketsPage() {
                     />
                   </Button>
                 </span>
-                <span title="Export" className="inline-flex">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    aria-label="Export tickets"
-                    className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"
-                  >
-                    <FileDown size={18} />
-                  </Button>
-                </span>
+                <ExportDropdown
+                  title="Export Tickets"
+                  isExporting={isExporting}
+                  onInvalidDateRange={() =>
+                    alert("From date cannot be after To date.")
+                  }
+                  onExportDateRange={(dateFrom, dateTo) =>
+                    handleExportTickets(true, dateFrom, dateTo)
+                  }
+                  onExportAll={() => handleExportTickets(false)}
+                />
               </div>
             </div>
           </div>

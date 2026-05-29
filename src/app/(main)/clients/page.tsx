@@ -3,6 +3,7 @@
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import * as XLSX from "xlsx";
 import { buildFiltersFromParams, useDebouncedCallback } from "@/utils/helpers";
 import { filtersToSearchParams } from "@/components/ui/FilterDropdown/helpers";
 import { clientsApi } from "@/lib/api";
@@ -13,6 +14,7 @@ import FilterDropdown, { Filters } from "@/components/ui/FilterDropdown/index";
 import ActiveFilters from "@/components/ui/FilterDropdown/ActiveFilters";
 import { SearchSelectOption } from "@/components/ui/SearchSelect";
 import type { SortDescriptor } from "@heroui/react";
+import ExportDropdown from "@/components/ui/ExportDropdown";
 import ClientsTable, {
   Client,
   ITEMS_PER_PAGE,
@@ -34,6 +36,7 @@ export default function ClientsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "updated",
@@ -220,27 +223,119 @@ export default function ClientsPage() {
     }
   };
 
+  const showInvalidDateRangeAlert = async () => {
+    await swal({
+      title: "Invalid date range",
+      text: "From date cannot be after To date.",
+      icon: "warning",
+      confirmButtonColor: "#F46A45",
+    });
+  };
+
+  const handleExportClients = async (
+    withDateRange: boolean,
+    dateFrom?: string,
+    dateTo?: string,
+  ) => {
+    try {
+      setIsExporting(true);
+      let exportFilters: Filters & { dateFrom?: string; dateTo?: string } = {
+        ...filters,
+        ...(withDateRange && dateFrom ? { dateFrom } : {}),
+        ...(withDateRange && dateTo ? { dateTo } : {}),
+      };
+      if (withDateRange && (dateFrom || dateTo)) {
+        const { dateRange, ...rest } = exportFilters;
+        void dateRange;
+        exportFilters = rest as Filters & { dateFrom?: string; dateTo?: string };
+      }
+
+      let page = 1;
+      let totalPagesForExport = 1;
+      const rows: Client[] = [];
+
+      while (page <= totalPagesForExport) {
+        const data = await clientsApi.getAllClients(page, 100, exportFilters);
+        rows.push(...(data.clients || []));
+        totalPagesForExport = data.totalPages || 1;
+        page += 1;
+      }
+
+      const worksheetRows = [
+        [
+          "Application No.",
+          "Client Name",
+          "Entity Type",
+          "Assignee",
+          "Assigner",
+          "Status",
+          "Last Update",
+        ],
+        ...rows.map((client) => [
+          client.appNo,
+          client.client,
+          client.entity,
+          client.assignee || "-",
+          client.assigner || "-",
+          client.status,
+          new Date(client.updated).toLocaleString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        ]),
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(worksheetRows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Clients");
+      XLSX.writeFile(wb, `clients-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (err) {
+      console.error("Error exporting clients:", err);
+      await swal({
+        title: "Export failed",
+        text: "Unable to export clients right now. Please try again.",
+        icon: "error",
+        confirmButtonColor: "#F46A45",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="w-full">
       {/* HEADER & SEARCH TOOLBAR */}
       <div className="flex flex-col gap-6 py-6 pb-4">
         {/* Unified Search and Filter Bar */}
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-3">
-            <div className="relative w-full">
+          <div className="flex items-center gap-2 w-full">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 size-5" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => handleSearchInputChange(e.target.value)}
                 placeholder="Search by client name, application no, or entity..."
-                className="w-full bg-transparent pl-10 pr-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:outline-none rounded-xl border border-gray-200 shadow-sm"
+                className="w-full h-11 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:outline-none rounded-xl border border-gray-200 shadow-sm"
               />
             </div>
 
-            <div className="h-8 w-px bg-gray-200 hidden md:block"></div>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative group/export">
+                <ExportDropdown
+                  title="Export Clients"
+                  isExporting={isExporting}
+                  onInvalidDateRange={showInvalidDateRangeAlert}
+                  onExportDateRange={(dateFrom, dateTo) =>
+                    handleExportClients(true, dateFrom, dateTo)
+                  }
+                  onExportAll={() => handleExportClients(false)}
+                />
+              </div>
 
-            <div className="flex items-center gap-2 self-end">
               <FilterDropdown
                 onApply={handleApply}
                 search={search}

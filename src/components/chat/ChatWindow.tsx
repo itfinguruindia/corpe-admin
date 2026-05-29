@@ -26,6 +26,7 @@ import {
   X,
   ChevronLeft,
 } from "lucide-react";
+import Link from "next/link";
 import { Socket } from "socket.io-client";
 import MessageBubble from "./MessageBubble";
 import chatService from "@/services/chat.service";
@@ -672,9 +673,19 @@ export default function ChatWindow({
           <div className="flex-1 overflow-hidden">
             <div className="flex items-center justify-between">
               <div className="overflow-hidden">
-                <h3 className="text-sm md:text-base font-bold text-[#FF6A3D] truncate">
-                  {room.applicationNo || "New Chat"}
-                </h3>
+                {room.applicationNo ? (
+                  <Link
+                    href={`/clients/${encodeURIComponent(room.applicationNo)}`}
+                    className="inline-block max-w-full text-sm md:text-base font-bold text-[#FF6A3D] truncate hover:underline"
+                    title={`Open client ${room.applicationNo}`}
+                  >
+                    {room.applicationNo}
+                  </Link>
+                ) : (
+                  <h3 className="text-sm md:text-base font-bold text-[#FF6A3D] truncate">
+                    New Chat
+                  </h3>
+                )}
                 <p className="text-[10px] md:text-xs text-gray-500 truncate">
                   {userName}
                 </p>
