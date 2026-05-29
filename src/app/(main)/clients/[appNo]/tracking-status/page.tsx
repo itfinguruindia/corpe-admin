@@ -1,296 +1,796 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { TrackingStatus as TrackingStatusType } from "@/types/trackingStatus";
-import { fetchTrackingStatus } from "@/lib/data/mockTrackingStatusData";
-import { Check, FileText, Edit3, Building2, Clock } from "lucide-react";
-import { Card, Spinner } from "@heroui/react";
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { clientsApi } from "@/lib/api/clients";
+
+import {
+  Spinner,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  TextArea,
+} from "@heroui/react";
+import {
+  Check,
+  Clock,
+  AlertCircle,
+  RefreshCw,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  Send,
+} from "lucide-react";
+
+import CustomSelect from "@/components/ui/CustomSelect";
+
+// Types matching updated backend application tracker
+interface TrackerNote {
+  _id?: string;
+  text: string;
+  createdAt: string;
+}
+
+interface TrackerStep {
+  _id: string;
+  title: string;
+  description: string;
+  status: "Done" | "In Progress" | "Action Needed" | "Pending";
+  ownerType: "admin" | "client" | "govt";
+  visibleTo: "both" | "admin-only";
+  statusChangedAt?: string | null;
+  statusChangedBy?: any;
+  notes: TrackerNote[];
+}
+
+interface TrackerSection {
+  _id: string;
+  label: string;
+  estimation?: string;
+  order: number;
+  steps: TrackerStep[];
+}
+
+interface TrackerStage {
+  _id: string;
+  stageId: string;
+  label: string;
+  order: number;
+  status: "Pending" | "In Progress" | "Completed";
+  completionRule: "sequential" | "parallel";
+  sections: TrackerSection[];
+}
+
+interface TrackerData {
+  _id: string;
+  org: {
+    _id: string;
+    companyType: string;
+    companyStatus: string;
+    applicationNo: string;
+    assignee?: any;
+  };
+  applicationNo: string;
+  companyType: string;
+  startedAt: string;
+  completedAt?: string | null;
+  overallProgress: number;
+  currentStageIndex: number;
+  stages: TrackerStage[];
+  assignee?: {
+    _id: string;
+    name?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  };
+}
 
 export default function TrackingStatusPage() {
   const { appNo } = useParams();
-  const [trackingData, setTrackingData] = useState<TrackingStatusType | null>(
-    null,
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+  const router = useRouter();
+  const appNoStr = typeof appNo === "string" ? appNo : Array.isArray(appNo) ? appNo[0] : "";
+
+  const [tracker, setTracker] = useState<TrackerData | null>(null);
+  const [companyOverview, setCompanyOverview] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(false);
+  const [collapsedStages, setCollapsedStages] = useState<Record<string, boolean>>({});
+
+  // Notes state
+  const [selectedStepId, setSelectedStepId] = useState<string>("");
+  const [noteText, setNoteText] = useState<string>("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        // TODO: Replace with actual API call when available
-        const data = await fetchTrackingStatus(appNo as string);
-        setTrackingData(data);
-      } catch (error) {
-        console.error("Error fetching tracking status:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (appNo) {
+    if (appNoStr) {
       loadData();
     }
-  }, [appNo]);
+  }, [appNoStr]);
 
-  const toggleStepUpdates = (stepId: string) => {
-    setExpandedSteps((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(stepId)) {
-        newSet.delete(stepId);
-      } else {
-        newSet.add(stepId);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const trackerData = await clientsApi.getTrackingStatus(appNoStr);
+      setTracker(trackerData);
+
+      try {
+        const overview = await clientsApi.getCompanyOverview(appNoStr);
+        if (overview && overview.data) {
+          setCompanyOverview(overview.data);
+        }
+      } catch (err) {
+        console.error("Error fetching company overview:", err);
       }
-      return newSet;
-    });
-  };
 
-  const getStepIcon = (iconType: string) => {
-    const iconProps = { className: "w-6 h-6" };
+      if (trackerData && trackerData.stages) {
+        const initialCollapsed: Record<string, boolean> = {};
+        trackerData.stages.forEach((stage: TrackerStage, index: number) => {
+          initialCollapsed[stage._id] = index !== trackerData.currentStageIndex;
+        });
+        setCollapsedStages(initialCollapsed);
 
-    switch (iconType) {
-      case "check":
-        return <Check {...iconProps} />;
-      case "document":
-        return <FileText {...iconProps} />;
-      case "draft":
-        return <Edit3 {...iconProps} />;
-      case "building":
-        return <Building2 {...iconProps} />;
-      default:
-        return <Clock {...iconProps} />;
+        const currentStage = trackerData.stages[trackerData.currentStageIndex];
+        if (currentStage && currentStage.sections.length > 0) {
+          const firstStep = currentStage.sections[0].steps[0];
+          if (firstStep) {
+            setSelectedStepId(firstStep._id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching tracker:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStepColorClasses = (status: string, isAllCompleted: boolean) => {
-    // If all steps are completed, everything should be green
-    if (isAllCompleted) {
-      return {
-        bg: "bg-green-500",
-        text: "text-green-700",
-        border: "border-green-500",
-        line: "bg-green-500",
-      };
+  const handleInitializeTracker = async () => {
+    if (!companyOverview || !companyOverview._id) {
+      alert("Cannot initialize tracker: Organization not loaded.");
+      return;
     }
+    try {
+      setInitializing(true);
+      await clientsApi.initializeTracker(companyOverview._id);
+      await loadData();
+    } catch (error) {
+      console.error("Error initializing tracker:", error);
+      alert("Failed to initialize tracker.");
+    } finally {
+      setInitializing(false);
+    }
+  };
 
-    // Otherwise, use status-based colors
+  const handleStatusChange = async (
+    stageId: string,
+    sectionId: string,
+    stepId: string,
+    newStatus: string
+  ) => {
+    if (!tracker) return;
+    try {
+      await clientsApi.updateStepStatus(
+        tracker.org._id,
+        stageId,
+        sectionId,
+        stepId,
+        newStatus
+      );
+      const updated = await clientsApi.getTrackingStatus(appNoStr);
+      setTracker(updated);
+    } catch (error) {
+      console.error("Failed to update status", error);
+      alert("Failed to update status. Only assigned admin can do this.");
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!tracker || !selectedStepId || !noteText.trim()) return;
+    try {
+      setIsSavingNote(true);
+      await clientsApi.addNoteToStep(tracker.org._id, selectedStepId, noteText.trim());
+      setNoteText("");
+      const updated = await clientsApi.getTrackingStatus(appNoStr);
+      setTracker(updated);
+    } catch (error) {
+      console.error("Failed to add note", error);
+      alert("Failed to add note.");
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  const toggleStageCollapse = (stageId: string) => {
+    setCollapsedStages((prev) => ({
+      ...prev,
+      [stageId]: !prev[stageId],
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Spinner size="lg" />
+          <p className="text-sm font-semibold text-gray-500">
+            Loading application tracker...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!tracker) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <Card className="max-w-md p-6">
+          <CardContent className="flex flex-col items-center text-center gap-4">
+            <AlertCircle className="w-12 h-12 text-red-500" />
+            <h3 className="text-xl font-bold text-gray-800">
+              Tracker Not Initialized
+            </h3>
+            <p className="text-sm text-gray-500">
+              The application tracker infrastructure has not been initialized
+              for this organization yet.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => router.push(`/clients/${appNoStr}`)}
+              >
+                Back to Client Profile
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleInitializeTracker}
+                isDisabled={initializing}
+              >
+                {initializing ? "Initializing..." : "Initialize Tracker Now"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const getStatusChipColor = (
+    status: string
+  ): "success" | "warning" | "danger" | "default" => {
     switch (status) {
-      case "completed":
-        return {
-          bg: "bg-green-500",
-          text: "text-green-700",
-          border: "border-green-500",
-          line: "bg-green-500",
-        };
-      case "in-progress":
-        return {
-          bg: "bg-[#F46A45]",
-          text: "text-primary",
-          border: "border-[#F46A45]",
-          line: "bg-gray-300",
-        };
-      case "pending":
-        return {
-          bg: "bg-gray-300",
-          text: "text-gray-400",
-          border: "border-gray-300",
-          line: "bg-gray-300",
-        };
+      case "Done":
+        return "success";
+      case "In Progress":
+        return "warning";
+      case "Action Needed":
+        return "danger";
       default:
-        return {
-          bg: "bg-gray-300",
-          text: "text-gray-400",
-          border: "border-gray-300",
-          line: "bg-gray-300",
-        };
+        return "default";
     }
   };
 
-  const formatDateTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "Done":
+        return <Check className="w-3.5 h-3.5 text-white" />;
+      case "In Progress":
+        return <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600" />;
+      case "Action Needed":
+        return <AlertCircle className="w-3.5 h-3.5 text-red-600" />;
+      default:
+        return <Clock className="w-3.5 h-3.5 text-gray-400" />;
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
+  const getStageStatusLabel = (status: string) => {
+    switch (status) {
+      case "Completed":
+        return "Completed";
+      case "In Progress":
+        return "In Progress";
+      default:
+        return "Pending";
+    }
+  };
 
-  if (!trackingData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">No tracking data found</div>
-      </div>
-    );
-  }
+  const getStageStatusColorClass = (status: string) => {
+    switch (status) {
+      case "Completed":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "In Progress":
+        return "bg-amber-50 text-amber-700 border-amber-200";
+      default:
+        return "bg-gray-50 text-gray-600 border-gray-200";
+    }
+  };
 
-  const isAllCompleted = trackingData.overallStatus === "completed";
+  const statusOptions = [
+    { id: "Pending", label: "Pending" },
+    { id: "In Progress", label: "In Progress" },
+    { id: "Action Needed", label: "Action Needed" },
+    { id: "Done", label: "Done" },
+  ];
+
+  const allSteps: TrackerStep[] = [];
+  const clientActionSteps: TrackerStep[] = [];
+  tracker.stages.forEach((stage) => {
+    stage.sections.forEach((section) => {
+      section.steps.forEach((step) => {
+        allSteps.push(step);
+        if (step.ownerType === "client") {
+          clientActionSteps.push(step);
+        }
+      });
+    });
+  });
+
+  const allNotes = allSteps
+    .flatMap((step) =>
+      step.notes.map((note) => ({
+        ...note,
+        stepTitle: step.title,
+      }))
+    )
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const blockedCount = allSteps.filter((s) => s.status === "Action Needed").length;
+
+  // Build step options for HeroUI Select
+  const stepSelectItems = tracker.stages.flatMap((stage) =>
+    stage.sections.flatMap((section) =>
+      section.steps.map((step) => ({
+        key: step._id,
+        label: `Stage ${stage.order} — ${step.title}`,
+      }))
+    )
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <h1 className="text-3xl font-bold text-primary mb-6">{appNo}</h1>
+    <div className="min-h-screen p-5 font-sans text-sm text-[#1A1D23]">
+      <div className="max-w-[1440px] mx-auto flex flex-col gap-4">
 
-        {/* Tracking Status Tab */}
-        <div className="mb-6">
-          {/* Card */}
-          <div
-            className="
-      mt-4
-      rounded-xl px-6 py-4 text-center text-[20px] font-normal max-w-xs
-      text-secondary
-      shadow-sm cursor-pointer transition-all duration-300
-      ring-1 ring-orange-200
-      bg-[linear-gradient(114.98deg,rgba(255,255,255,0)_43.6%,#F36541_133.03%)]
-      hover:bg-[linear-gradient(114.98deg,rgba(255,255,255,0)_20%,#F36541_100%)]
-    "
-          >
-            Tracking Status
-          </div>
-        </div>
-
-        {/* Status Card */}
-        <Card className="p-8">
-          {/* Overall Status Banner */}
-          {isAllCompleted && (
-            <div className="mb-8 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
-              <div className="flex items-center gap-3">
-                <Check className="w-6 h-6 text-green-500" />
-                <div>
-                  <p className="text-lg font-semibold text-green-700">
-                    Process Completed!
-                  </p>
-                  <p className="text-sm text-green-600">
-                    All steps have been successfully completed.
-                  </p>
-                </div>
+        {/* Banner Card — company info header flush to card edges, no gap */}
+        <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl p-0">
+          {/* Gradient header flush to rounded card */}
+          <div className="bg-linear-to-r from-[#0D1F40] via-[#0D1F40] to-[#1E3A6E] px-5 py-4 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-t-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center text-white text-base font-bold shrink-0">
+                {appNoStr.slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <h1 className="text-base font-semibold">
+                  Application: {tracker.applicationNo || `#${appNoStr}`}
+                </h1>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">
+                  Company ID: {tracker.org?._id || "—"} • Entity Type: {tracker.companyType}
+                </p>
               </div>
             </div>
-          )}
+            <div className="text-right shrink-0">
+              <div className="text-3xl font-bold text-amber-500 font-mono leading-none">
+                {tracker.overallProgress}%
+              </div>
+              <div className="text-xs text-slate-400 mt-1 uppercase tracking-wider font-bold">
+                Overall Completion
+              </div>
+            </div>
+          </div>
 
-          {/* Timeline */}
-          <div className="relative">
-            {trackingData.steps.map((step, index) => {
-              const colors = getStepColorClasses(step.status, isAllCompleted);
-              const isExpanded = expandedSteps.has(step.id);
-              const hasUpdates = step.updates.length > 0;
+          {/* Stats Strip */}
+          <div className="grid grid-cols-3 divide-x divide-slate-100 bg-white border-t border-slate-100 text-center rounded-b-xl">
+            <div className="p-3">
+              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">
+                Current Stage
+              </div>
+              <div className="text-lg font-bold text-slate-800 font-mono">
+                {tracker.currentStageIndex + 1}/4
+              </div>
+              <div className="text-[10px] text-slate-500 truncate max-w-[200px] mx-auto mt-0.5">
+                {tracker.stages[tracker.currentStageIndex]?.label || "N/A"}
+              </div>
+            </div>
+            <div className="p-3">
+              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">
+                Days Elapsed
+              </div>
+              <div className="text-lg font-bold text-slate-800 font-mono">
+                {Math.ceil(
+                  (new Date().getTime() - new Date(tracker.startedAt).getTime()) /
+                    (1000 * 60 * 60 * 24)
+                )}
+              </div>
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                Started {new Date(tracker.startedAt).toLocaleDateString()}
+              </div>
+            </div>
+            <div className="p-3">
+              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-0.5">
+                Blocked Items
+              </div>
+              <div className="text-lg font-bold font-mono text-red-600">
+                {blockedCount}
+              </div>
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                Require action to proceed
+              </div>
+            </div>
+          </div>
+        </Card>
+
+
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4 items-start">
+          {/* Left Column: Stage Cards */}
+          <div className="flex flex-col gap-3">
+            {tracker.stages.map((stage, stageIdx) => {
+              const isCollapsed = collapsedStages[stage._id];
+              const isCurrent = tracker.currentStageIndex === stageIdx;
 
               return (
-                <div key={step.id} className="relative flex gap-6 pb-10">
-                  {/* Timeline Line */}
-                  {index < trackingData.steps.length - 1 && (
-                    <div
-                      className={`absolute left-[22px] top-[48px] w-0.5 h-[calc(100%-48px)] ${colors.line}`}
-                    />
-                  )}
-
-                  {/* Icon Circle */}
-                  <div className="relative z-10">
-                    <div
-                      className={`w-12 h-12 rounded-full ${colors.bg} flex items-center justify-center text-white shadow-md`}
-                    >
-                      {getStepIcon(step.icon)}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 pt-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                      {step.title}
-                    </h3>
-
-                    {/* Status Badge */}
-                    <div className="flex items-center gap-3 mb-2">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          isAllCompleted
-                            ? "bg-green-100 text-green-700"
-                            : step.status === "completed"
-                              ? "bg-green-100 text-green-700"
-                              : step.status === "in-progress"
-                                ? "bg-orange-100 text-orange-700"
-                                : "bg-gray-100 text-gray-600"
+                <Card
+                  key={stage._id}
+                  className={`border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl transition-all ${
+                    isCurrent ? "ring-1 ring-blue-500" : ""
+                  }`}
+                >
+                  {/* Stage Card Header */}
+                  <div
+                    className="p-3 border-b border-slate-100 flex items-center justify-between gap-3 cursor-pointer select-none bg-slate-50/50 hover:bg-slate-50"
+                    onClick={() => toggleStageCollapse(stage._id)}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          stage.status === "Completed"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : stage.status === "In Progress"
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-slate-100 text-slate-600"
                         }`}
                       >
-                        {isAllCompleted
-                          ? "Completed"
-                          : step.status === "completed"
-                            ? "Completed"
-                            : step.status === "in-progress"
-                              ? "In Progress"
-                              : "Pending"}
-                      </span>
-                      {step.completedAt && (
-                        <span className="text-xs text-gray-500">
-                          {formatDateTime(step.completedAt)}
-                        </span>
-                      )}
+                        {stage.order}
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                          {stage.label}
+                          {isCurrent && (
+                            <Chip size="sm" color="accent" variant="soft" className="h-4 text-[10px]">
+                              Active
+                            </Chip>
+                          )}
+                        </h2>
+                      </div>
                     </div>
 
-                    {/* Updates Toggle */}
-                    {hasUpdates && (
-                      <button
-                        onClick={() => toggleStepUpdates(step.id)}
-                        className="text-sm text-secondary hover:text-[#2d4d84] font-medium transition-colors"
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${getStageStatusColorClass(
+                          stage.status
+                        )}`}
                       >
-                        {isExpanded ? "Hide Updates" : "View Updates"} (
-                        {step.updates.length})
-                      </button>
-                    )}
-
-                    {/* Updates List */}
-                    {isExpanded && hasUpdates && (
-                      <div className="mt-4 space-y-3 bg-gray-50 rounded-lg p-4">
-                        {step.updates.map((update) => (
-                          <div
-                            key={update.id}
-                            className="flex items-start gap-3"
-                          >
-                            <div
-                              className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                                update.type === "success"
-                                  ? "bg-green-500"
-                                  : update.type === "warning"
-                                    ? "bg-yellow-500"
-                                    : "bg-blue-500"
-                              }`}
-                            />
-                            <div className="flex-1">
-                              <p className="text-sm text-gray-700">
-                                {update.message}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {formatDateTime(update.timestamp)}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* No Updates Message */}
-                    {!hasUpdates && step.status === "pending" && (
-                      <p className="text-sm text-gray-400 italic">
-                        No updates yet
-                      </p>
-                    )}
+                        {getStageStatusLabel(stage.status)}
+                      </span>
+                      {isCollapsed ? (
+                        <ChevronDown className="w-4 h-4 text-slate-400" />
+                      ) : (
+                        <ChevronUp className="w-4 h-4 text-slate-400" />
+                      )}
+                    </div>
                   </div>
-                </div>
+
+                  {/* Stage Card Content */}
+                  {!isCollapsed && (
+                    <div className="p-0 divide-y divide-slate-100">
+                      {stage.sections.map((section) => (
+                        <div key={section._id} className="bg-white">
+                          {/* Section Header */}
+                          <div className="px-4 py-2 bg-slate-50 flex items-center justify-between border-b border-slate-100">
+                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                              Section: {section.label}
+                            </span>
+                            {section.estimation && (
+                              <span className="text-xs text-slate-400 font-mono">
+                                Est: {section.estimation}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Steps Checklist */}
+                          <div className="divide-y divide-slate-100">
+                            {section.steps.map((step) => {
+                              const isUrgent = step.status === "Action Needed";
+
+                              return (
+                                <div
+                                  key={step._id}
+                                  className={`p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
+                                    isUrgent ? "bg-amber-50/30" : "hover:bg-slate-50/50"
+                                  }`}
+                                >
+                                  {/* Step Details */}
+                                  <div className="flex items-start gap-3 flex-1">
+                                    <div
+                                      className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
+                                        step.status === "Done"
+                                          ? "bg-emerald-500 border-emerald-500"
+                                          : step.status === "In Progress"
+                                          ? "bg-amber-100 border-amber-300 animate-pulse"
+                                          : step.status === "Action Needed"
+                                          ? "bg-rose-100 border-rose-300"
+                                          : "bg-slate-50 border-slate-200"
+                                      }`}
+                                    >
+                                      {getStatusIcon(step.status)}
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <h4
+                                          className={`text-sm font-semibold text-slate-800 ${
+                                            step.status === "Done" ? "text-slate-400 line-through font-normal" : ""
+                                          }`}
+                                        >
+                                          {step.title}
+                                        </h4>
+                                        <span
+                                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
+                                            step.ownerType === "client"
+                                              ? "bg-amber-100 text-amber-800"
+                                              : step.ownerType === "govt"
+                                              ? "bg-emerald-100 text-emerald-800"
+                                              : "bg-blue-100 text-blue-800"
+                                          }`}
+                                        >
+                                          {step.ownerType.toUpperCase()}
+                                        </span>
+                                        {step.visibleTo === "admin-only" && (
+                                          <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">
+                                            ADMIN ONLY
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-slate-500 text-sm mt-0.5">{step.description}</p>
+
+                                      {/* Timestamp / Notes Indicator */}
+                                      <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400 flex-wrap font-mono">
+                                        {step.statusChangedAt && (
+                                          <span>
+                                            Updated {new Date(step.statusChangedAt).toLocaleString()}
+                                          </span>
+                                        )}
+                                        {step.notes && step.notes.length > 0 && (
+                                          <span className="flex items-center gap-1 text-blue-600 font-semibold">
+                                            <FileText className="w-3 h-3" />
+                                            {step.notes.length} note(s)
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Inline Notes Display */}
+                                      {step.notes && step.notes.length > 0 && (
+                                        <div className="mt-2 pl-3 border-l-2 border-slate-200 space-y-1.5">
+                                          {step.notes.map((note, nIdx) => (
+                                            <div key={nIdx} className="bg-slate-50 p-2 rounded text-xs text-slate-600 border border-slate-100">
+                                              <div className="flex items-center justify-between text-[10px] text-slate-400 mb-0.5 font-mono">
+                                                <span>Admin Note</span>
+                                                <span>{new Date(note.createdAt).toLocaleString()}</span>
+                                              </div>
+                                              <p className="whitespace-pre-wrap">{note.text}</p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Step Dropdown Control — no + button */}
+                                  <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                                    <div className="w-36">
+                                      <CustomSelect
+                                        value={step.status}
+                                        onChange={(val) =>
+                                          handleStatusChange(stage._id, section._id, step._id, val)
+                                        }
+                                        ariaLabel={`Status for ${step.title}`}
+                                        options={statusOptions}
+                                        renderValue={(val) => (
+                                          <Chip
+                                            color={getStatusChipColor(val)}
+                                            variant="soft"
+                                            size="sm"
+                                            className="font-bold border-0 bg-transparent p-0 flex items-center gap-1"
+                                          >
+                                            <span>{val}</span>
+                                          </Chip>
+                                        )}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
               );
             })}
           </div>
-        </Card>
+
+          {/* Right Column */}
+          <div className="flex flex-col gap-4">
+            {/* Client Info Card */}
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-xl overflow-hidden">
+              <div className="p-3 border-b border-slate-100 bg-slate-50/50">
+                <h3 className="font-bold text-slate-800">Client Information</h3>
+              </div>
+              <div className="p-0 divide-y divide-slate-50">
+                <div className="px-4 py-2 flex justify-between gap-3">
+                  <span className="text-slate-400 font-medium">Company Name</span>
+                  <span className="font-semibold text-slate-800 text-right">
+                    {companyOverview?.companyName || "ABC Ventures"}
+                  </span>
+                </div>
+                <div className="px-4 py-2 flex justify-between gap-3">
+                  <span className="text-slate-400 font-medium">Application Ref</span>
+                  <span className="font-mono text-xs text-slate-600 text-right font-semibold">
+                    {appNo}
+                  </span>
+                </div>
+                <div className="px-4 py-2 flex justify-between gap-3">
+                  <span className="text-slate-400 font-medium">Client Name</span>
+                  <span className="font-semibold text-slate-800 text-right">
+                    {companyOverview?.clientName || `${companyOverview?.client?.firstName || "—"} ${companyOverview?.client?.lastName || ""}`}
+                  </span>
+                </div>
+                <div className="px-4 py-2 flex justify-between gap-3">
+                  <span className="text-slate-400 font-medium">Entity Type</span>
+                  <span className="font-semibold text-slate-800 text-right">
+                    {tracker.companyType}
+                  </span>
+                </div>
+                <div className="px-4 py-2 flex justify-between gap-3">
+                  <span className="text-slate-400 font-medium">Contact Email</span>
+                  <span className="text-slate-600 font-medium text-right font-mono text-xs">
+                    {companyOverview?.contactEmail || companyOverview?.client?.email || "—"}
+                  </span>
+                </div>
+                <div className="px-4 py-2 flex justify-between gap-3">
+                  <span className="text-slate-400 font-medium">Contact Phone</span>
+                  <span className="text-slate-600 font-medium text-right">
+                    {companyOverview?.contactNo || companyOverview?.client?.phoneNumber || "—"}
+                  </span>
+                </div>
+                <div className="px-4 py-2 flex justify-between gap-3">
+                  <span className="text-slate-400 font-medium">State</span>
+                  <span className="text-slate-600 font-medium text-right">
+                    {companyOverview?.state || "—"}
+                  </span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Client Actions Required */}
+            <Card className="border border-slate-200 shadow-sm bg-white rounded-xl overflow-hidden">
+              <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h3 className="font-bold text-slate-800">Client Actions Required</h3>
+                <span className="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full font-mono">
+                  {clientActionSteps.filter((s) => s.status === "Done").length} / {clientActionSteps.length}
+                </span>
+              </div>
+              <div className="p-0 divide-y divide-slate-50">
+                {clientActionSteps.map((step) => (
+                  <div key={step._id} className="p-3 flex items-start gap-2.5 justify-between">
+                    <div className="flex gap-2 items-start">
+                      <div className="mt-0.5 shrink-0">
+                        {step.status === "Done" ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                        ) : step.status === "Action Needed" ? (
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
+                        ) : (
+                          <Clock className="w-3.5 h-3.5 text-slate-300" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-slate-800 leading-tight">
+                          {step.title}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-0.5">
+                          Status: <span className="font-medium text-slate-600">{step.status}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {clientActionSteps.length === 0 && (
+                  <div className="p-4 text-center text-slate-400 text-sm">
+                    No client-side action items configured.
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Internal Case Notes — HeroUI Select + Textarea */}
+            <Card id="internal-notes-card" className="border border-slate-200 shadow-sm bg-white rounded-xl overflow-hidden">
+              <div className="p-3 border-b border-slate-100 bg-slate-50/50">
+                <h3 className="font-bold text-slate-800">Internal Case Notes</h3>
+              </div>
+
+              {/* Note Creator Form */}
+              <div className="p-3 border-b border-slate-100 flex flex-col gap-2.5">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">
+                    Target Step
+                  </label>
+                  <select
+                    className="w-full text-xs px-3 py-2 border border-slate-200 rounded-lg bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    value={selectedStepId}
+                    onChange={(e) => setSelectedStepId(e.target.value)}
+                  >
+                    <option value="" disabled>— Choose step —</option>
+                    {stepSelectItems.map((item) => (
+                      <option key={item.key} value={item.key}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <TextArea
+                  placeholder="Add internal note to the step..."
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  className="w-full"
+                  rows={3}
+                />
+
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    className="text-xs h-8 px-4 rounded-lg font-bold flex items-center justify-center gap-1.5"
+                    onClick={handleAddNote}
+                    isDisabled={isSavingNote || !selectedStepId || !noteText.trim()}
+                  >
+                    {isSavingNote ? (
+                      <span>Saving...</span>
+                    ) : (
+                      <>
+                        <Send className="w-3 h-3" />
+                        <span>Save Note</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Note History */}
+              <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                {allNotes.map((note, nIdx) => (
+                  <div key={nIdx} className="p-3 text-[11px] leading-relaxed">
+                    <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono mb-1">
+                      <span className="font-semibold text-blue-900">Case Manager</span>
+                      <span>{new Date(note.createdAt).toLocaleString()}</span>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded inline-block mb-1.5 font-mono max-w-full truncate">
+                      Step: {note.stepTitle}
+                    </div>
+                    <p className="text-slate-700 whitespace-pre-wrap">{note.text}</p>
+                  </div>
+                ))}
+
+                {allNotes.length === 0 && (
+                  <div className="p-6 text-center text-slate-400 text-xs">
+                    No notes logged for this case.
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

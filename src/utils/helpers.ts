@@ -31,7 +31,10 @@ export function useDebouncedCallback<T extends (...args: any[]) => void>(
  * @param amount The amount to format
  * @returns Formatted currency string
  */
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number, currency: string = "INR"): string {
+  if (currency === "USD") {
+    return `$ ${new Intl.NumberFormat("en-US").format(amount)}`;
+  }
   return `₹ ${new Intl.NumberFormat("en-IN").format(amount)}`;
 }
 
