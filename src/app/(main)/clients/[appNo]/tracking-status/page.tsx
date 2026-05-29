@@ -592,6 +592,7 @@ export default function TrackingStatusPage() {
                                         onChange={(val) =>
                                           handleStatusChange(stage._id, section._id, step._id, val)
                                         }
+                                        ariaLabel={`Status for ${step.title}`}
                                         options={statusOptions}
                                         renderValue={(val) => (
                                           <Chip
