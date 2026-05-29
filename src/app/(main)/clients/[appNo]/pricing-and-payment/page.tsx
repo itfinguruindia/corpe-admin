@@ -54,18 +54,30 @@ export default function PricingAndPaymentPage() {
       }
     };
 
-    const paymentSteps: FrontendPaymentStep[] = steps.map((s: BackendPaymentStep) => ({
-      step: s.stepNumber,
-      installmentName: s.installmentName,
-      amount: s.amount,
-      triggerGate: s.triggerGate,
-      effects: s.effects,
-      status: mapStatus(s.status),
-      action: s.status === "paid" ? "Payment Received" : "Send Payment Link",
-      invoice: s.invoiceAvailable ? "Sent" : "Not Sent",
-      paymentAlert: s.status === "paid" ? "Paid Confirmation" : (s.status === "failed" ? "Payment Failed" : "Awaiting"),
-      paymentModeCapture: s.status === "paid" ? "Online" : "-", // Backend doesn't return mode yet in this API
-    }));
+    const paymentSteps: FrontendPaymentStep[] = steps.map((s: BackendPaymentStep) => {
+      let actionText = "-";
+      if (s.status === "paid") {
+        actionText = "Payment Received";
+      } else if ([2, 3, 4, 5].includes(s.stepNumber)) {
+        actionText = s.paymentLinkSent ? "Resend Payment Link" : "Send Payment Link";
+      }
+
+      return {
+        step: s.stepNumber,
+        installmentName: s.installmentName,
+        amount: s.amount,
+        triggerGate: s.triggerGate,
+        effects: s.effects,
+        status: mapStatus(s.status),
+        action: actionText,
+        invoice: s.invoiceAvailable ? "Sent" : "Not Sent",
+        paymentAlert: s.status === "paid" ? "Paid Confirmation" : (s.status === "failed" ? "Payment Failed" : "Awaiting"),
+        paymentModeCapture: s.status === "paid" ? "Online" : "-", // Backend doesn't return mode yet in this API
+        breakdown: s.breakdown,
+        paymentLinkSent: s.paymentLinkSent,
+        paymentLinkSentAt: s.paymentLinkSentAt,
+      };
+    });
 
     return {
       applicationNo: summary.applicationNo,
@@ -83,6 +95,7 @@ export default function PricingAndPaymentPage() {
       isLocked: false, // Default to unlocked if not in API
       discount: summary.discountAmount,
       paymentSteps,
+      currency: summary.currency || "INR",
     };
   };
 
@@ -150,33 +163,33 @@ export default function PricingAndPaymentPage() {
           </div>
           <InfoField
             label="Base Service Fee"
-            value={formatCurrency(pricingData.baseServiceFee)}
+            value={formatCurrency(pricingData.baseServiceFee, pricingData.currency)}
           />
           <InfoField
             label="Discount"
-            value={formatCurrency(pricingData.discount || 0)}
+            value={formatCurrency(pricingData.discount || 0, pricingData.currency)}
             sublabel="(If any discount applied)"
             sublabelColor="text-blue-500"
           />
           <InfoField
             label="Total Payable"
-            value={formatCurrency(pricingData.totalPayable)}
+            value={formatCurrency(pricingData.totalPayable, pricingData.currency)}
           />
           <InfoField
             label="GST"
-            value={formatCurrency(pricingData.gst)}
+            value={formatCurrency(pricingData.gst, pricingData.currency)}
             sublabel="(18% of Total payable fee)"
             sublabelColor="text-gray-500"
           />
           <InfoField
             label="Paid"
-            value={formatCurrency(pricingData.paid)}
+            value={formatCurrency(pricingData.paid, pricingData.currency)}
             sublabel="(Amount already paid)"
             sublabelColor="text-green-600"
           />
           <InfoField
             label="Remaining Balance"
-            value={formatCurrency(pricingData.remainingBalance)}
+            value={formatCurrency(pricingData.remainingBalance, pricingData.currency)}
             sublabel="(Remaining amount)"
             sublabelColor="text-red-500"
           />
@@ -198,6 +211,7 @@ export default function PricingAndPaymentPage() {
                   includeGST
                     ? pricingData.finalPaidAmount * 1.18
                     : pricingData.finalPaidAmount,
+                  pricingData.currency,
                 )}
               </p>
             </div>
@@ -269,10 +283,39 @@ export default function PricingAndPaymentPage() {
                           {step.step}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
-                          {step.installmentName}
+                          <div className="font-medium text-gray-900">{step.installmentName}</div>
+                          {step.breakdown && (
+                            <div className="text-xs text-gray-500 mt-2 flex flex-col gap-1 bg-gray-50 p-2.5 rounded border border-gray-100 max-w-xs shadow-sm">
+                              <div className="flex justify-between gap-4">
+                                <span className="text-gray-500">Rejection Fee (Govt):</span>
+                                <span className="font-semibold text-gray-700">
+                                  {formatCurrency(step.breakdown.rejectionFee, pricingData.currency)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-gray-500">1st Installment (Base):</span>
+                                <span className="font-semibold text-gray-700">
+                                  {formatCurrency(step.breakdown.installmentBase, pricingData.currency)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-gray-500">1st Installment GST (18%):</span>
+                                <span className="font-semibold text-gray-700">
+                                  {formatCurrency(step.breakdown.installmentGST, pricingData.currency)}
+                                </span>
+                              </div>
+                              <div className="border-t border-gray-200 my-1"></div>
+                              <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
+                                <span>Combo Total:</span>
+                                <span>
+                                  {formatCurrency(step.breakdown.rejectionFee + step.breakdown.installmentTotal, pricingData.currency)}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
-                          {formatCurrency(step.amount)}
+                          {formatCurrency(step.amount, pricingData.currency)}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {step.triggerGate}
@@ -295,18 +338,62 @@ export default function PricingAndPaymentPage() {
                           />
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          {step.action === "Send Payment Link" ? (
-                            <button
-                              className="px-4 py-1.5 bg-[#F46A45] text-white text-sm rounded-md hover:bg-[#e55a35] transition-colors"
-                              onClick={() => {
-                                // TODO: Implement send payment link functionality
-                                console.log(
-                                  `Sending payment link for step ${step.step}`,
-                                );
-                              }}
-                            >
-                              Send Payment Link
-                            </button>
+                          {["Send Payment Link", "Resend Payment Link"].includes(step.action) ? (
+                            <div className="flex flex-col gap-1 items-start">
+                              <button
+                                className={`px-4 py-1.5 text-sm rounded-md transition-colors font-medium cursor-pointer ${
+                                  step.action === "Resend Payment Link"
+                                    ? "bg-gray-600 hover:bg-gray-700 text-white"
+                                    : "bg-[#F46A45] hover:bg-[#e55a35] text-white"
+                                }`}
+                                onClick={async () => {
+                                  try {
+                                    const actionLabel = step.action === "Resend Payment Link" ? "Resend" : "Send";
+                                    const confirmed = await swal({
+                                      title: `${actionLabel} Payment Link?`,
+                                      text: `Are you sure you want to ${actionLabel.toLowerCase()} the payment link for Step ${step.step}?`,
+                                      icon: "question",
+                                      showCancelButton: true,
+                                      confirmButtonText: `Yes, ${actionLabel}`,
+                                    });
+                                    if (!confirmed.isConfirmed) return;
+
+                                    const success = await pricingPaymentService.sendPaymentLink(
+                                      appNo as string,
+                                      step.step
+                                    );
+
+                                    if (success) {
+                                      await swal({
+                                        title: "Sent!",
+                                        text: "Payment link has been successfully marked as sent.",
+                                        icon: "success",
+                                      });
+                                      // Refresh pricing data
+                                      const data = await pricingPaymentService.getPricingAndPayment(appNo as string);
+                                      if (data) {
+                                        setPricingData(mapBackendToFrontend(data));
+                                      }
+                                    } else {
+                                      await swal({
+                                        title: "Error",
+                                        text: "Failed to send payment link.",
+                                        icon: "error",
+                                      });
+                                    }
+                                  } catch (error) {
+                                    console.error(error);
+                                  }
+                                }}
+                              >
+                                {step.action}
+                              </button>
+                              {step.paymentLinkSentAt && (
+                                <span className="text-[10px] text-gray-400 font-medium">
+                                  Sent: {new Date(step.paymentLinkSentAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-gray-700">{step.action}</span>
                           )}

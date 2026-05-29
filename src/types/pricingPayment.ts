@@ -14,6 +14,14 @@ export interface PaymentStep {
   invoice: string;
   paymentAlert: string;
   paymentModeCapture: string;
+  paymentLinkSent?: boolean;
+  paymentLinkSentAt?: string | null;
+  breakdown?: {
+    rejectionFee: number;
+    installmentBase: number;
+    installmentGST: number;
+    installmentTotal: number;
+  };
 }
 
 export interface PricingPayment {
@@ -32,4 +40,5 @@ export interface PricingPayment {
   isLocked: boolean;
   discount?: number;
   paymentSteps: PaymentStep[];
+  currency?: string;
 }

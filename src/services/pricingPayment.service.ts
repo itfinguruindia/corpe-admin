@@ -19,6 +19,7 @@ export type PricingSummaryResponse = {
   remainingBalance: number;
   finalPayableWithoutGST: number;
   finalPayableWithGST: number;
+  currency?: string;
 };
 
 export type PaymentStep = {
@@ -30,6 +31,14 @@ export type PaymentStep = {
   status: "paid" | "pending" | "failed" | "due";
   orderId?: string;
   invoiceAvailable?: boolean;
+  paymentLinkSent?: boolean;
+  paymentLinkSentAt?: string | null;
+  breakdown?: {
+    rejectionFee: number;
+    installmentBase: number;
+    installmentGST: number;
+    installmentTotal: number;
+  };
 };
 
 export interface PricingAndPaymentResponse {
@@ -50,6 +59,19 @@ export const pricingPaymentService = {
     } catch (error) {
       console.error("Error fetching pricing and payment data:", error);
       return null;
+    }
+  },
+
+  async sendPaymentLink(applicationNo: string, stageNumber: number): Promise<boolean> {
+    try {
+      const response = await axiosInstance.post<{ success: boolean }>(
+        `/admin/clients/${applicationNo}/payment-link/send`,
+        { stageNumber }
+      );
+      return response.data.success;
+    } catch (error) {
+      console.error("Error sending payment link:", error);
+      return false;
     }
   },
 };

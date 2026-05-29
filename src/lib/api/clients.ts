@@ -602,4 +602,42 @@ export const clientsApi = {
     );
     return response.data as Blob;
   },
+
+  // Get tracking status by appNo
+  getTrackingStatus: async (applicationNo: string) => {
+    const response = await axiosInstance.get(`/admin/tracker/app/${applicationNo}`);
+    return response.data?.data ?? response.data;
+  },
+  
+  // Update step status
+  updateStepStatus: async (
+    orgId: string,
+    stageId: string,
+    sectionId: string,
+    stepId: string,
+    status: string
+  ) => {
+    const response = await axiosInstance.put(`/admin/tracker/${orgId}/step/status`, {
+      stageId,
+      sectionId,
+      stepId,
+      status
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  // Add note to a step
+  addNoteToStep: async (orgId: string, stepId: string, text: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/step/note`, {
+      stepId,
+      text
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  // Initialize tracker
+  initializeTracker: async (orgId: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/initialize`);
+    return response.data?.data ?? response.data;
+  }
 };

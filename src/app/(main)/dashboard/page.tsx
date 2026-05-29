@@ -46,26 +46,6 @@ export default async function Dashboard() {
         />
 
         <StatCard label="Delay status" value="40%" subValue="" />
-
-        {/* Highlight/Notification Card - Spans 3 columns for better balance */}
-        <ContentCard
-          id="highlights"
-          title="Highlights/Notifications"
-          className="bg-gray-50/50 md:col-span-3 col-span-2"
-        >
-          <div className="flex items-center gap-3">
-            <div className="relative h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Zap className="h-5 w-5 text-primary" />
-              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary animate-pulse-glow" />
-            </div>
-            <Chip
-              variant="soft"
-              className="bg-secondary-50 text-secondary font-medium italic"
-            >
-              &ldquo;Chhaya completed KYC&rdquo;
-            </Chip>
-          </div>
-        </ContentCard>
       </section>
 
       {/* SECTION 2: Active Monitoring (Raised Tickets & Target) */}
