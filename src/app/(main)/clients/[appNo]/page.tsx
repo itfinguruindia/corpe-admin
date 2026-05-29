@@ -4,29 +4,6 @@ import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import TabCard from "@/components/dashboard/TabCard";
 
-const TIMELINE_STEPS = [
-  {
-    icon: <Check size={18} />,
-    label: "Name Application",
-    state: "completed" as const,
-  },
-  {
-    icon: <Upload size={18} />,
-    label: "Documents and information for business incorporation",
-    state: "current" as const,
-  },
-  {
-    icon: <FileEdit size={18} />,
-    label: "MoA And AoA Drafting",
-    state: "upcoming" as const,
-  },
-  {
-    icon: <Building2 size={18} />,
-    label: "Business Incorporated!",
-    state: "upcoming" as const,
-  },
-];
-
 export default function ClientDetailsPage() {
   const { appNo } = useParams();
   const router = useRouter();
