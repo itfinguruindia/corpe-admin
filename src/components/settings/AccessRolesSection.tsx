@@ -6,55 +6,74 @@ import { Shield, Users, UserPlus, History } from "lucide-react";
 import InviteUserModal from "./InviteUserModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
+import { ACTIVITY_LOG_VIEW_IDS } from "@/lib/rbac/permissions";
+import { showRouteAccessDeniedToast } from "@/lib/rbac/routeAccessDenied";
 
 interface AccessRolesSectionProps {
   id?: string;
 }
 
+type MenuItem = {
+  label: string;
+  icon: typeof Users;
+  permission: string | string[];
+  mode?: "any" | "all";
+  onAllowed: () => void;
+};
+
 export default function AccessRolesSection({ id }: AccessRolesSectionProps) {
   const router = useRouter();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const {
-    hasPermission,
-    canViewUsers,
-    canCreateUsers,
-    canViewRoles,
-    canViewActivityLogs,
-  } = usePermissions();
+  const { hasPermission, isSuperAdmin } = usePermissions();
 
-  const menuItems = [
-    canViewUsers() && {
+  const requireAccess = (
+    permission: string | string[],
+    mode: "any" | "all" = "any",
+  ): boolean => {
+    if (isSuperAdmin || hasPermission(permission, mode)) return true;
+    showRouteAccessDeniedToast();
+    return false;
+  };
+
+  const handleItemClick = (item: MenuItem) => {
+    if (!requireAccess(item.permission, item.mode)) return;
+    item.onAllowed();
+  };
+
+  const menuItems: MenuItem[] = [
+    {
       label: "User management",
       icon: Users,
-      onClick: () => router.push("/settings/users"),
+      permission: PERMISSIONS.USER_VIEW,
+      onAllowed: () => router.push("/settings/users"),
     },
-    canCreateUsers() && {
+    {
       label: "Invite new users",
       icon: UserPlus,
-      onClick: () => setIsInviteModalOpen(true),
+      permission: PERMISSIONS.USER_CREATE,
+      onAllowed: () => setIsInviteModalOpen(true),
     },
-    canViewRoles() && {
+    {
       label: "Role & permissions matrix",
       icon: Shield,
-      onClick: () => router.push("/settings/roles"),
+      permission: PERMISSIONS.ROLE_VIEW,
+      onAllowed: () => router.push("/settings/roles"),
     },
-    hasPermission(PERMISSIONS.ROLE_CREATE) && {
+    {
       label: "Role creation / deletion",
       icon: Shield,
-      onClick: () => router.push("/settings/roles"),
+      permission: PERMISSIONS.ROLE_CREATE,
+      onAllowed: () => router.push("/settings/roles/create"),
     },
-    canViewActivityLogs() && {
+    {
       label: "Audit log",
       icon: History,
-      onClick: () => router.push("/settings/activity-logs"),
+      permission: [...ACTIVITY_LOG_VIEW_IDS],
+      onAllowed: () => router.push("/settings/activity-logs"),
     },
-  ].filter(Boolean) as {
-    label: string;
-    icon: typeof Users;
-    onClick: () => void;
-  }[];
+  ];
 
-  if (menuItems.length === 0) {
+  if (!isSuperAdmin && !hasPermission(PERMISSIONS.SETTINGS_VIEW)) {
     return null;
   }
 
@@ -68,17 +87,27 @@ export default function AccessRolesSection({ id }: AccessRolesSectionProps) {
       </div>
 
       <ul className="space-y-3">
-        {menuItems.map((item, index) => {
+        {menuItems.map((item) => {
           const Icon = item.icon;
+          const allowed =
+            isSuperAdmin || hasPermission(item.permission, item.mode ?? "any");
           return (
             <li
-              key={index}
-              onClick={item.onClick}
-              className="flex items-center gap-3 text-base text-gray-700 hover:text-secondary hover:bg-gray-50 cursor-pointer transition-colors p-2 rounded-md group"
+              key={item.label}
+              onClick={() => handleItemClick(item)}
+              className={`flex items-center gap-3 text-base p-2 rounded-md group transition-colors ${
+                allowed
+                  ? "text-gray-700 hover:text-secondary hover:bg-gray-50 cursor-pointer"
+                  : "text-gray-400 cursor-not-allowed"
+              }`}
             >
               <Icon
                 size={18}
-                className="text-gray-400 group-hover:text-secondary transition-colors"
+                className={`transition-colors ${
+                  allowed
+                    ? "text-gray-400 group-hover:text-secondary"
+                    : "text-gray-300"
+                }`}
               />
               <span>{item.label}</span>
             </li>

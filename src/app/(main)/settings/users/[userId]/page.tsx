@@ -329,7 +329,7 @@ export default function UserDetailPage() {
                     value={formData.name}
                     onChange={handleInputChange}
                     disabled={user.isSuperAdmin}
-                    className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
                   />
                 </div>
@@ -345,7 +345,7 @@ export default function UserDetailPage() {
                     value={formData.email}
                     onChange={handleInputChange}
                     disabled={user.isSuperAdmin}
-                    className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
                   />
                 </div>
@@ -361,7 +361,7 @@ export default function UserDetailPage() {
                     value={formData.phoneNumber}
                     onChange={handleInputChange}
                     disabled={user.isSuperAdmin}
-                    className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder:text-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -375,7 +375,7 @@ export default function UserDetailPage() {
                     value={formData.roleId}
                     onChange={handleInputChange}
                     disabled={user.isSuperAdmin}
-                    className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full border border-gray-300 bg-white px-4 py-2.5 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
                   >
                     <option value="">Select a role</option>

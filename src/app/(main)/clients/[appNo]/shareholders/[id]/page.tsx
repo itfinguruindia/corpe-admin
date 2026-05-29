@@ -5,10 +5,13 @@ import { useEffect, useState } from "react";
 import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
 
 export default function ShareholderDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
+  const { admin } = usePermissions();
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
   const [allShareholders, setAllShareholders] = useState<Shareholder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,6 +94,7 @@ export default function ShareholderDetailPage() {
   }, [appNo, id]);
 
   const handleKycToggle = async () => {
+    if (!requireClientTabEdit(admin, "shareholder")) return;
     const newValue = !kycVerified;
     try {
       await clientsApi.updateShareholderStatus(appNo as string, id as string, {
@@ -103,6 +107,7 @@ export default function ShareholderDetailPage() {
   };
 
   const handleDscToggle = async () => {
+    if (!requireClientTabEdit(admin, "shareholder")) return;
     const newValue = !dscApplication;
     try {
       await clientsApi.updateShareholderStatus(appNo as string, id as string, {

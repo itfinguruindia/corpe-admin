@@ -1,31 +1,78 @@
 import type { Admin } from "@/types/admin";
 import { PERMISSIONS } from "@/utils/permissions";
 import { hasPermission } from "@/utils/permissions";
-import { toast } from "@heroui/react";
-import { PERMISSION_DENIED_MESSAGE } from "@/utils/apiErrors";
+import { showRouteAccessDeniedToast } from "@/lib/rbac/routeAccessDenied";
 
-/** Client mutations (upload, edit status, delete) require client-edit on the API. */
+export type ClientPermissionTab =
+  | "company"
+  | "director"
+  | "shareholder"
+  | "moa"
+  | "app"
+  | "track"
+  | "upload"
+  | "regDoc"
+  | "pricing"
+  | "client";
+
+/** Edit/create permissions per client tab (client-edit also grants all tab edits). */
+const TAB_MUTATION_PERMISSIONS: Record<ClientPermissionTab, string[]> = {
+  company: [PERMISSIONS.COMPANY_EDIT],
+  director: [PERMISSIONS.DIRECTOR_EDIT, PERMISSIONS.DIRECTOR_CREATE],
+  shareholder: [
+    PERMISSIONS.SHAREHOLDER_EDIT,
+    PERMISSIONS.SHAREHOLDER_CREATE,
+  ],
+  moa: [PERMISSIONS.MOA_EDIT, PERMISSIONS.MOA_CREATE],
+  app: [PERMISSIONS.APP_EDIT, PERMISSIONS.APP_CREATE],
+  track: [PERMISSIONS.TRACK_EDIT],
+  upload: [PERMISSIONS.UPLOAD_CREATE],
+  regDoc: [PERMISSIONS.REG_DOC_EDIT, PERMISSIONS.REG_DOC_CREATE],
+  pricing: [PERMISSIONS.PRICING_EDIT],
+  client: [PERMISSIONS.CLIENT_EDIT],
+};
+
+export function canPerformClientTabEdit(
+  admin: Admin | null | undefined,
+  tab: ClientPermissionTab,
+): boolean {
+  if (!admin) return false;
+  if (admin.isSuperAdmin) return true;
+  const tabPerms = TAB_MUTATION_PERMISSIONS[tab];
+  return hasPermission(
+    admin,
+    [...tabPerms, PERMISSIONS.CLIENT_EDIT],
+    "any",
+  );
+}
+
+/**
+ * Call before edit/upload actions on a client tab.
+ * Shows a toast when the user lacks the required tab (or client-edit) permission.
+ */
+export function requireClientTabEdit(
+  admin: Admin | null | undefined,
+  tab: ClientPermissionTab,
+): boolean {
+  if (canPerformClientTabEdit(admin, tab)) return true;
+  showRouteAccessDeniedToast();
+  return false;
+}
+
+/** @deprecated Use requireClientTabEdit(admin, tab) */
 export function canEditClient(admin: Admin | null | undefined): boolean {
-  return hasPermission(admin, PERMISSIONS.CLIENT_EDIT);
+  return canPerformClientTabEdit(admin, "client");
+}
+
+/** @deprecated Use requireClientTabEdit(admin, tab) */
+export function requireClientEdit(
+  admin: Admin | null | undefined,
+  _actionLabel?: string,
+  tab: ClientPermissionTab = "client",
+): boolean {
+  return requireClientTabEdit(admin, tab);
 }
 
 export function canDeleteClient(admin: Admin | null | undefined): boolean {
   return hasPermission(admin, PERMISSIONS.CLIENT_DELETE);
 }
-
-/**
- * Call before opening a file picker or running a mutation.
- * Shows a clear message when the user lacks permission.
- */
-export function requireClientEdit(
-  admin: Admin | null | undefined,
-  actionLabel: string,
-): boolean {
-  if (canEditClient(admin)) return true;
-  toast.danger(
-    `You don't have permission to ${actionLabel}. Please contact your administrator.`,
-  );
-  return false;
-}
-
-export { PERMISSION_DENIED_MESSAGE };

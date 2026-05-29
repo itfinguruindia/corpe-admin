@@ -7,6 +7,8 @@ import Link from "next/link";
 import { Skeleton, Chip, Button } from "@heroui/react";
 
 import { clientsApi } from "@/lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 interface OnboardedClient {
   appNo: string;
@@ -37,10 +39,17 @@ function TableSkeleton() {
 }
 
 export default function RecentlyOnboardedWidget() {
+  const { hasPermission } = usePermissions();
+  const canViewClients = hasPermission(PERMISSIONS.CLIENT_VIEW);
   const [clients, setClients] = useState<OnboardedClient[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(canViewClients);
 
   useEffect(() => {
+    if (!canViewClients) {
+      setLoading(false);
+      return;
+    }
+
     clientsApi
       .getAllClients(1, 4)
       .then((data) => {
@@ -54,7 +63,7 @@ export default function RecentlyOnboardedWidget() {
       })
       .catch(() => setClients([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [canViewClients]);
 
   if (loading) {
     return <TableSkeleton />;
@@ -116,15 +125,16 @@ export default function RecentlyOnboardedWidget() {
         ))}
       </div>
 
-      {/* View All Link */}
-      <Link href="/clients">
-        <Button
-          className="w-full text-secondary/60 hover:text-primary font-bold uppercase tracking-wider text-xs bg-transparent"
-        >
-          View all clients
-          <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-        </Button>
-      </Link>
+      {canViewClients && (
+        <Link href="/clients">
+          <Button
+            className="w-full text-secondary/60 hover:text-primary font-bold uppercase tracking-wider text-xs bg-transparent"
+          >
+            View all clients
+            <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+          </Button>
+        </Link>
+      )}
     </div>
   );
 }

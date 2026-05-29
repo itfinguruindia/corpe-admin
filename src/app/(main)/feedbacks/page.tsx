@@ -6,8 +6,10 @@ import { feedbackService, IFeedbackItem } from "@/services/feedback.service";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import CustomModal from "@/components/ui/Modal";
 import CustomSelect from "@/components/ui/CustomSelect";
+import ExportDropdown from "@/components/ui/ExportDropdown";
 import { Input, Label, TextField } from "@heroui/react";
 import Link from "next/link";
+import * as XLSX from "xlsx";
 
 const RatingFilterOptions = [
   { label: "All", value: "" },
@@ -39,6 +41,7 @@ export default function FeedbacksPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [rating, setRating] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   const [selectedFeedback, setSelectedFeedback] = useState<string | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
@@ -85,6 +88,73 @@ export default function FeedbacksPage() {
     setSelectedFeedback(feedbackText || "No feedback provided.");
     setSelectedRating(rating);
     onOpen();
+  };
+
+  const handleExportFeedbacks = async (
+    withDateRange: boolean,
+    dateFrom?: string,
+    dateTo?: string,
+  ) => {
+    try {
+      setIsExporting(true);
+
+      let currentPage = 1;
+      let totalPagesForExport = 1;
+      const rows: IFeedbackItem[] = [];
+
+      while (currentPage <= totalPagesForExport) {
+        const response = await feedbackService.getAllFeedbacks({
+          page: currentPage,
+          limit: 100,
+          search: search || undefined,
+          rating: rating || undefined,
+          ...(withDateRange && dateFrom ? { dateFrom } : {}),
+          ...(withDateRange && dateTo ? { dateTo } : {}),
+        });
+
+        if (!response) break;
+        rows.push(...response.data);
+        totalPagesForExport = response.totalPages || 1;
+        currentPage += 1;
+      }
+
+      const worksheetRows = [
+        [
+          "Application No.",
+          "Client Name",
+          "Entity Type",
+          "Rating",
+          "Feedback",
+          "Submitted On",
+        ],
+        ...rows.map((item) => [
+          item.appNo,
+          item.clientName || "N/A",
+          item.entityType || "N/A",
+          item.rating + 1,
+          item.feedback || "No feedback",
+          new Date(item.createdAt).toLocaleString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        ]),
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(worksheetRows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Feedbacks");
+      XLSX.writeFile(
+        wb,
+        `feedbacks-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      );
+    } catch (error) {
+      console.error("Failed to export feedbacks:", error);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const renderStars = (ratingValue: number) => {
@@ -194,6 +264,15 @@ export default function FeedbacksPage() {
                 options={ratingSelectOptions}
               />
             </div>
+
+            <ExportDropdown
+              title="Export Feedbacks"
+              isExporting={isExporting}
+              onExportDateRange={(dateFrom, dateTo) =>
+                handleExportFeedbacks(true, dateFrom, dateTo)
+              }
+              onExportAll={() => handleExportFeedbacks(false)}
+            />
           </div>
         </div>
       </div>

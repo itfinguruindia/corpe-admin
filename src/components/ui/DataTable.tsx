@@ -1,15 +1,39 @@
 "use client";
 
-import { AlertCircle, ChevronUp, Inbox } from "lucide-react";
+import { AlertCircle, ChevronUp, Inbox, Settings2 } from "lucide-react";
 import { Table, EmptyState, Skeleton, cn } from "@heroui/react";
 import type { SortDescriptor } from "@heroui/react";
-import React from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import CustomPagination from "./Pagination";
+
+const COLUMN_STORAGE_PREFIX = "corpe-admin:table-columns:";
+
+function readStoredColumnIds(storageKey: string): string[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = window.localStorage.getItem(storageKey);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredColumnIds(storageKey: string, columnIds: string[]) {
+  if (typeof window === "undefined" || !columnIds.length) return;
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(columnIds));
+  } catch {
+    // Ignore quota / private mode errors.
+  }
+}
 
 export type ColumnDef<T> = {
   id: string;
   label: string;
   sortable?: boolean;
+  canHide?: boolean;
   render?: (row: T, index: number) => React.ReactNode;
 };
 
@@ -28,6 +52,9 @@ export interface DataTableProps<T> {
   totalItems?: number;
   itemsPerPage?: number;
   onPageChange?: (page: number) => void;
+  /** When true, shows Show/Hide Columns control and persists visibility in localStorage */
+  showColumnVisibilityToggle?: boolean;
+  columnVisibilityStorageKey?: string;
 
   emptyMessage?: string;
   emptyIcon?: React.ElementType;
@@ -68,9 +95,83 @@ export function DataTable<T>({
   totalItems,
   itemsPerPage = 10,
   onPageChange,
+  showColumnVisibilityToggle = false,
+  columnVisibilityStorageKey,
   emptyMessage = "No items found matching criteria.",
   emptyIcon: EmptyIcon = Inbox,
 }: DataTableProps<T>) {
+  const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
+  const hasLoadedFromStorage = useRef(false);
+  const columnsSignature = useMemo(
+    () => columns.map((col) => `${col.id}:${col.canHide !== false}`).join("|"),
+    [columns],
+  );
+  const allColumnIds = useMemo(() => columns.map((col) => col.id), [columnsSignature]);
+  const defaultVisibleColumnIds = useMemo(() => {
+    const hideable = columns
+      .filter((col) => col.canHide !== false)
+      .map((col) => col.id);
+    return hideable.length ? hideable : allColumnIds;
+  }, [columnsSignature, allColumnIds]);
+
+  const storageKey = useMemo(() => {
+    const id =
+      columnVisibilityStorageKey ||
+      (typeof window !== "undefined" ? window.location.pathname : "default");
+    return `${COLUMN_STORAGE_PREFIX}${id}`;
+  }, [columnVisibilityStorageKey]);
+
+  const resolveVisibleIds = (stored: string[] | null) => {
+    if (!allColumnIds.length) return [];
+    if (!stored?.length) return defaultVisibleColumnIds;
+    const restored = stored.filter((id) => allColumnIds.includes(id));
+    return restored.length ? restored : defaultVisibleColumnIds;
+  };
+
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() =>
+    resolveVisibleIds(readStoredColumnIds(storageKey)),
+  );
+
+  // Load saved column visibility from localStorage (client-only).
+  useLayoutEffect(() => {
+    if (!showColumnVisibilityToggle) return;
+    hasLoadedFromStorage.current = false;
+    setVisibleColumnIds(resolveVisibleIds(readStoredColumnIds(storageKey)));
+    hasLoadedFromStorage.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showColumnVisibilityToggle, storageKey, columnsSignature]);
+
+  // Persist to localStorage whenever the user changes visible columns.
+  useEffect(() => {
+    if (!showColumnVisibilityToggle) return;
+    if (!hasLoadedFromStorage.current || !visibleColumnIds.length) return;
+    writeStoredColumnIds(storageKey, visibleColumnIds);
+  }, [showColumnVisibilityToggle, storageKey, visibleColumnIds]);
+
+  const visibleColumns = useMemo(
+    () =>
+      showColumnVisibilityToggle
+        ? columns.filter((col) => visibleColumnIds.includes(col.id))
+        : columns,
+    [columns, showColumnVisibilityToggle, visibleColumnIds],
+  );
+
+  const toggleColumn = (columnId: string) => {
+    const column = columns.find((col) => col.id === columnId);
+    if (!column || column.canHide === false) return;
+
+    setVisibleColumnIds((prev) => {
+      const isVisible = prev.includes(columnId);
+      const next = isVisible
+        ? prev.length <= 1
+          ? prev
+          : prev.filter((id) => id !== columnId)
+        : [...prev, columnId];
+      writeStoredColumnIds(storageKey, next);
+      return next;
+    });
+  };
+
   const showPagination =
     currentPage !== undefined &&
     totalPages !== undefined &&
@@ -90,6 +191,53 @@ export function DataTable<T>({
   return (
     <>
       <div className="py-5">
+        {showColumnVisibilityToggle && (
+          <div className="mb-3 flex justify-end">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsColumnPanelOpen((prev) => !prev)}
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+              >
+                <Settings2 className="size-4" />
+                Show/Hide Columns
+              </button>
+
+              {isColumnPanelOpen && (
+                <div className="absolute right-0 z-30 mt-2 max-h-80 w-64 overflow-auto rounded-xl border border-gray-200 bg-white p-3 shadow-xl">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Visible Columns
+                  </p>
+                  <div className="space-y-2">
+                    {columns.map((col) => {
+                      const isLocked = col.canHide === false;
+                      const checked = visibleColumnIds.includes(col.id);
+                      return (
+                        <label
+                          key={col.id}
+                          className={cn(
+                            "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50",
+                            isLocked ? "cursor-not-allowed opacity-60 hover:bg-transparent" : "",
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={isLocked}
+                            onChange={() => toggleColumn(col.id)}
+                            className="size-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                          />
+                          <span>{col.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <Table className="bg-white border text-sm border-gray-200 rounded-xl shadow-sm w-full p-0 overflow-hidden min-h-[70vh]">
           <Table.ScrollContainer className="w-full overflow-x-auto">
             <Table.Content
@@ -99,7 +247,7 @@ export function DataTable<T>({
               onSortChange={onSortChange}
             >
               <Table.Header className="bg-secondary border-b-2 border-gray-100">
-                {columns.map((col, i) => (
+                {visibleColumns.map((col, i) => (
                   <Table.Column
                     id={col.id}
                     allowsSorting={col.sortable}
@@ -152,7 +300,7 @@ export function DataTable<T>({
                         key={`skeleton-${i}`}
                         className="border-b border-gray-100 last:border-b-0"
                       >
-                        {columns.map((col, j) => (
+                        {visibleColumns.map((col, j) => (
                           <Table.Cell
                             key={`skeleton-${i}-${j}`}
                             className="px-5 py-4"
@@ -169,7 +317,7 @@ export function DataTable<T>({
                           key={getKey(row)}
                           className="hover:bg-primary-50 transition-colors duration-200 border-b border-gray-100 last:border-b-0"
                         >
-                          {columns.map((col) => (
+                          {visibleColumns.map((col) => (
                             <Table.Cell
                               key={col.id}
                               className="px-5 py-4 align-middle text-gray-800"

@@ -1,11 +1,17 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { startTransition, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ShieldOff } from "lucide-react";
-import { Button } from "@heroui/react";
 import { usePermissions } from "@/hooks/usePermissions";
-import { getRequiredPermissionsForRoute } from "@/lib/rbac/routePermissions";
+import {
+  getRedirectForDeniedRoute,
+  getRequiredPermissionsForRoute,
+} from "@/lib/rbac/routePermissions";
+import { isRbacSessionReady } from "@/lib/rbac/rbacSession";
+import {
+  consumeRouteAccessDeniedToast,
+  markRouteAccessDeniedForToast,
+} from "@/lib/rbac/routeAccessDenied";
 
 interface RoutePermissionGuardProps {
   children: React.ReactNode;
@@ -14,25 +20,61 @@ interface RoutePermissionGuardProps {
 /**
  * Blocks rendering of protected pages when the admin lacks route permissions.
  * Authentication is handled separately by proxy.ts (cookie).
+ * Edit/upload denial toasts are shown on the page via requireClientTabEdit().
  */
 export default function RoutePermissionGuard({
   children,
 }: RoutePermissionGuardProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { admin, canAccessRoute, isSuperAdmin } = usePermissions();
+  const { admin, canAccessRoute, isSuperAdmin, hasPermission } =
+    usePermissions();
 
   const rule = getRequiredPermissionsForRoute(pathname);
+  const sessionReady = isRbacSessionReady(admin);
   const allowed = canAccessRoute(pathname);
+  const isDenied =
+    sessionReady &&
+    Boolean(admin) &&
+    Boolean(rule) &&
+    !allowed &&
+    !isSuperAdmin;
+  const redirectingRef = useRef(false);
 
   useEffect(() => {
-    if (admin && rule && !allowed) {
-      console.warn(
-        `[RBAC] Access denied to ${pathname}. Required:`,
-        rule.permissions,
-      );
+    consumeRouteAccessDeniedToast();
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isDenied) {
+      redirectingRef.current = false;
+      return;
     }
-  }, [admin, allowed, pathname, rule]);
+
+    const redirectTo = getRedirectForDeniedRoute(
+      pathname,
+      (perms) => hasPermission(perms, "any"),
+      isSuperAdmin,
+    );
+
+    const normalizedPath = pathname.replace(/\/$/, "") || "/";
+    const normalizedRedirect = redirectTo.replace(/\/$/, "") || "/";
+    if (normalizedRedirect === normalizedPath || redirectingRef.current) {
+      return;
+    }
+
+    redirectingRef.current = true;
+    markRouteAccessDeniedForToast();
+
+    console.warn(
+      `[RBAC] Access denied to ${pathname}. Required:`,
+      rule?.permissions,
+    );
+
+    startTransition(() => {
+      router.replace(redirectTo);
+    });
+  }, [isDenied, pathname, rule, router, hasPermission, isSuperAdmin]);
 
   if (!rule) {
     return <>{children}</>;
@@ -52,29 +94,21 @@ export default function RoutePermissionGuard({
     return null;
   }
 
+  if (!sessionReady) {
+    return (
+      <div className="min-h-[40vh] flex items-center justify-center">
+        <p className="text-gray-500">Loading session…</p>
+      </div>
+    );
+  }
+
   if (allowed || isSuperAdmin) {
     return <>{children}</>;
   }
 
   return (
-    <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-8">
-      <ShieldOff className="size-12 text-gray-300 mb-4" />
-      <h1 className="text-2xl font-bold text-secondary mb-2">Access denied</h1>
-      <p className="text-gray-600 max-w-md">
-        You do not have permission to view this page. Contact your administrator
-        to request access.
-      </p>
-      {rule.permissions.length > 0 && (
-        <p className="text-xs text-gray-400 mt-3 font-mono">
-          Required: {rule.permissions.join(" or ")}
-        </p>
-      )}
-      <Button
-        className="mt-6 bg-[#FF6A3D] text-white"
-        onPress={() => router.push("/dashboard")}
-      >
-        Go to Dashboard
-      </Button>
+    <div className="min-h-[40vh] flex items-center justify-center">
+      <p className="text-gray-500">Redirecting…</p>
     </div>
   );
 }
