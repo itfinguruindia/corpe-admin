@@ -9,6 +9,9 @@ import { toast, Spinner } from "@heroui/react";
 import { clientsApi } from "@/lib/api/clients";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { RegistrationData } from "@/types/registrationDocuments";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { notifyApiError } from "@/utils/apiErrors";
 
 const COMPANY_STATUS_OPTIONS = [
   { id: "pending", label: "Pending" },
@@ -29,6 +32,7 @@ function formatStatusLabel(status: string) {
 
 export default function RegistrationDocumentsPage() {
   const { appNo } = useParams();
+  const { admin } = usePermissions();
   const [data, setData] = useState<RegistrationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [cinInput, setCinInput] = useState("");
@@ -59,6 +63,7 @@ export default function RegistrationDocumentsPage() {
 
   const handleCinSubmit = async () => {
     if (!appNo) return;
+    if (!requireClientTabEdit(admin, "regDoc")) return;
     try {
       await clientsApi.updateCinAndStatus(
         appNo as string,
@@ -69,12 +74,16 @@ export default function RegistrationDocumentsPage() {
       loadData();
     } catch (error) {
       console.error("Failed to update CIN:", error);
-      toast.danger("Failed to update CIN.");
+      notifyApiError(error, {
+        fallback: "Failed to update CIN.",
+        actionLabel: "update registration details",
+      });
     }
   };
 
   const handleStatusChange = async (status: string) => {
     if (!appNo) return;
+    if (!requireClientTabEdit(admin, "regDoc")) return;
     try {
       setCompanyStatus(status);
       await clientsApi.updateCinAndStatus(appNo as string, cinInput, status);
@@ -82,11 +91,15 @@ export default function RegistrationDocumentsPage() {
       loadData();
     } catch (error) {
       console.error("Failed to update company status:", error);
-      toast.danger("Failed to update company status.");
+      notifyApiError(error, {
+        fallback: "Failed to update company status.",
+        actionLabel: "update company status",
+      });
     }
   };
 
   const handleUploadClick = (docType: string) => {
+    if (!requireClientTabEdit(admin, "regDoc")) return;
     setActiveUploadDocType(docType);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -112,7 +125,10 @@ export default function RegistrationDocumentsPage() {
       loadData();
     } catch (error) {
       console.error("Failed to upload document:", error);
-      toast.danger("Failed to upload document.");
+      notifyApiError(error, {
+        fallback: "Failed to upload document.",
+        actionLabel: "upload registration documents",
+      });
     } finally {
       setIsLoading(false);
     }

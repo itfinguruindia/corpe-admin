@@ -10,9 +10,13 @@ import Modal from "@/components/ui/Modal";
 import { clientsApi } from "@/lib/api/clients";
 import { getFileType } from "@/utils/helpers";
 import type { NameStatus } from "@/types/company";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { notifyApiError } from "@/utils/apiErrors";
 
 export default function NameApplicationPage() {
   const { appNo } = useParams();
+  const { admin } = usePermissions();
 
   const STATUS_OPTIONS: NameStatus[] = [
     "Pending",
@@ -79,15 +83,21 @@ export default function NameApplicationPage() {
   const handleStatusChange = async (index: number, status: NameStatus) => {
     setStatusMap((prev) => ({ ...prev, [index]: status }));
     if (!appNo) return;
+    if (!requireClientTabEdit(admin, "app")) return;
     try {
       await clientsApi.updateCompanyStatus(appNo as string, index, status);
     } catch (error) {
       console.error("Failed to update status", error);
+      notifyApiError(error, {
+        fallback: "Failed to update status.",
+        actionLabel: "update name application status",
+      });
     }
   };
 
   const handleObjectClauseFileSelected = async (file: File) => {
     if (!file || !appNo) return;
+    if (!requireClientTabEdit(admin, "app")) return;
     try {
       await clientsApi.uploadObjectClauseDocument(appNo as string, file);
       toast.success("Object Clause uploaded. Client can now download it.");
@@ -99,7 +109,10 @@ export default function NameApplicationPage() {
       setClientFile(statusData.clientFile);
     } catch (error) {
       console.error("Error uploading Object Clause:", error);
-      toast("Failed to upload Object Clause", { variant: "danger" });
+      notifyApiError(error, {
+        fallback: "Failed to upload Object Clause.",
+        actionLabel: "upload the Object Clause document",
+      });
     }
   };
 
@@ -369,6 +382,7 @@ export default function NameApplicationPage() {
                   title="Upload Object Clause"
                   subtitle="Upload from your computer, Google Drive, or existing documents."
                   dropLabel="Drag and drop your file here"
+                  onBeforeOpen={() => requireClientTabEdit(admin, "app")}
                   onFileSelect={handleObjectClauseFileSelected}
                   renderTrigger={(openPicker) => (
                     <div title="Upload Object Clause (Admin)">

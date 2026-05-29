@@ -6,9 +6,12 @@ import { CompanyOverview } from "@/types/company";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField } from "@/components/ui";
 import { Chip, Spinner, Switch } from "@heroui/react";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
 
 export default function CompanyOverviewPage() {
   const { appNo } = useParams();
+  const { admin } = usePermissions();
   const [companyData, setCompanyData] = useState<CompanyOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [allDocsVerify, setAllDocsVerified] = useState(false);
@@ -75,6 +78,7 @@ export default function CompanyOverviewPage() {
   }, [appNo]);
 
   const handleDocsToggle = async (newValue: boolean) => {
+    if (!requireClientTabEdit(admin, "company")) return;
     try {
       await clientsApi.updateAllDocsVerified(appNo as string, newValue);
       setAllDocsVerified(newValue);

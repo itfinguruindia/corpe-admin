@@ -45,6 +45,8 @@ export const marketingApi = {
     limit: number = 10,
     search?: string,
     country?: string,
+    dateFrom?: string,
+    dateTo?: string,
   ): Promise<LeadsResponse> => {
     const params: any = {
       page,
@@ -57,6 +59,12 @@ export const marketingApi = {
 
     if (country) {
       params.country = country;
+    }
+    if (dateFrom) {
+      params.dateFrom = dateFrom;
+    }
+    if (dateTo) {
+      params.dateTo = dateTo;
     }
 
     const response = await axiosInstance.get("/admin/marketing", {

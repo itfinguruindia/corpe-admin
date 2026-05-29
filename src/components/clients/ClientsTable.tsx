@@ -10,6 +10,7 @@ export interface Client {
   appNo: string;
   orgId: string;
   client: string;
+  email?: string;
   entity: string;
   assigneeId: string | null;
   assignee: string;
@@ -74,7 +75,16 @@ export default function ClientsTable({
       id: "client",
       label: "Client Name",
       sortable: true,
-      render: (row) => <span className="font-medium whitespace-nowrap">{row.client}</span>,
+      render: (row) => (
+        <div className="min-w-0">
+          <span className="font-medium whitespace-nowrap block">{row.client}</span>
+          {row.email ? (
+            <span className="text-xs text-gray-500 block truncate max-w-[220px]">
+              {row.email}
+            </span>
+          ) : null}
+        </div>
+      ),
     },
     {
       id: "entity",
@@ -192,6 +202,8 @@ export default function ClientsTable({
     <DataTable<Client>
       data={clientsData}
       columns={columns}
+      showColumnVisibilityToggle
+      columnVisibilityStorageKey="clients"
       keyField="appNo"
       loading={loading}
       error={error}

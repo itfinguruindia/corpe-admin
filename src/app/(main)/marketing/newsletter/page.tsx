@@ -1,12 +1,13 @@
 "use client";
 
-import { Trash2, RefreshCw, FileDown, Plus } from "lucide-react";
+import { Trash2, RefreshCw, Plus } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useEffect, useState } from "react";
 import { Button, Input, Label, TextField } from "@heroui/react";
 import { newsletterApi, Newsletter } from "@/lib/api/newsletter";
 import useSwal from "@/utils/useSwal";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
+import ExportDropdown from "@/components/ui/ExportDropdown";
 
 export default function NewsLetter() {
   const [data, setData] = useState<Newsletter[]>([]);
@@ -14,6 +15,7 @@ export default function NewsLetter() {
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
   const itemsPerPage = 10;
   const swal = useSwal();
 
@@ -69,19 +71,45 @@ export default function NewsLetter() {
 
   const handleRefresh = () => fetchData();
 
-  const handleExport = async () => {
+  const handleExport = async (
+    withDateRange: boolean,
+    dateFrom?: string,
+    dateTo?: string,
+  ) => {
     try {
-      const newsletters = await newsletterApi.export();
+      setIsExporting(true);
+      const newsletters = data;
+      const fromDate = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null;
+      const toDate = dateTo ? new Date(`${dateTo}T23:59:59.999`) : null;
+      const rows =
+        withDateRange && (fromDate || toDate)
+          ? newsletters.filter((n) => {
+              const created = n.createdAt ? new Date(n.createdAt) : null;
+              if (!created || Number.isNaN(created.getTime())) return false;
+              if (fromDate && created < fromDate) return false;
+              if (toDate && created > toDate) return false;
+              return true;
+            })
+          : newsletters;
       const wsData = [
-        ["Email", "Subscribe Count"],
-        ...newsletters.map((n) => [n.email, n.subscribeCount]),
+        ["Email", "Subscribe Count", "Created At"],
+        ...rows.map((n) => [
+          n.email,
+          n.subscribeCount,
+          n.createdAt ? new Date(n.createdAt).toLocaleString("en-IN") : "",
+        ]),
       ];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Newsletters");
-      XLSX.writeFile(wb, "newsletters.xlsx");
+      XLSX.writeFile(
+        wb,
+        `newsletters-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      );
     } catch {
       swal({ title: "Error", text: "Failed to export.", icon: "error" });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -184,16 +212,21 @@ export default function NewsLetter() {
               >
                 <RefreshCw size={18} />
               </Button>
-              <Button
-                isIconOnly
-                onClick={handleExport}
-                className="h-10 w-10 min-w-10 shrink-0 rounded-lg border border-gray-200 bg-white p-0 text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900"
-                aria-label="Export subscribers to Excel"
-                type="button"
-                variant="ghost"
-              >
-                <FileDown size={18} />
-              </Button>
+              <ExportDropdown
+                title="Export Newsletters"
+                isExporting={isExporting}
+                onInvalidDateRange={async () => {
+                  await swal({
+                    title: "Invalid date range",
+                    text: "From date cannot be after To date.",
+                    icon: "warning",
+                  });
+                }}
+                onExportDateRange={(dateFrom, dateTo) =>
+                  handleExport(true, dateFrom, dateTo)
+                }
+                onExportAll={() => handleExport(false)}
+              />
             </div>
           </div>
         </div>

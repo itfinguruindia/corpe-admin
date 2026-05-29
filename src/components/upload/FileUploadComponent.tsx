@@ -24,6 +24,8 @@ export interface FileUploadComponentProps {
   maxSizeBytes?: number;
   validateFile?: FileValidator;
   onError?: (message: string) => void;
+  /** Return false to block opening the picker (e.g. permission check + toast). */
+  onBeforeOpen?: () => boolean;
   /** Renders the trigger control (e.g. existing Upload icon) */
   renderTrigger: (openPicker: () => void) => ReactNode;
 }
@@ -42,6 +44,7 @@ export default function FileUploadComponent({
   maxSizeBytes,
   validateFile,
   onError,
+  onBeforeOpen,
   renderTrigger,
 }: FileUploadComponentProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -59,8 +62,9 @@ export default function FileUploadComponent({
 
   const openPicker = useCallback(() => {
     if (disabled) return;
+    if (onBeforeOpen && onBeforeOpen() === false) return;
     setIsPickerOpen(true);
-  }, [disabled]);
+  }, [disabled, onBeforeOpen]);
 
   const closePicker = useCallback(() => {
     setIsPickerOpen(false);

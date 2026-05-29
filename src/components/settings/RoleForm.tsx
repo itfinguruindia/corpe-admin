@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PermissionModule, Role } from "@/types/roles";
 import {
   allPermissions,
@@ -46,6 +46,25 @@ export default function RoleForm({
     permissions: initialValues?.permissions || [],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Keep form in sync when role data is loaded or refreshed from the API
+  useEffect(() => {
+    if (!initialValues) return;
+    setForm({
+      ...defaultRole,
+      name: initialValues.name ?? defaultRole.name,
+      description: initialValues.description ?? defaultRole.description,
+      color: initialValues.color ?? defaultRole.color,
+      permissions: initialValues.permissions ?? [],
+    });
+  }, [
+    initialValues?.name,
+    initialValues?.description,
+    initialValues?.color,
+    initialValues?.permissions,
+    initialValues?._id,
+    initialValues?.id,
+  ]);
   const [expandedModules, setExpandedModules] = useState<
     Record<string, boolean>
   >({});
@@ -210,7 +229,7 @@ export default function RoleForm({
               value={form.description}
               onChange={handleChange}
               rows={3}
-              className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] transition-colors resize-none ${
+              className={`w-full bg-white px-4 py-2.5 text-gray-900 placeholder:text-gray-400 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3D63A4] transition-colors resize-none ${
                 errors.description ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="Describe the purpose and responsibilities of this role..."

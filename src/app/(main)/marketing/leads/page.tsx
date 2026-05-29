@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, Search, RefreshCw, FileDown } from "lucide-react";
+import { Trash2, Search, RefreshCw } from "lucide-react";
 import * as XLSX from "xlsx";
 
 import { useEffect, useMemo, useState } from "react";
@@ -10,6 +10,7 @@ import { useDebouncedCallback } from "@/utils/helpers";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import { Button, Input, Label, TextField } from "@heroui/react";
 import CustomSelect from "@/components/ui/CustomSelect";
+import ExportDropdown from "@/components/ui/ExportDropdown";
 
 export default function LeadsPage() {
   const [leadsData, setLeadsData] = useState<Lead[]>([]);
@@ -20,6 +21,7 @@ export default function LeadsPage() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [country, setCountry] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
   const itemsPerPage = 10;
   const swal = useSwal();
   const [countries, setCountries] = useState<string[]>([]);
@@ -99,16 +101,44 @@ export default function LeadsPage() {
   };
 
   // Handler for export button
-  const handleExport = async () => {
+  const handleExport = async (
+    withDateRange: boolean,
+    dateFrom?: string,
+    dateTo?: string,
+  ) => {
     try {
-      // Fetch all leads with a large limit (e.g., 100000)
-      const data = await marketingApi.getAllLeads(
-        1,
-        100000,
-        search || undefined,
-        country || undefined,
-      );
-      const leads = data.data || [];
+      setIsExporting(true);
+      let page = 1;
+      let totalPagesForExport = 1;
+      const leads: Lead[] = [];
+
+      while (page <= totalPagesForExport) {
+        const data = await marketingApi.getAllLeads(
+          page,
+          100,
+          search || undefined,
+          country || undefined,
+          withDateRange ? dateFrom : undefined,
+          withDateRange ? dateTo : undefined,
+        );
+        leads.push(...(data.data || []));
+        totalPagesForExport = data.totalPages || 1;
+        page += 1;
+      }
+
+      const fromDate = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null;
+      const toDate = dateTo ? new Date(`${dateTo}T23:59:59.999`) : null;
+      const exportLeads =
+        withDateRange && (fromDate || toDate)
+          ? leads.filter((lead) => {
+              const created = lead.createdAt ? new Date(lead.createdAt) : null;
+              if (!created || Number.isNaN(created.getTime())) return false;
+              if (fromDate && created < fromDate) return false;
+              if (toDate && created > toDate) return false;
+              return true;
+            })
+          : leads;
+
       // Prepare worksheet data
       const wsData = [
         [
@@ -124,7 +154,7 @@ export default function LeadsPage() {
           "IP Address",
           "Form Type",
         ],
-        ...leads.map((lead: any) => [
+        ...exportLeads.map((lead: any) => [
           lead.firstName,
           lead.lastName,
           lead.email,
@@ -141,9 +171,11 @@ export default function LeadsPage() {
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Leads");
-      XLSX.writeFile(wb, "leads.xlsx");
+      XLSX.writeFile(wb, `leads-${new Date().toISOString().slice(0, 10)}.xlsx`);
     } catch (err) {
       swal({ title: "Error", text: "Failed to export leads.", icon: "error" });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -325,16 +357,21 @@ export default function LeadsPage() {
               >
                 <RefreshCw size={18} />
               </Button>
-              <Button
-                isIconOnly
-                onClick={handleExport}
-                className="h-10 w-10 min-w-10 shrink-0 rounded-lg border border-gray-200 bg-white p-0 text-gray-600 shadow-sm transition-colors hover:bg-gray-100 hover:text-gray-900"
-                aria-label="Export leads to Excel"
-                type="button"
-                variant="ghost"
-              >
-                <FileDown size={18} />
-              </Button>
+              <ExportDropdown
+                title="Export Leads"
+                isExporting={isExporting}
+                onInvalidDateRange={async () => {
+                  await swal({
+                    title: "Invalid date range",
+                    text: "From date cannot be after To date.",
+                    icon: "warning",
+                  });
+                }}
+                onExportDateRange={(dateFrom, dateTo) =>
+                  handleExport(true, dateFrom, dateTo)
+                }
+                onExportAll={() => handleExport(false)}
+              />
             </div>
           </div>
         </div>

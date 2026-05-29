@@ -21,6 +21,13 @@ import { useDocumentTemplates } from "@/hooks/useDocumentTemplates";
 import useSwal from "@/utils/useSwal";
 import { downloadBlob } from "@/utils/fileFromSource";
 import type { DocumentTemplate } from "@/types/documentTemplate";
+import { usePermissions } from "@/hooks/usePermissions";
+import {
+  requireDocCreate,
+  requireDocDelete,
+  requireDocView,
+} from "@/utils/documentPermissions";
+import { notifyApiError } from "@/utils/apiErrors";
 
 const SKELETON_COUNT = 8;
 
@@ -35,10 +42,13 @@ const TemplatesPage = () => {
   const [actionTemplateId, setActionTemplateId] = useState<string | null>(null);
 
   const swal = useSwal();
+  const { admin } = usePermissions();
   const {
     templates,
     isLoading,
     isSubmitting,
+    loadError,
+    loadForbidden,
     importTemplate,
     removeTemplate,
     getBlob,
@@ -70,18 +80,23 @@ const TemplatesPage = () => {
     file: File,
     options: Parameters<typeof importTemplate>[1],
   ) => {
+    if (!requireDocCreate(admin)) {
+      throw new Error("Permission denied");
+    }
     try {
       await importTemplate(file, options);
       toast.success("Template imported successfully.");
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to import template.";
-      toast.danger(message);
+      notifyApiError(error, {
+        fallback: "Failed to import template.",
+        actionLabel: "import document templates",
+      });
       throw error;
     }
   };
 
   const handleDelete = async (template: DocumentTemplate) => {
+    if (!requireDocDelete(admin)) return;
     const result = await swal({
       title: "Delete template?",
       text: `"${template.templateName}" will be permanently removed.`,
@@ -98,14 +113,18 @@ const TemplatesPage = () => {
     try {
       await removeTemplate(template.id);
       toast.success("Template deleted successfully.");
-    } catch {
-      toast.danger("Failed to delete template.");
+    } catch (error) {
+      notifyApiError(error, {
+        fallback: "Failed to delete template.",
+        actionLabel: "delete document templates",
+      });
     } finally {
       setActionTemplateId(null);
     }
   };
 
   const handleDownload = async (template: DocumentTemplate) => {
+    if (!requireDocView(admin, "download document templates")) return;
     setActionTemplateId(template.id);
     try {
       const blob = await getBlob(template);
@@ -115,14 +134,18 @@ const TemplatesPage = () => {
       }
       downloadBlob(blob, template.fileName);
       toast.success("Download started.");
-    } catch {
-      toast.danger("Failed to download template.");
+    } catch (error) {
+      notifyApiError(error, {
+        fallback: "Failed to download template.",
+        actionLabel: "download document templates",
+      });
     } finally {
       setActionTemplateId(null);
     }
   };
 
   const handlePreview = async (template: DocumentTemplate) => {
+    if (!requireDocView(admin, "preview document templates")) return;
     setIsPreviewLoading(true);
     setPreviewTemplate(template);
     setPreviewUrl(null);
@@ -142,15 +165,21 @@ const TemplatesPage = () => {
       } else if (template.fileType === "docx") {
         setPreviewBlob(blob);
       }
-    } catch {
-      toast.danger("Failed to load preview.");
+    } catch (error) {
+      notifyApiError(error, {
+        fallback: "Failed to load preview.",
+        actionLabel: "view document templates",
+      });
       previewOverlay.close();
     } finally {
       setIsPreviewLoading(false);
     }
   };
 
-  const openImport = () => setIsImportOpen(true);
+  const openImport = () => {
+    if (!requireDocCreate(admin)) return;
+    setIsImportOpen(true);
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -184,6 +213,18 @@ const TemplatesPage = () => {
         {filteredTemplates.length}{" "}
         {filteredTemplates.length === 1 ? "template" : "templates"} found
       </p>
+
+      {loadError && (
+        <div
+          className={`rounded-lg border px-4 py-3 text-sm ${
+            loadForbidden
+              ? "border-red-200 bg-red-50 text-red-800"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          {loadError}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -261,14 +302,11 @@ const TemplatesPage = () => {
                     {previewTemplate?.templateName}
                   </Modal.Heading>
                 </div>
-                <Modal.CloseTrigger className="shrink-0">
-                  <button
-                    type="button"
-                    className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-                    aria-label="Close preview"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                <Modal.CloseTrigger
+                  className="shrink-0 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                  aria-label="Close preview"
+                >
+                  <X className="h-5 w-5" />
                 </Modal.CloseTrigger>
               </Modal.Header>
 

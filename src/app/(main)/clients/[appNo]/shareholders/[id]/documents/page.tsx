@@ -10,9 +10,13 @@ import { ShareholderDocument } from "@/types/shareholderDocuments";
 import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { notifyApiError } from "@/utils/apiErrors";
 
 export default function ShareholderDocumentsPage() {
   const { appNo, id } = useParams();
+  const { admin } = usePermissions();
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
   const [documents, setDocuments] = useState<ShareholderDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -191,6 +195,7 @@ export default function ShareholderDocumentsPage() {
 
   const handleInc9Delete = async (source: "admin" | "client") => {
     if (!appNo || !id) return;
+    if (!requireClientTabEdit(admin, "shareholder")) return;
 
     const fileSource = source === "admin" ? "Admin Upload" : "Client Upload";
     if (!confirm(`Are you sure you want to delete the ${fileSource}?`)) {
@@ -214,11 +219,15 @@ export default function ShareholderDocumentsPage() {
       setInc9ClientFile(inc9Status.clientFile || null);
     } catch (error) {
       console.error(`Error deleting ${fileSource}:`, error);
-      toast.danger(`Failed to delete ${fileSource}`);
+      notifyApiError(error, {
+        fallback: `Failed to delete ${fileSource}.`,
+        actionLabel: "delete this document",
+      });
     }
   };
 
   const handleUpload = (documentType: string) => {
+    if (!requireClientTabEdit(admin, "shareholder")) return;
     if (documentType === "INC-9 Shareholder") {
       const input = document.createElement("input");
       input.type = "file";
@@ -241,8 +250,11 @@ export default function ShareholderDocumentsPage() {
           );
           setInc9AdminFile(inc9Status.adminFile || null);
           setInc9ClientFile(inc9Status.clientFile || null);
-        } catch {
-          toast.danger("Could not upload INC-9 Shareholder document.");
+        } catch (error) {
+          notifyApiError(error, {
+            fallback: "Could not upload INC-9 Shareholder document.",
+            actionLabel: "upload shareholder documents",
+          });
         }
       };
       input.click();

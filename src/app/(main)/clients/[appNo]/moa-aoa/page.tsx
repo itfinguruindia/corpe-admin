@@ -7,9 +7,13 @@ import { MoaAoaDocument } from "@/types/moaAoa";
 import { clientsApi } from "@/lib/api/clients";
 import { Eye, Download, Upload } from "lucide-react";
 import { FileUploadComponent } from "@/components/upload";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { notifyApiError } from "@/utils/apiErrors";
 
 export default function MoaAoaPage() {
   const { appNo } = useParams();
+  const { admin } = usePermissions();
   const [documents, setDocuments] = useState<MoaAoaDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -190,6 +194,7 @@ export default function MoaAoaPage() {
 
   const handleMiscFileSelected = async (row: CompanyMiscRow, file: File) => {
     if (!file || !appNo) return;
+    if (!requireClientTabEdit(admin, "moa")) return;
     try {
       await clientsApi.uploadCompanyMiscDocument(
         appNo as string,
@@ -214,7 +219,10 @@ export default function MoaAoaPage() {
       );
     } catch (error) {
       console.error("Error uploading misc document:", error);
-      toast("Could not upload document.", { variant: "danger" });
+      notifyApiError(error, {
+        fallback: "Could not upload document.",
+        actionLabel: "upload company documents",
+      });
     }
   };
 
@@ -293,6 +301,7 @@ export default function MoaAoaPage() {
 
   const handleMoaAoaFileSelected = async (documentType: string, file: File) => {
     if (!file || !appNo) return;
+    if (!requireClientTabEdit(admin, "moa")) return;
     try {
       const docType =
         documentType.toLowerCase() === "aoa" ? "aoa" : "moa";
@@ -318,7 +327,10 @@ export default function MoaAoaPage() {
       );
     } catch (error) {
       console.error("Error uploading MOA/AOA document:", error);
-      toast("Could not upload document.", { variant: "danger" });
+      notifyApiError(error, {
+        fallback: "Could not upload document.",
+        actionLabel: "upload MOA/AOA documents",
+      });
     }
   };
 
@@ -410,6 +422,7 @@ export default function MoaAoaPage() {
                       title={`Upload ${document.documentType}`}
                       subtitle="Upload from your computer, Google Drive, or existing documents."
                       dropLabel="Drag and drop your file here"
+                      onBeforeOpen={() => requireClientTabEdit(admin, "moa")}
                       onFileSelect={(file) =>
                         handleMoaAoaFileSelected(document.documentType, file)
                       }
@@ -474,6 +487,7 @@ export default function MoaAoaPage() {
                     title={`Upload ${row.label}`}
                     subtitle="Upload from your computer, Google Drive, or existing documents."
                     dropLabel="Drag and drop your file here"
+                    onBeforeOpen={() => requireClientTabEdit(admin, "moa")}
                     onFileSelect={(file) => handleMiscFileSelected(row, file)}
                     renderTrigger={(openPicker) => (
                       <button

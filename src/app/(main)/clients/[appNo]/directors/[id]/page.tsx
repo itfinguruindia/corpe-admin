@@ -5,10 +5,13 @@ import { useEffect, useState } from "react";
 import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
 
 export default function DirectorDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
+  const { admin } = usePermissions();
   const [director, setDirector] = useState<Director | null>(null);
   const [allDirectors, setAllDirectors] = useState<Director[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,6 +96,7 @@ export default function DirectorDetailPage() {
   }, [appNo, id]);
 
   const handleKycToggle = async () => {
+    if (!requireClientTabEdit(admin, "director")) return;
     const newValue = !kycVerified;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
@@ -105,6 +109,7 @@ export default function DirectorDetailPage() {
   };
 
   const handleDscToggle = async () => {
+    if (!requireClientTabEdit(admin, "director")) return;
     const newValue = !dscApplication;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
