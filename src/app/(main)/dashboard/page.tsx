@@ -8,7 +8,6 @@ import {
 import FloatingActionButton from "@/components/dashboard/FloatingActionButton";
 import RaisedTicketsWidget from "@/components/dashboard/RaisedTicketsWidget";
 import RecentlyOnboardedWidget from "@/components/dashboard/RecentlyOnboardedWidget";
-import { Zap } from "lucide-react";
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
 import { Chip } from "@heroui/react";

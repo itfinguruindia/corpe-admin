@@ -4,6 +4,29 @@ import React from "react";
 import { useParams, useRouter } from "next/navigation";
 import TabCard from "@/components/dashboard/TabCard";
 
+const TIMELINE_STEPS = [
+  {
+    icon: <Check size={18} />,
+    label: "Name Application",
+    state: "completed" as const,
+  },
+  {
+    icon: <Upload size={18} />,
+    label: "Documents and information for business incorporation",
+    state: "current" as const,
+  },
+  {
+    icon: <FileEdit size={18} />,
+    label: "MoA And AoA Drafting",
+    state: "upcoming" as const,
+  },
+  {
+    icon: <Building2 size={18} />,
+    label: "Business Incorporated!",
+    state: "upcoming" as const,
+  },
+];
+
 export default function ClientDetailsPage() {
   const { appNo } = useParams();
   const router = useRouter();
@@ -29,12 +52,12 @@ export default function ClientDetailsPage() {
   };
 
   return (
-    <div className="w-full p-5">
-      {/* Application No */}
-      <h1 className="text-2xl font-bold text-primary mb-6">{appNo}</h1>
+    <div className="w-full p-4 sm:p-5">
+      <h1 className="mb-4 text-xl font-bold text-primary sm:mb-6 sm:text-2xl">
+        {appNo}
+      </h1>
 
-      {/* Tabs / Cards */}
-      <div className="grid grid-cols-4 gap-6 mb-12">
+      <div className="mb-8 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 md:grid-cols-3 md:gap-4 lg:gap-6 sm:mb-12">
         {tabs.map((tab) => (
           <TabCard
             key={tab.label}
@@ -47,4 +70,3 @@ export default function ClientDetailsPage() {
     </div>
   );
 }
-

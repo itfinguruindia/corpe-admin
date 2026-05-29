@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Shield, Users, UserPlus, History } from "lucide-react";
 import InviteUserModal from "./InviteUserModal";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 interface AccessRolesSectionProps {
   id?: string;
@@ -12,45 +14,49 @@ interface AccessRolesSectionProps {
 export default function AccessRolesSection({ id }: AccessRolesSectionProps) {
   const router = useRouter();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const {
+    hasPermission,
+    canViewUsers,
+    canCreateUsers,
+    canViewRoles,
+    canViewActivityLogs,
+  } = usePermissions();
 
   const menuItems = [
-    {
+    canViewUsers() && {
       label: "User management",
       icon: Users,
-      onClick: () => {
-        router.push("/settings/users");
-      },
+      onClick: () => router.push("/settings/users"),
     },
-    {
+    canCreateUsers() && {
       label: "Invite new users",
       icon: UserPlus,
-      onClick: () => {
-        setIsInviteModalOpen(true);
-      },
+      onClick: () => setIsInviteModalOpen(true),
     },
-    {
+    canViewRoles() && {
       label: "Role & permissions matrix",
       icon: Shield,
-      onClick: () => {
-        router.push("/settings/roles");
-      },
+      onClick: () => router.push("/settings/roles"),
     },
-    {
+    hasPermission(PERMISSIONS.ROLE_CREATE) && {
       label: "Role creation / deletion",
       icon: Shield,
-      onClick: () => {
-        router.push("/settings/roles");
-      },
+      onClick: () => router.push("/settings/roles"),
     },
-    {
+    canViewActivityLogs() && {
       label: "Audit log",
       icon: History,
-      onClick: () => {
-        // TODO: Navigate to audit log page
-        console.log("Navigate to audit log");
-      },
+      onClick: () => router.push("/settings/activity-logs"),
     },
-  ];
+  ].filter(Boolean) as {
+    label: string;
+    icon: typeof Users;
+    onClick: () => void;
+  }[];
+
+  if (menuItems.length === 0) {
+    return null;
+  }
 
   return (
     <div id={id} className="rounded-xl bg-white shadow-sm p-6">
@@ -81,9 +87,9 @@ export default function AccessRolesSection({ id }: AccessRolesSectionProps) {
       </ul>
 
       {isInviteModalOpen && (
-        <InviteUserModal 
-          isOpen={isInviteModalOpen} 
-          onClose={() => setIsInviteModalOpen(false)} 
+        <InviteUserModal
+          isOpen={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
         />
       )}
     </div>

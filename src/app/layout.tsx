@@ -1,8 +1,16 @@
-import { Toast } from "@heroui/react";
+import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Inter } from "next/font/google";
-import ReduxProvider from "@/redux/ReduxProvider";
+import AppProviders from "@/components/providers/AppProviders";
 import NextTopLoader from "nextjs-toploader";
+import { getMetadataForPathname } from "@/lib/site-metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") ?? "/";
+  return getMetadataForPathname(pathname);
+}
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -12,11 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <NextTopLoader color="var(--primary-500)" />
-        <ReduxProvider>{children}</ReduxProvider>
-        <Toast.Provider placement="top end" />
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

@@ -5,10 +5,15 @@ import { useEffect, useState } from "react";
 import { toast, Card, Spinner } from "@heroui/react";
 import { MoaAoaDocument } from "@/types/moaAoa";
 import { clientsApi } from "@/lib/api/clients";
-import { Eye, Download, Edit, Upload } from "lucide-react";
+import { Eye, Download, Upload } from "lucide-react";
+import { FileUploadComponent } from "@/components/upload";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientEdit } from "@/utils/clientPermissions";
+import { notifyApiError } from "@/utils/apiErrors";
 
 export default function MoaAoaPage() {
   const { appNo } = useParams();
+  const { admin } = usePermissions();
   const [documents, setDocuments] = useState<MoaAoaDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -187,45 +192,38 @@ export default function MoaAoaPage() {
     }
   };
 
-  const handleEdit = (doc: MoaAoaDocument) => {
-    console.log("Edit document:", doc.documentType);
-  };
-
-  const handleMiscUpload = (row: CompanyMiscRow) => {
-    const input = window.document.createElement("input");
-    input.type = "file";
-    input.accept = ".pdf,.doc,.docx";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file || !appNo) return;
-      try {
-        await clientsApi.uploadCompanyMiscDocument(
-          appNo as string,
-          row.key,
-          file,
-        );
-        toast.success("Draft uploaded. Client will see it in the Download button.");
-        const statusResult = await clientsApi.getCompanyMiscDocStatus(
-          appNo as string,
-          row.key,
-        );
-        setCompanyMiscDocs((prev) =>
-          prev.map((item) =>
-            item.key === row.key
-              ? {
-                  ...item,
-                  status: statusResult.status,
-                  fileName: statusResult.name ?? item.fileName,
-                }
-              : item,
-          ),
-        );
-      } catch (error) {
-        console.error("Error uploading misc document:", error);
-        toast("Could not upload document.", { variant: "danger" });
-      }
-    };
-    input.click();
+  const handleMiscFileSelected = async (row: CompanyMiscRow, file: File) => {
+    if (!file || !appNo) return;
+    if (!requireClientEdit(admin, "upload company documents")) return;
+    try {
+      await clientsApi.uploadCompanyMiscDocument(
+        appNo as string,
+        row.key,
+        file,
+      );
+      toast.success("Draft uploaded. Client will see it in the Download button.");
+      const statusResult = await clientsApi.getCompanyMiscDocStatus(
+        appNo as string,
+        row.key,
+      );
+      setCompanyMiscDocs((prev) =>
+        prev.map((item) =>
+          item.key === row.key
+            ? {
+                ...item,
+                status: statusResult.status,
+                fileName: statusResult.name ?? item.fileName,
+              }
+            : item,
+        ),
+      );
+    } catch (error) {
+      console.error("Error uploading misc document:", error);
+      notifyApiError(error, {
+        fallback: "Could not upload document.",
+        actionLabel: "upload company documents",
+      });
+    }
   };
 
   const handleMiscView = async (row: CompanyMiscRow) => {
@@ -301,41 +299,39 @@ export default function MoaAoaPage() {
     }
   };
 
-  const handleUpload = (documentType: string) => {
-    const input = window.document.createElement("input");
-    input.type = "file";
-    input.accept = ".pdf,.doc,.docx";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file || !appNo) return;
-      try {
-        const docType =
-          documentType.toLowerCase() === "aoa" ? "aoa" : "moa";
-        await clientsApi.uploadMoaAoaDocument(appNo as string, docType, file);
-        toast.success("Draft uploaded. Client will see it in the Download button.");
-        setDocuments((prev) =>
-          prev.map((doc) =>
-            doc.documentType.toLowerCase() === docType
-              ? { ...doc, status: "uploaded" as const }
-              : doc,
-          ),
-        );
-        const [moaStatus, aoaStatus] = await Promise.all([
-          clientsApi.getMoaAoaDocStatus(appNo as string, "moa"),
-          clientsApi.getMoaAoaDocStatus(appNo as string, "aoa"),
-        ]);
-        setDocuments((prev) =>
-          prev.map((doc) => ({
-            ...doc,
-            status:
-              doc.documentType.toLowerCase() === "aoa" ? aoaStatus : moaStatus,
-          })),
-        );
-      } catch (error) {
-        console.error("Error uploading MOA/AOA document:", error);
-      }
-    };
-    input.click();
+  const handleMoaAoaFileSelected = async (documentType: string, file: File) => {
+    if (!file || !appNo) return;
+    if (!requireClientEdit(admin, "upload MOA/AOA documents")) return;
+    try {
+      const docType =
+        documentType.toLowerCase() === "aoa" ? "aoa" : "moa";
+      await clientsApi.uploadMoaAoaDocument(appNo as string, docType, file);
+      toast.success("Draft uploaded. Client will see it in the Download button.");
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.documentType.toLowerCase() === docType
+            ? { ...doc, status: "uploaded" as const }
+            : doc,
+        ),
+      );
+      const [moaStatus, aoaStatus] = await Promise.all([
+        clientsApi.getMoaAoaDocStatus(appNo as string, "moa"),
+        clientsApi.getMoaAoaDocStatus(appNo as string, "aoa"),
+      ]);
+      setDocuments((prev) =>
+        prev.map((doc) => ({
+          ...doc,
+          status:
+            doc.documentType.toLowerCase() === "aoa" ? aoaStatus : moaStatus,
+        })),
+      );
+    } catch (error) {
+      console.error("Error uploading MOA/AOA document:", error);
+      notifyApiError(error, {
+        fallback: "Could not upload document.",
+        actionLabel: "upload MOA/AOA documents",
+      });
+    }
   };
 
   if (isLoading) {
@@ -420,14 +416,26 @@ export default function MoaAoaPage() {
                       <Edit className="w-6 h-6" />
                     </button> */}
 
-                    {/* Upload Icon */}
-                    <button
-                      onClick={() => handleUpload(document.documentType)}
-                      className="text-primary hover:text-[#d55a39] transition-colors"
-                      title="Upload"
-                    >
-                      <Upload className="w-6 h-6" />
-                    </button>
+                    <FileUploadComponent
+                      context="clients"
+                      allowedFileTypes=".pdf,.doc,.docx"
+                      title={`Upload ${document.documentType}`}
+                      subtitle="Upload from your computer, Google Drive, or existing documents."
+                      dropLabel="Drag and drop your file here"
+                      onFileSelect={(file) =>
+                        handleMoaAoaFileSelected(document.documentType, file)
+                      }
+                      renderTrigger={(openPicker) => (
+                        <button
+                          type="button"
+                          onClick={openPicker}
+                          className="text-primary hover:text-[#d55a39] transition-colors"
+                          title="Upload"
+                        >
+                          <Upload className="w-6 h-6" />
+                        </button>
+                      )}
+                    />
                   </div>
                 </div>
               ))
@@ -472,14 +480,24 @@ export default function MoaAoaPage() {
                     <Download className="w-6 h-6" />
                   </button>
 
-                  {/* Upload Icon */}
-                  <button
-                    onClick={() => handleMiscUpload(row)}
-                    className="text-primary hover:text-[#d55a39] transition-colors"
-                    title="Upload"
-                  >
-                    <Upload className="w-6 h-6" />
-                  </button>
+                  <FileUploadComponent
+                    context="clients"
+                    allowedFileTypes=".pdf,.doc,.docx"
+                    title={`Upload ${row.label}`}
+                    subtitle="Upload from your computer, Google Drive, or existing documents."
+                    dropLabel="Drag and drop your file here"
+                    onFileSelect={(file) => handleMiscFileSelected(row, file)}
+                    renderTrigger={(openPicker) => (
+                      <button
+                        type="button"
+                        onClick={openPicker}
+                        className="text-primary hover:text-[#d55a39] transition-colors"
+                        title="Upload"
+                      >
+                        <Upload className="w-6 h-6" />
+                      </button>
+                    )}
+                  />
                 </div>
               </div>
             ))}

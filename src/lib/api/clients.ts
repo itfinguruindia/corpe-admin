@@ -237,7 +237,7 @@ export const clientsApi = {
     file: File,
   ) => {
     const formData = new FormData();
-    formData.append("documentType", docType.toUpperCase());
+    formData.append("documentType", docType);
     formData.append("file", file);
 
     const response = await axiosInstance.post(

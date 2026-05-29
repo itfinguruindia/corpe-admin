@@ -316,6 +316,72 @@ export const allPermissions: Permission[] = [
     description: "Delete messages",
   },
 
+  // Marketing
+  {
+    id: "marketing-view",
+    module: "Marketing",
+    action: "view",
+    description: "View marketing leads",
+  },
+  {
+    id: "marketing-create",
+    module: "Marketing",
+    action: "create",
+    description: "Create marketing leads",
+  },
+  {
+    id: "marketing-edit",
+    module: "Marketing",
+    action: "edit",
+    description: "Edit marketing leads",
+  },
+  {
+    id: "marketing-delete",
+    module: "Marketing",
+    action: "delete",
+    description: "Delete marketing leads",
+  },
+  {
+    id: "marketing-export",
+    module: "Marketing",
+    action: "export",
+    description: "Export marketing leads",
+  },
+
+  // Newsletter
+  {
+    id: "newsletter-view",
+    module: "Newsletter",
+    action: "view",
+    description: "View newsletter subscribers",
+  },
+  {
+    id: "newsletter-edit",
+    module: "Newsletter",
+    action: "edit",
+    description: "Manage newsletter subscribers",
+  },
+  {
+    id: "newsletter-delete",
+    module: "Newsletter",
+    action: "delete",
+    description: "Delete newsletter subscribers",
+  },
+  {
+    id: "newsletter-export",
+    module: "Newsletter",
+    action: "export",
+    description: "Export newsletter data",
+  },
+
+  // Feedbacks
+  {
+    id: "feedback-view",
+    module: "Feedbacks",
+    action: "view",
+    description: "View client feedbacks",
+  },
+
   // Tickets
   {
     id: "ticket-view",
@@ -408,18 +474,30 @@ export const allPermissions: Permission[] = [
     description: "Delete custom roles",
   },
 
-  // Audit Logs
+  // Audit Logs / System Activity Logs
+  {
+    id: "activity-logs.view",
+    module: "Audit Logs",
+    action: "view",
+    description: "View system activity logs",
+  },
+  {
+    id: "activity-logs.export",
+    module: "Audit Logs",
+    action: "export",
+    description: "Export system activity logs",
+  },
   {
     id: "audit-view",
     module: "Audit Logs",
     action: "view",
-    description: "View audit logs",
+    description: "View audit logs (legacy)",
   },
   {
     id: "audit-export",
     module: "Audit Logs",
     action: "export",
-    description: "Export audit logs",
+    description: "Export audit logs (legacy)",
   },
 
   // Reports

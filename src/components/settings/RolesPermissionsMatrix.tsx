@@ -8,6 +8,9 @@ import {
 } from "@/lib/data/mockRolesData";
 import { roleApi } from "@/lib/api";
 import { Chip } from "@/components/ui";
+import PermissionGate from "@/components/rbac/PermissionGate";
+import { PERMISSIONS } from "@/utils/permissions";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Check, X, Plus, Edit2, Trash2, Users, Shield } from "lucide-react";
 import { Button, toast } from "@heroui/react";
 
@@ -22,6 +25,7 @@ export default function RolesPermissionsMatrix({
   onEditRole,
   onDeleteRole,
 }: RolesPermissionsMatrixProps) {
+  const { canCreateRoles, canEditRoles, canDeleteRoles } = usePermissions();
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [permissionsByModule, setPermissionsByModule] = useState<
@@ -112,23 +116,25 @@ export default function RolesPermissionsMatrix({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-[#FF6A3D]">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-[#FF6A3D] sm:text-4xl">
             Roles & Permissions Matrix
           </h1>
-          <p className="mt-2 text-base text-gray-600">
+          <p className="mt-2 text-sm text-gray-600 sm:text-base">
             Manage roles and their associated permissions
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={onCreateRole}
-          className="flex items-center gap-2 rounded-lg bg-[#FF6A3D] px-6 py-2.5 font-medium text-white hover:bg-[#e55a35]"
-        >
-          <Plus size={20} />
-          Create New Role
-        </Button>
+        <PermissionGate permissions={PERMISSIONS.ROLE_CREATE}>
+          <Button
+            type="button"
+            onClick={onCreateRole}
+            className="flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#e55a35] sm:w-auto sm:justify-start"
+          >
+            <Plus size={18} />
+            Create New Role
+          </Button>
+        </PermissionGate>
       </div>
 
       {/* Stats Cards */}
@@ -235,18 +241,20 @@ export default function RolesPermissionsMatrix({
                 )}
               </div>
               <div className="flex gap-1">
-                <span title="Edit Role" className="inline-flex">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => handleEditRole(role)}
-                    aria-label="Edit role"
-                    className="min-h-0 min-w-0 p-1.5 text-gray-600 hover:bg-gray-100 hover:text-secondary"
-                  >
-                    <Edit2 size={16} />
-                  </Button>
-                </span>
-                {!role.isSystemRole && (
+                {canEditRoles() && (
+                  <span title="Edit Role" className="inline-flex">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => handleEditRole(role)}
+                      aria-label="Edit role"
+                      className="min-h-0 min-w-0 p-1.5 text-gray-600 hover:bg-gray-100 hover:text-secondary"
+                    >
+                      <Edit2 size={16} />
+                    </Button>
+                  </span>
+                )}
+                {!role.isSystemRole && canDeleteRoles() && (
                   <span title="Delete Role" className="inline-flex">
                     <Button
                       type="button"

@@ -1,7 +1,6 @@
 // Data for Raised Tickets features
+import axiosInstance from "@/lib/axios";
 import { Ticket } from "@/types/tickets";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/";
 
 export interface IUpdateTicketPayload {
   ticketId: string;
@@ -10,10 +9,33 @@ export interface IUpdateTicketPayload {
   priority?: string;
 }
 
+function mapAssignee(
+  assignee: unknown,
+): { _id: string; name: string } | null {
+  if (!assignee || typeof assignee !== "object") return null;
+  const a = assignee as { _id?: string; name?: string };
+  if (!a._id) return null;
+  return { _id: String(a._id), name: a.name ?? "—" };
+}
+
+function mapTicketItem(item: Record<string, unknown>): Ticket {
+  return {
+    id: String(item._id),
+    applicationNo: (item.applicationNo as string) || "N/A",
+    category: item.category as string,
+    subject: item.subject as string,
+    status: item.status as Ticket["status"],
+    assignee: mapAssignee(item.assignee),
+    priority: item.priority as Ticket["priority"],
+    createdOn: (item.createdAt as string) ?? "",
+    description: item.message as string | undefined,
+    updates: (item.updates as Ticket["updates"]) || [],
+  };
+}
+
 export class TicketApi {
   /**
-   * Fetch all tickets
-   * @returns Promise<Ticket[]>
+   * Fetch all tickets (admin-authenticated).
    */
   static async getAllTickets(
     page: number = 1,
@@ -23,39 +45,24 @@ export class TicketApi {
     priority: string = "all",
   ): Promise<{ tickets: Ticket[]; totalItems: number; totalPages: number }> {
     try {
-      const queryParams = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        ...(search ? { search } : {}),
-        ...(status !== "all" ? { status } : {}),
-        ...(priority !== "all" ? { priority } : {}),
+      const response = await axiosInstance.get("/admin/support/tickets", {
+        params: {
+          page,
+          limit,
+          ...(search ? { search } : {}),
+          ...(status !== "all" ? { status } : {}),
+          ...(priority !== "all" ? { priority } : {}),
+        },
       });
 
-      const response = await fetch(
-        `${API_URL}support/tickets?${queryParams.toString()}`,
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch tickets");
-      }
-
-      const result = await response.json();
+      const result = response.data;
       if (result.success && result.data && Array.isArray(result.data.tickets)) {
-        const tickets = result.data.tickets.map((item: any) => ({
-          id: item._id,
-          applicationNo: item.applicationNo || "N/A",
-          category: item.category,
-          subject: item.subject,
-          status: item.status,
-          assignee: item.assignee,
-          priority: item.priority,
-          createdOn: item.createdAt,
-          description: item.message,
-          updates: item.updates || [],
-        }));
         return {
-          tickets,
-          totalItems: result.data.total,
-          totalPages: result.data.totalPages,
+          tickets: result.data.tickets.map((item: Record<string, unknown>) =>
+            mapTicketItem(item),
+          ),
+          totalItems: result.data.total ?? 0,
+          totalPages: result.data.totalPages ?? 0,
         };
       }
       return { tickets: [], totalItems: 0, totalPages: 0 };
@@ -66,27 +73,16 @@ export class TicketApi {
   }
 
   /**
-   * Update a ticket's status
-   * @param ticketId - Ticket ID
-   * @param status - New status
-   * @param assignee - New assignee
-   * @param priority - New priority
-   * @returns Promise<boolean>
+   * Update a ticket's status, assignee, or priority.
    */
   static async updateTicket(payload: IUpdateTicketPayload): Promise<boolean> {
     const { ticketId, ...rest } = payload;
     try {
-      const response = await fetch(`${API_URL}support/ticket/${ticketId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(rest),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to update ticket");
-      }
-      return true;
+      const response = await axiosInstance.put(
+        `/admin/support/ticket/${ticketId}`,
+        rest,
+      );
+      return response.data?.success === true;
     } catch (error) {
       console.error("Error updating ticket:", error);
       return false;

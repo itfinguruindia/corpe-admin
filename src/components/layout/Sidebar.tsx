@@ -29,9 +29,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import axiosInstance from "@/lib/axios";
 import { setProfilePictureUrl } from "@/redux/slices/authSlice";
-import { logoutAdmin } from "@/utils/auth";
+import { performLogout } from "@/utils/auth";
 import useSwal from "@/utils/useSwal";
 import { Button } from "@heroui/react";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 const SIDEBAR_EXPANDED = 260;
 const SIDEBAR_COLLAPSED = 68;
@@ -46,6 +48,17 @@ export default function Sidebar() {
     (state: RootState) => state.layout,
   );
   const swal = useSwal();
+  const { hasPermission } = usePermissions();
+
+  const showDashboard = hasPermission(PERMISSIONS.DASH_VIEW);
+  const showClients = hasPermission(PERMISSIONS.CLIENT_VIEW);
+  const showFeedbacks = hasPermission(PERMISSIONS.FEEDBACK_VIEW);
+  const showMarketing = hasPermission(PERMISSIONS.MARKETING_VIEW);
+  const showNewsletter = hasPermission(PERMISSIONS.NEWSLETTER_VIEW);
+  const showDocuments = hasPermission(PERMISSIONS.DOC_VIEW);
+  const showMessages = hasPermission(PERMISSIONS.MSG_VIEW);
+  const showTickets = hasPermission(PERMISSIONS.TICKET_VIEW);
+  const showSettings = hasPermission(PERMISSIONS.SETTINGS_VIEW);
 
   /* Detect mobile to override collapsed behavior */
   const [isMobile, setIsMobile] = useState(false);
@@ -124,19 +137,7 @@ export default function Sidebar() {
 
     if (!result.isConfirmed) return;
 
-    try {
-      logoutAdmin();
-      await swal({
-        icon: "success",
-        title: "Logged out!",
-        text: "You have been logged out successfully.",
-        timer: 1200,
-        showConfirmButton: false,
-      });
-      window.location.href = "/login";
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
+    await performLogout({ recordActivity: true, redirectTo: "/login" });
   };
 
   const getInitials = (name?: string) => {
@@ -165,7 +166,7 @@ export default function Sidebar() {
 
       <aside
         className={clsx(
-          "sidebar h-screen bg-[#2d4a8a] flex flex-col fixed left-0 top-0 z-50",
+          "sidebar flex h-screen min-h-0 flex-col overflow-hidden bg-[#2d4a8a] fixed left-0 top-0 z-50",
           /* Mobile: full-width drawer, slides in/out */
           "max-md:w-[260px] max-md:transition-transform max-md:duration-300",
           isMobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full",
@@ -184,52 +185,58 @@ export default function Sidebar() {
           }
         `}</style>
 
-        <div className="relative flex flex-col items-center px-4 pt-8 pb-6">
-          <div
-            className="sidebar-avatar relative rounded-full bg-yellow-400 flex items-center justify-center my-5 overflow-hidden border-2 border-white/20 shadow-lg transition-all duration-300"
-            style={{
-              width: collapsed ? 44 : 88,
-              height: collapsed ? 44 : 88,
-            }}
+        <div className="relative flex shrink-0 flex-col items-center px-4 pt-8 pb-6">
+          <Link
+            href="/settings"
+            aria-label="Go to settings"
+            className="flex flex-col items-center rounded-lg outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white/40"
           >
-            {profilePictureUrl ? (
-              <Image
-                src={profilePictureUrl}
-                alt={admin?.name || "User"}
-                fill
-                sizes={collapsed ? "44px" : "88px"}
-                priority
-                className="object-cover"
-              />
-            ) : (
-              <span
-                className="font-extrabold text-[#2d4a8a] tracking-wide leading-none"
-                style={{
-                  fontSize: collapsed ? 16 : 28,
-                }}
-              >
-                {getInitials(admin?.name)}
-              </span>
-            )}
-          </div>
+            <div
+              className="sidebar-avatar relative rounded-full bg-yellow-400 flex items-center justify-center my-5 overflow-hidden border-2 border-white/20 shadow-lg transition-all duration-300"
+              style={{
+                width: collapsed ? 44 : 88,
+                height: collapsed ? 44 : 88,
+              }}
+            >
+              {profilePictureUrl ? (
+                <Image
+                  src={profilePictureUrl}
+                  alt={admin?.name || "User"}
+                  fill
+                  sizes={collapsed ? "44px" : "88px"}
+                  priority
+                  className="object-cover"
+                />
+              ) : (
+                <span
+                  className="font-extrabold text-[#2d4a8a] tracking-wide leading-none"
+                  style={{
+                    fontSize: collapsed ? 16 : 28,
+                  }}
+                >
+                  {getInitials(admin?.name)}
+                </span>
+              )}
+            </div>
 
-          {/* Role label — clip with overflow */}
-          <div
-            className="overflow-hidden transition-all duration-300"
-            style={{
-              maxHeight: collapsed ? 0 : 32,
-              opacity: collapsed ? 0 : 1,
-            }}
-          >
-            <p className="text-[10px] text-blue-300 text-center font-medium uppercase tracking-widest whitespace-nowrap">
-              {admin?.isSuperAdmin
-                ? "Super Admin"
-                : admin?.role?.name || "Admin"}
-            </p>
-            <p className="text-sm text-primary text-center font-semibold uppercase tracking-widest whitespace-nowrap">
-              {admin?.name || ""}
-            </p>
-          </div>
+            {/* Role label — clip with overflow */}
+            <div
+              className="overflow-hidden transition-all duration-300"
+              style={{
+                maxHeight: collapsed ? 0 : 32,
+                opacity: collapsed ? 0 : 1,
+              }}
+            >
+              <p className="text-[10px] text-blue-300 text-center font-medium uppercase tracking-widest whitespace-nowrap">
+                {admin?.isSuperAdmin
+                  ? "Super Admin"
+                  : admin?.role?.name || "Admin"}
+              </p>
+              <p className="text-sm text-primary text-center font-semibold uppercase tracking-widest whitespace-nowrap">
+                {admin?.name || ""}
+              </p>
+            </div>
+          </Link>
 
           {/* Desktop: collapse toggle */}
           <Button
@@ -260,131 +267,154 @@ export default function Sidebar() {
 
         <Divider />
 
-        <nav className="flex flex-col flex-1 py-2 overflow-y-auto overflow-x-hidden scrollbar-hide">
-          <SidebarLink
-            label="Dashboard"
-            href="/dashboard"
-            icon={<LayoutDashboard size={18} />}
-            active={pathname === "/dashboard"}
-            collapsed={effectiveCollapsed}
-          />
-
-          <Divider />
-
-          <SidebarLink
-            label="Clients"
-            href="/clients"
-            icon={<Users size={18} />}
-            active={pathname.startsWith("/clients")}
-            collapsed={effectiveCollapsed}
-          />
-
-          <Divider />
-
-          <SidebarLink
-            label="Feedbacks"
-            href="/feedbacks"
-            icon={<Rss size={18} />}
-            active={pathname.startsWith("/feedbacks")}
-            collapsed={effectiveCollapsed}
-          />
-
-          <Divider />
-
-          <SidebarSection
-            title="Marketing"
-            icon={<Megaphone size={18} />}
-            active={pathname.startsWith("/marketing")}
-            collapsed={effectiveCollapsed}
-          >
-            <SubItem
-              label="Leads"
-              href="/marketing/leads"
-              icon={<UserRoundPlus size={15} />}
-              active={pathname === "/marketing/leads"}
+        <nav className="flex min-h-0 flex-1 flex-col gap-0 overflow-y-auto overflow-x-hidden py-2 scrollbar-hide [&>*]:shrink-0">
+          {showDashboard && (
+            <SidebarLink
+              label="Dashboard"
+              href="/dashboard"
+              icon={<LayoutDashboard size={18} />}
+              active={pathname === "/dashboard"}
               collapsed={effectiveCollapsed}
             />
-            <SubItem
-              label="Newsletter"
-              href="/marketing/newsletter"
-              icon={<Mail size={15} />}
-              active={pathname === "/marketing/newsletter"}
+          )}
+
+          {showDashboard && (showClients || showFeedbacks) && <Divider />}
+
+          {showClients && (
+            <SidebarLink
+              label="Clients"
+              href="/clients"
+              icon={<Users size={18} />}
+              active={pathname.startsWith("/clients")}
               collapsed={effectiveCollapsed}
             />
-          </SidebarSection>
+          )}
 
-          <Divider />
+          {showClients && showFeedbacks && <Divider />}
 
-          <SidebarSection
-            title="Documents"
-            icon={<FileText size={18} />}
-            active={pathname.startsWith("/documents")}
-            collapsed={effectiveCollapsed}
-          >
-            <SubItem
-              label="Template Library"
-              href="/documents/templates"
-              icon={<Library size={15} />}
-              active={pathname === "/documents/templates"}
+          {showFeedbacks && (
+            <SidebarLink
+              label="Feedbacks"
+              href="/feedbacks"
+              icon={<Rss size={18} />}
+              active={pathname.startsWith("/feedbacks")}
               collapsed={effectiveCollapsed}
             />
-          </SidebarSection>
+          )}
 
-          <Divider />
+          {(showMarketing || showNewsletter) && <Divider />}
 
-          <SidebarSection
-            title="Communication"
-            icon={<MessageSquare size={18} />}
-            active={
-              pathname.startsWith("/messages") ||
-              pathname.startsWith("/tickets")
-            }
-            collapsed={effectiveCollapsed}
-          >
-            <SubItem
-              label="Client Message"
-              href="/messages"
-              icon={<MessageSquare size={15} />}
-              active={pathname === "/messages"}
+          {(showMarketing || showNewsletter) && (
+            <SidebarSection
+              title="Marketing"
+              icon={<Megaphone size={18} />}
+              active={pathname.startsWith("/marketing")}
               collapsed={effectiveCollapsed}
-            />
-            <SubItem
-              label="Raised Tickets"
-              href="/tickets"
-              icon={<Ticket size={15} />}
-              active={pathname === "/tickets"}
+            >
+              {showMarketing && (
+                <SubItem
+                  label="Leads"
+                  href="/marketing/leads"
+                  icon={<UserRoundPlus size={15} />}
+                  active={pathname === "/marketing/leads"}
+                  collapsed={effectiveCollapsed}
+                />
+              )}
+              {showNewsletter && (
+                <SubItem
+                  label="Newsletter"
+                  href="/marketing/newsletter"
+                  icon={<Mail size={15} />}
+                  active={pathname === "/marketing/newsletter"}
+                  collapsed={effectiveCollapsed}
+                />
+              )}
+            </SidebarSection>
+          )}
+
+          {showDocuments && <Divider />}
+
+          {showDocuments && (
+            <SidebarSection
+              title="Documents"
+              icon={<FileText size={18} />}
+              active={pathname.startsWith("/documents")}
               collapsed={effectiveCollapsed}
-            />
-          </SidebarSection>
+            >
+              <SubItem
+                label="Template Library"
+                href="/documents/templates"
+                icon={<Library size={15} />}
+                active={pathname === "/documents/templates"}
+                collapsed={effectiveCollapsed}
+              />
+            </SidebarSection>
+          )}
 
-          <Divider />
+          {(showMessages || showTickets) && <Divider />}
 
-          <SidebarLink
-            label="Settings"
-            href="/settings"
-            icon={<Settings size={18} />}
-            active={pathname === "/settings"}
-            collapsed={effectiveCollapsed}
-          />
+          {(showMessages || showTickets) && (
+            <SidebarSection
+              title="Communication"
+              icon={<MessageSquare size={18} />}
+              active={
+                pathname.startsWith("/messages") ||
+                pathname.startsWith("/tickets")
+              }
+              collapsed={effectiveCollapsed}
+            >
+              {showMessages && (
+                <SubItem
+                  label="Client Message"
+                  href="/messages"
+                  icon={<MessageSquare size={15} />}
+                  active={pathname === "/messages"}
+                  collapsed={effectiveCollapsed}
+                />
+              )}
+              {showTickets && (
+                <SubItem
+                  label="Raised Tickets"
+                  href="/tickets"
+                  icon={<Ticket size={15} />}
+                  active={pathname === "/tickets"}
+                  collapsed={effectiveCollapsed}
+                />
+              )}
+            </SidebarSection>
+          )}
         </nav>
 
-        <Divider />
+        <div className="shrink-0 pb-2">
+          <Divider />
 
-        {/* Logout Button */}
-        <SidebarTooltip
-          label="Logout"
-          active={false}
-          collapsed={effectiveCollapsed}
-          icon={<LogOut size={18} />}
-        >
-          <Button
-            onClick={handleLogout}
-            type="button"
-            className="text-left w-full justify-start bg-transparent shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none px-0 py-0 font-[inherit]"
+          {showSettings && (
+            <SidebarLink
+              label="Settings"
+              href="/settings"
+              icon={<Settings size={18} />}
+              active={pathname.startsWith("/settings")}
+              collapsed={effectiveCollapsed}
+            />
+          )}
+
+          <Divider />
+
+          <SidebarTooltip
+            label="Logout"
+            active={false}
+            collapsed={effectiveCollapsed}
+            icon={<LogOut size={18} />}
           >
-            Logout
-          </Button>
-        </SidebarTooltip>
+            <Button
+              onClick={handleLogout}
+              type="button"
+              className="text-left w-full justify-start bg-transparent shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none px-0 py-0 font-[inherit]"
+            >
+              Logout
+            </Button>
+          </SidebarTooltip>
+        </div>
       </aside>
     </>
   );
@@ -393,7 +423,7 @@ export default function Sidebar() {
 /* -------------------- Components -------------------- */
 
 function Divider() {
-  return <div className="h-px bg-white/10 mx-5 my-1" />;
+  return <div className="h-px shrink-0 bg-white/10 mx-5 my-1" />;
 }
 
 function SidebarTooltip({
@@ -435,7 +465,7 @@ function SidebarTooltip({
         ref={ref}
         onClick={handleRowClick}
         className={clsx(
-          "sidebar-row w-full! gap-3 px-6 py-3.5 text-sm font-semibold transition-colors duration-150",
+          "sidebar-row relative z-0 w-full! shrink-0 gap-3 px-6 py-3.5 text-sm font-semibold transition-colors duration-150",
           active
             ? "text-yellow-400 bg-yellow-400/10"
             : "text-blue-100 hover:bg-white/8 hover:text-white",
@@ -538,7 +568,7 @@ function SidebarSection({
           ref={btnRef}
           type="button"
           className={clsx(
-            "sidebar-row grid! w-full gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
+            "sidebar-row relative z-0 grid! w-full shrink-0 gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
             "shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none [background-image:none]",
             active
               ? "text-yellow-400 bg-yellow-400/10"
@@ -578,12 +608,12 @@ function SidebarSection({
 
   /* ---- Expanded: normal accordion ---- */
   return (
-    <div>
+    <div className="shrink-0">
       <Button
         type="button"
         onClick={handleClick}
         className={clsx(
-          "sidebar-row grid! w-full gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
+          "sidebar-row relative z-0 grid! w-full shrink-0 gap-x-3 px-6 py-3.5 text-sm font-bold transition-colors duration-150",
           "shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none [background-image:none]",
           active
             ? "text-yellow-400 bg-yellow-400/10"
@@ -608,13 +638,14 @@ function SidebarSection({
 
       {/* Accordion body */}
       <div
-        className="overflow-hidden transition-all duration-300"
-        style={{
-          maxHeight: open ? 300 : 0,
-          opacity: open ? 1 : 0,
-        }}
+        className={clsx(
+          "grid transition-[grid-template-rows] duration-300 ease-out",
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
       >
-        <div className="flex flex-col pb-1">{children}</div>
+        <div className="min-h-0 overflow-hidden">
+          <div className="flex flex-col pb-1">{children}</div>
+        </div>
       </div>
     </div>
   );
@@ -661,7 +692,7 @@ function SubItem({
     <Link
       href={href}
       className={clsx(
-        "sidebar-row-sub gap-2.5 pl-12 pr-6 py-2.5 text-[13px] font-medium transition-colors duration-150",
+        "sidebar-row-sub shrink-0 gap-2.5 pl-12 pr-6 py-2.5 text-[13px] font-medium transition-colors duration-150",
         active
           ? "text-yellow-400 bg-yellow-400/8"
           : "text-blue-300 hover:bg-white/6 hover:text-blue-100",

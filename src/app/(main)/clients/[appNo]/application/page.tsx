@@ -5,13 +5,18 @@ import { useParams } from "next/navigation";
 import { ChevronDown, Upload, Download, RefreshCw, Eye } from "lucide-react";
 import { toast, Spinner } from "@heroui/react";
 import TabCard from "@/components/dashboard/TabCard";
+import { FileUploadComponent } from "@/components/upload";
 import Modal from "@/components/ui/Modal";
 import { clientsApi } from "@/lib/api/clients";
 import { getFileType } from "@/utils/helpers";
 import type { NameStatus } from "@/types/company";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientEdit } from "@/utils/clientPermissions";
+import { notifyApiError } from "@/utils/apiErrors";
 
 export default function NameApplicationPage() {
   const { appNo } = useParams();
+  const { admin } = usePermissions();
 
   const STATUS_OPTIONS: NameStatus[] = [
     "Pending",
@@ -78,36 +83,37 @@ export default function NameApplicationPage() {
   const handleStatusChange = async (index: number, status: NameStatus) => {
     setStatusMap((prev) => ({ ...prev, [index]: status }));
     if (!appNo) return;
+    if (!requireClientEdit(admin, "update name application status")) return;
     try {
       await clientsApi.updateCompanyStatus(appNo as string, index, status);
     } catch (error) {
       console.error("Failed to update status", error);
+      notifyApiError(error, {
+        fallback: "Failed to update status.",
+        actionLabel: "update name application status",
+      });
     }
   };
 
-  const handleObjectClauseUpload = () => {
-    const input = window.document.createElement("input");
-    input.type = "file";
-    input.accept = ".pdf,.doc,.docx";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file || !appNo) return;
-      try {
-        await clientsApi.uploadObjectClauseDocument(appNo as string, file);
-        toast.success("Object Clause uploaded. Client can now download it.");
+  const handleObjectClauseFileSelected = async (file: File) => {
+    if (!file || !appNo) return;
+    if (!requireClientEdit(admin, "upload the Object Clause document")) return;
+    try {
+      await clientsApi.uploadObjectClauseDocument(appNo as string, file);
+      toast.success("Object Clause uploaded. Client can now download it.");
 
-        // Refresh status to update UI
-        const statusData = await clientsApi.getObjectClauseStatus(
-          appNo as string,
-        );
-        setAdminFile(statusData.adminFile);
-        setClientFile(statusData.clientFile);
-      } catch (error) {
-        console.error("Error uploading Object Clause:", error);
-        toast("Failed to upload Object Clause", { variant: "danger" });
-      }
-    };
-    input.click();
+      const statusData = await clientsApi.getObjectClauseStatus(
+        appNo as string,
+      );
+      setAdminFile(statusData.adminFile);
+      setClientFile(statusData.clientFile);
+    } catch (error) {
+      console.error("Error uploading Object Clause:", error);
+      notifyApiError(error, {
+        fallback: "Failed to upload Object Clause.",
+        actionLabel: "upload the Object Clause document",
+      });
+    }
   };
 
   const handleObjectClauseDownload = async (source?: "admin" | "client") => {
@@ -254,10 +260,12 @@ export default function NameApplicationPage() {
   /* ---------------- UI ---------------- */
 
   return (
-    <div className="w-full p-8 min-h-[110vh]">
-      <h1 className="mb-4 text-[36px] font-bold text-primary">{appNo}</h1>
+    <div className="w-full p-4 sm:p-6 lg:p-8 min-h-[110vh]">
+      <h1 className="mb-4 text-2xl font-bold text-primary sm:text-3xl lg:text-[36px]">
+        {appNo}
+      </h1>
 
-      <div className="grid grid-cols-4 gap-6 mb-8 mt-10">
+      <div className="mb-8 mt-6 grid grid-cols-1 gap-3 min-[480px]:max-w-xs sm:mt-10 sm:gap-6">
         <TabCard label="Name Application" active />
       </div>
 
@@ -265,14 +273,14 @@ export default function NameApplicationPage() {
         Name resubmission ( Takes 7–15 days for approval )
       </div>
 
-      <div className="grid grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-10">
         {/* LEFT SIDE */}
-        <div className="col-span-2">
+        <div className="lg:col-span-2">
           <div className="space-y-12">
             {companies.map((company, index) => (
               <div
                 key={company._id || index}
-                className="grid grid-cols-[220px_160px_260px_160px] gap-x-6 gap-y-4 items-start"
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_160px] xl:grid-cols-[minmax(0,1fr)_160px_minmax(0,260px)] items-start"
               >
                 <div className={"font-medium text-primary"}>
                   {company.fullName || company.name}
@@ -319,13 +327,18 @@ export default function NameApplicationPage() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <h2 className="text-lg font-semibold text-secondary">
+                  <label
+                    htmlFor={`company-comment-${index}`}
+                    className="text-lg font-semibold text-secondary"
+                  >
                     Comments
-                  </h2>
+                  </label>
 
                   {/* COMMENTS */}
                   <textarea
-                    className="rounded-lg bg-white text-sm outline-none border border-gray-200 p-2 focus:border-primary"
+                    id={`company-comment-${index}`}
+                    aria-label={`Comments for ${company.fullName || company.name || `company ${index + 1}`}`}
+                    className="rounded-lg bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 p-2 focus:border-primary [color-scheme:light]"
                     placeholder="Detailed comments"
                     defaultValue={company.comment || ""}
                     onBlur={async (e) => {
@@ -349,7 +362,7 @@ export default function NameApplicationPage() {
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="col-span-1">
+        <div className="lg:col-span-1">
           <div className="rounded-xl bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-secondary">
@@ -363,13 +376,23 @@ export default function NameApplicationPage() {
                     className={`cursor-pointer text-secondary hover:text-primary ${isRefreshing ? "animate-spin" : ""}`}
                   />
                 </div>
-                <div title="Upload Object Clause (Admin)">
-                  <Upload
-                    size={20}
-                    onClick={handleObjectClauseUpload}
-                    className="cursor-pointer text-primary hover:text-secondary"
-                  />
-                </div>
+                <FileUploadComponent
+                  context="clients"
+                  allowedFileTypes=".pdf,.doc,.docx"
+                  title="Upload Object Clause"
+                  subtitle="Upload from your computer, Google Drive, or existing documents."
+                  dropLabel="Drag and drop your file here"
+                  onFileSelect={handleObjectClauseFileSelected}
+                  renderTrigger={(openPicker) => (
+                    <div title="Upload Object Clause (Admin)">
+                      <Upload
+                        size={20}
+                        onClick={openPicker}
+                        className="cursor-pointer text-primary hover:text-secondary"
+                      />
+                    </div>
+                  )}
+                />
               </div>
             </div>
 
@@ -462,12 +485,17 @@ export default function NameApplicationPage() {
           </div>
 
           <div className="w-full mt-4 bg-white p-4 rounded-xl shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-secondary">
+            <label
+              htmlFor="business-brief"
+              className="mb-4 block text-lg font-semibold text-secondary"
+            >
               About Their business
-            </h2>
+            </label>
 
             <textarea
-              className="rounded-lg w-full bg-white text-sm outline-none border border-gray-200 p-2"
+              id="business-brief"
+              aria-label="About their business"
+              className="rounded-lg w-full bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 p-2 [color-scheme:light]"
               value={businessBrief}
               disabled
             />

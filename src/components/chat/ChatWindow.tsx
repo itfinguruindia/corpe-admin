@@ -632,14 +632,14 @@ export default function ChatWindow({
   // Empty state — no room selected
   if (!room) {
     return (
-      <div className="flex h-full flex-col items-center justify-center bg-[#FAFBFD] text-center px-8">
-        <Card className="rounded-2xl border border-gray-100 shadow-sm max-w-sm">
-          <Card.Content className="p-8">
+      <div className="flex h-full w-full flex-1 flex-col items-center justify-center bg-[#FAFBFD] text-center px-8">
+        <Card className="w-full max-w-sm rounded-2xl border border-gray-100 shadow-sm">
+          <Card.Content className="p-8 text-center">
             <MessageSquare className="mx-auto h-12 w-12 text-gray-300 mb-4" />
             <h3 className="text-lg font-semibold text-gray-700">
               Select a conversation
             </h3>
-            <p className="mt-2 text-sm text-gray-400 max-w-[280px]">
+            <p className="mx-auto mt-2 max-w-[280px] text-sm text-gray-400">
               Choose a conversation from the list or start a new one to begin
               messaging.
             </p>

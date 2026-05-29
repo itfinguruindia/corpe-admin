@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import Modal from "@/components/ui/Modal";
 import UserCreateForm from "@/components/settings/UserCreateForm";
 import { User, Role } from "@/types/roles";
 import { adminApi, roleApi } from "@/lib/api";
@@ -19,8 +18,19 @@ import {
   Users as UsersIcon,
   Shield,
 } from "lucide-react";
-import { Button, Input, Label, TextField, toast } from "@heroui/react";
+import {
+  Button,
+  Input,
+  Label,
+  Modal,
+  TextField,
+  toast,
+  useOverlayState,
+} from "@heroui/react";
 import CustomSelect from "@/components/ui/CustomSelect";
+import PermissionGate from "@/components/rbac/PermissionGate";
+import { PERMISSIONS } from "@/utils/permissions";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface UserManagementProps {
   onEditUser?: (userId: string) => void;
@@ -31,6 +41,7 @@ export default function UserManagement({
   onEditUser,
   onDeleteUser,
 }: UserManagementProps) {
+  const { canEditUsers, hasPermission } = usePermissions();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [allRoles, setAllRoles] = useState<Role[]>([]);
@@ -39,6 +50,13 @@ export default function UserManagement({
   const [selectedRole, setSelectedRole] = useState<string | "all">("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const createModalState = useOverlayState({
+    isOpen: isCreateModalOpen,
+    onOpenChange: (open) => {
+      if (!open) setIsCreateModalOpen(false);
+    },
+  });
 
   const roleFilterOptions = useMemo(
     () => [
@@ -73,15 +91,29 @@ export default function UserManagement({
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [fetchedUsers, fetchedRoles] = await Promise.all([
-        adminApi.getAllAdmins(),
-        roleApi.getAllRoles(),
-      ]);
-      setUsers(fetchedUsers);
-      setFilteredUsers(fetchedUsers);
-      setAllRoles(fetchedRoles);
-    } catch (error) {
+      const fetchedUsers = await adminApi.getAllAdmins();
+      const userList = Array.isArray(fetchedUsers)
+        ? fetchedUsers
+        : (fetchedUsers?.admins ?? []);
+      setUsers(userList);
+      setFilteredUsers(userList);
+
+      try {
+        const fetchedRoles = await roleApi.getAllRoles();
+        setAllRoles(Array.isArray(fetchedRoles) ? fetchedRoles : []);
+      } catch (rolesError) {
+        console.error("Error loading roles for filters:", rolesError);
+        setAllRoles([]);
+      }
+    } catch (error: unknown) {
       console.error("Error loading users:", error);
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message ||
+        "Failed to load users. You may need the user-view permission.";
+      toast.danger(message);
+      setUsers([]);
+      setFilteredUsers([]);
     } finally {
       setIsLoading(false);
     }
@@ -207,36 +239,53 @@ export default function UserManagement({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold text-[#FF6A3D]">User Management</h1>
-          <p className="mt-2 text-base text-gray-600">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-[#FF6A3D] sm:text-4xl">
+            User Management
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 sm:text-base">
             Manage system users and their access
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={() => setIsCreateModalOpen(true)}
-          className="flex items-center gap-2 rounded-lg bg-[#FF6A3D] px-6 py-2.5 font-medium text-white hover:bg-[#e55a35]"
-        >
-          <Plus size={20} />
-          Add New User
-        </Button>
-        {/* User Create Modal */}
-        <Modal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-          title="Create New User"
-        >
-          <UserCreateForm
-            roles={allRoles}
-            onSuccess={() => {
-              setIsCreateModalOpen(false);
-              loadData();
-            }}
-          />
-        </Modal>
+        <PermissionGate permissions={PERMISSIONS.USER_CREATE}>
+          <Button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#e55a35] sm:w-auto sm:justify-start"
+          >
+            <Plus size={18} />
+            Add New User
+          </Button>
+        </PermissionGate>
       </div>
+
+      <Modal state={createModalState}>
+        <Modal.Backdrop className="bg-black/50 backdrop-blur-sm">
+          <Modal.Container placement="center" className="p-4">
+            <Modal.Dialog className="flex w-full max-w-md flex-col overflow-hidden rounded-xl bg-white shadow-2xl outline-none max-h-[90vh] md:max-w-xl lg:max-w-2xl">
+              <Modal.Header className="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4">
+                <Modal.Heading className="text-lg font-semibold text-black">
+                  Create New User
+                </Modal.Heading>
+                <Modal.CloseTrigger
+                  className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                  aria-label="Close modal"
+                />
+              </Modal.Header>
+              <Modal.Body className="min-h-0 flex-1 overflow-y-auto px-6 py-4 text-gray-700">
+                <UserCreateForm
+                  roles={allRoles}
+                  onSuccess={() => {
+                    setIsCreateModalOpen(false);
+                    loadData();
+                  }}
+                />
+              </Modal.Body>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -328,6 +377,7 @@ export default function UserManagement({
           {/* Role Filter */}
           <div className="lg:w-64">
             <CustomSelect
+              ariaLabel="Filter by role"
               value={selectedRole}
               onChange={(v) => setSelectedRole(v)}
               options={roleFilterOptions}
@@ -337,6 +387,7 @@ export default function UserManagement({
           {/* Status Filter */}
           <div className="lg:w-48">
             <CustomSelect
+              ariaLabel="Filter by status"
               value={selectedStatus}
               onChange={(v) => setSelectedStatus(v)}
               options={statusFilterOptions}
@@ -468,31 +519,35 @@ export default function UserManagement({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
-                        <span title="Edit User" className="inline-flex">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() =>
-                              onEditUser?.(user._id || user.id || "")
-                            }
-                            aria-label="Edit user"
-                            className="min-h-0 min-w-0 p-2 text-gray-600 hover:bg-blue-50 hover:text-secondary"
-                          >
-                            <Edit2 size={16} />
-                          </Button>
-                        </span>
+                        {canEditUsers() && (
+                          <span title="Edit User" className="inline-flex">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() =>
+                                onEditUser?.(user._id || user.id || "")
+                              }
+                              aria-label="Edit user"
+                              className="min-h-0 min-w-0 p-2 text-gray-600 hover:bg-blue-50 hover:text-secondary"
+                            >
+                              <Edit2 size={16} />
+                            </Button>
+                          </span>
+                        )}
 
-                        <span title="Delete User" className="inline-flex">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => handleDeleteUser(user)}
-                            aria-label="Delete user"
-                            className="min-h-0 min-w-0 p-2 text-gray-600 hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </span>
+                        {hasPermission(PERMISSIONS.USER_DELETE) && (
+                          <span title="Delete User" className="inline-flex">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => handleDeleteUser(user)}
+                              aria-label="Delete user"
+                              className="min-h-0 min-w-0 p-2 text-gray-600 hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </span>
+                        )}
                       </div>
                     </td>
                   </tr>
