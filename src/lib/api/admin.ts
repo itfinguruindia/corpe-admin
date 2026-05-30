@@ -62,9 +62,12 @@ export const adminApi = {
 
   // Get Dashboard Data
   getDashboardData: async () => {
-    try {
-      const response = await axiosInstance.get("/admin/getDashboardData");
-      return response.data.data;
-    } catch (error) {}
+    const response = await axiosInstance.get("/admin/getDashboardData");
+    return response.data.data as {
+      totalApplication: number;
+      pendingApplication: number;
+      approveNameApplication: number;
+      rejectedOrResubmitted: number;
+    };
   },
 };
