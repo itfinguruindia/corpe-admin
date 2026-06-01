@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  StatCard,
   ContentCard,
   TableCard,
   ChartCard,
@@ -8,44 +7,15 @@ import {
 import FloatingActionButton from "@/components/dashboard/FloatingActionButton";
 import RaisedTicketsWidget from "@/components/dashboard/RaisedTicketsWidget";
 import RecentlyOnboardedWidget from "@/components/dashboard/RecentlyOnboardedWidget";
+import DashboardStatsWidget from "@/components/dashboard/DashboardStatsWidget";
 import Link from "next/link";
-import { adminApi } from "@/lib/api";
 import { Chip } from "@heroui/react";
 
-export default async function Dashboard() {
-  const data = await adminApi.getDashboardData();
-  const {
-    totalApplication = "N/A",
-    pendingApplication = "N/A",
-    approveNameApplication = "N/A",
-    rejectedOrResubmitted = "N/A",
-  } = data ?? {
-    totalApplication: "N/A",
-    pendingApplication: "N/A",
-    approveNameApplication: "N/A",
-    rejectedOrResubmitted: "N/A",
-  };
-
+export default function Dashboard() {
   return (
     <div className="space-y-8 pb-10">
-      {/* SECTION 1: Overview Stats (4 columns) */}
-      <section
-        id="stats-overview"
-        className="grid md:grid-cols-4 grid-cols-2 gap-6 stagger-children"
-      >
-        <StatCard label="Total name application" value={totalApplication} />
-        <StatCard
-          label="Name application approved"
-          value={approveNameApplication}
-        />
-        <StatCard label="Pending application" value={pendingApplication} />
-        <StatCard
-          label="Name re-submission, rejected"
-          value={rejectedOrResubmitted}
-        />
-
-        <StatCard label="Delay status" value="40%" subValue="" />
-      </section>
+      {/* SECTION 1: Overview stats — bento grid */}
+      <DashboardStatsWidget />
 
       {/* SECTION 2: Active Monitoring (Raised Tickets & Target) */}
       <section className="grid lg:grid-cols-3 grid-cols-1 gap-6 stagger-children">
