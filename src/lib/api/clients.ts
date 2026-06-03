@@ -108,6 +108,15 @@ export const clientsApi = {
     return response.data;
   },
 
+  // Toggle resubmitOriginal for name application
+  toggleResubmitOriginal: async (applicationNo: string, resubmitOriginal: boolean) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/name-application/resubmit-original`,
+      { resubmitOriginal },
+    );
+    return response.data;
+  },
+
   // Update company status
   updateCompanyStatus: async (
     applicationNo: string,
@@ -130,6 +139,32 @@ export const clientsApi = {
     const response = await axiosInstance.patch(
       `/admin/clients/${applicationNo}/company/${companyIndex}/comment`,
       { comment },
+    );
+    return response.data;
+  },
+
+  // Update company MCA approval
+  updateCompanyMcaApproval: async (
+    applicationNo: string,
+    companyIndex: number,
+    mcaApproval: string,
+  ) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/company/${companyIndex}/mca-approval`,
+      { mcaApproval },
+    );
+    return response.data;
+  },
+
+  // Update company Trade conflict
+  updateCompanyTradeConflict: async (
+    applicationNo: string,
+    companyIndex: number,
+    tradeConflict: string,
+  ) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/company/${companyIndex}/trade-conflict`,
+      { tradeConflict },
     );
     return response.data;
   },

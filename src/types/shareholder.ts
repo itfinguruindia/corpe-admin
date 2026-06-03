@@ -24,6 +24,7 @@ export interface Shareholder {
   shareholdingPercentage: number;
   kycVerified: boolean;
   dscApplication: boolean;
+  isAlsoDirector?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

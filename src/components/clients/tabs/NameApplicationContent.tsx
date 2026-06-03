@@ -1,0 +1,751 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { ChevronDown, Upload, Download, RefreshCw, Eye, Clock } from "lucide-react";
+import { toast } from "@heroui/react";
+
+import { FileUploadComponent } from "@/components/upload";
+import Modal from "@/components/ui/Modal";
+import { Switch } from "@/components/ui/Switch";
+
+import { clientsApi } from "@/lib/api/clients";
+import { getFileType } from "@/utils/helpers";
+import type { NameStatus } from "@/types/company";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { notifyApiError } from "@/utils/apiErrors";
+
+interface NameApplicationContentProps {
+  appNo: string;
+}
+
+export default function NameApplicationContent({
+  appNo,
+}: NameApplicationContentProps) {
+  const { admin } = usePermissions();
+
+  const STATUS_OPTIONS: NameStatus[] = [
+    "Pending",
+    "Approved",
+    "Resubmission",
+    "Rejected",
+  ];
+
+  const [openDropdown, setOpenDropdown] = useState<{ index: number; field: "status" | "mca" | "trade" } | null>(null);
+  const [mcaApprovalMap, setMcaApprovalMap] = useState<Record<number, string>>({});
+  const [tradeConflictMap, setTradeConflictMap] = useState<Record<number, string>>({});
+  const [statusMap, setStatusMap] = useState<
+    Record<number, "Approved" | "Resubmission" | "Rejected" | "Pending">
+  >({});
+  const [companyNames, setCompanyNames] = useState<any[]>([]);
+  const [businessBrief, setBusinessBrief] = useState("");
+  const [resubmitOriginal, setResubmitOriginal] = useState(false);
+  const [adminFile, setAdminFile] = useState<{
+    name: string;
+    path: string;
+  } | null>(null);
+  const [clientFile, setClientFile] = useState<{
+    name: string;
+    path: string;
+    uploadedAt?: string;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState<string>("");
+
+  /* ---------------- HELPERS ---------------- */
+
+  const getFileName = (value: string) => {
+    if (!value) return "";
+    return value.split("/").pop();
+  };
+
+  const resolveStatus = (company: any) => {
+    if (company?.isApproved) return "Approved";
+    if (company?.nameRejected) return "Rejected";
+    if (company?.nameResubmission) return "Resubmission";
+    return "Pending";
+  };
+
+  /* ---------------- HANDLERS ---------------- */
+
+  const refreshObjectClauseStatus = async () => {
+    try {
+      setIsRefreshing(true);
+      const statusData = await clientsApi.getObjectClauseStatus(appNo);
+      setAdminFile(statusData.adminFile);
+      setClientFile(statusData.clientFile);
+      toast.success("Status refreshed");
+    } catch (error) {
+      console.error("Error refreshing status:", error);
+      toast("Failed to refresh status", { variant: "danger" });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleStatusChange = async (index: number, status: NameStatus) => {
+    setStatusMap((prev) => ({ ...prev, [index]: status }));
+    if (!requireClientTabEdit(admin, "app")) return;
+    try {
+      await clientsApi.updateCompanyStatus(appNo, index, status);
+    } catch (error) {
+      console.error("Failed to update status", error);
+      notifyApiError(error, {
+        fallback: "Failed to update status.",
+        actionLabel: "update name application status",
+      });
+    }
+  };
+
+  const handleMcaApprovalChange = async (index: number, value: string) => {
+    setMcaApprovalMap((prev) => ({ ...prev, [index]: value }));
+    if (!requireClientTabEdit(admin, "app")) return;
+    try {
+      await clientsApi.updateCompanyMcaApproval(appNo, index, value);
+      toast.success("MCA approval status updated");
+    } catch (error) {
+      console.error("Failed to update MCA approval", error);
+      toast("Failed to update MCA approval", { variant: "danger" });
+    }
+  };
+
+  const handleTradeConflictChange = async (index: number, value: string) => {
+    setTradeConflictMap((prev) => ({ ...prev, [index]: value }));
+    if (!requireClientTabEdit(admin, "app")) return;
+    try {
+      await clientsApi.updateCompanyTradeConflict(appNo, index, value);
+      toast.success("Trademark status updated");
+    } catch (error) {
+      console.error("Failed to update Trademark status", error);
+      toast("Failed to update Trademark status", { variant: "danger" });
+    }
+  };
+
+  const handleResubmitOriginalToggle = async (checked: boolean) => {
+    if (!requireClientTabEdit(admin, "app")) return;
+
+    setResubmitOriginal(checked);
+    try {
+      await clientsApi.toggleResubmitOriginal(appNo, checked);
+      toast.success("Resubmission switch updated");
+    } catch (error) {
+      console.error("Error toggling resubmit original", error);
+      toast("Failed to update switch", { variant: "danger" });
+      setResubmitOriginal(!checked); // revert
+    }
+  };
+
+  const handleObjectClauseFileSelected = async (file: File) => {
+    if (!file) return;
+    if (!requireClientTabEdit(admin, "app")) return;
+    try {
+      await clientsApi.uploadObjectClauseDocument(appNo, file);
+      toast.success("Object Clause uploaded. Client can now download it.");
+
+      const statusData = await clientsApi.getObjectClauseStatus(appNo);
+      setAdminFile(statusData.adminFile);
+      setClientFile(statusData.clientFile);
+    } catch (error) {
+      console.error("Error uploading Object Clause:", error);
+      notifyApiError(error, {
+        fallback: "Failed to upload Object Clause.",
+        actionLabel: "upload the Object Clause document",
+      });
+    }
+  };
+
+  const handleObjectClauseDownload = async (source?: "admin" | "client") => {
+    try {
+      const blob = await clientsApi.downloadObjectClauseDocument(appNo, source);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      // Determine filename based on source
+      let fileName = "object-clause.pdf";
+      if (source === "admin" && adminFile) {
+        fileName = adminFile.name;
+      } else if (source === "client" && clientFile) {
+        fileName = clientFile.name;
+      } else {
+        fileName = adminFile?.name || clientFile?.name || "object-clause.pdf";
+      }
+
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(`Downloaded ${source || "file"} successfully`);
+    } catch (error) {
+      console.error("Error downloading Object Clause:", error);
+      toast("Failed to download Object Clause", { variant: "danger" });
+    }
+  };
+
+  const handleObjectClausePreview = async (source: "admin" | "client") => {
+    try {
+      const blob = await clientsApi.downloadObjectClauseDocument(appNo, source);
+      const url = window.URL.createObjectURL(blob);
+
+      // Determine filename
+      const fileName =
+        source === "admin" && adminFile
+          ? adminFile.name
+          : source === "client" && clientFile
+            ? clientFile.name
+            : "object-clause.pdf";
+
+      setPreviewUrl(url);
+      setPreviewFileName(fileName);
+      setIsPreviewOpen(true);
+    } catch (error) {
+      console.error("Error previewing Object Clause:", error);
+      toast("Failed to preview Object Clause", { variant: "danger" });
+    }
+  };
+
+  /* ---------------- API ---------------- */
+
+  const [isRocReviewed, setIsRocReviewed] = useState(false);
+  const [isTrademarkDone, setIsTrademarkDone] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await clientsApi.getNameApplication(appNo);
+
+        if (response?.data) {
+          const data = response.data;
+
+          const names: any[] = [];
+          if (data.companyName1) names.push(data.companyName1);
+          if (data.companyName2) names.push(data.companyName2);
+          if (data.companyName3) names.push(data.companyName3);
+
+          setCompanyNames(names);
+          setBusinessBrief(data?.businessBrief || "");
+          setResubmitOriginal(data?.resubmitOriginal || false);
+
+          const initialStatus: Record<
+            number,
+            "Approved" | "Resubmission" | "Rejected" | "Pending"
+          > = {};
+          const initialMcaApproval: Record<number, string> = {};
+          const initialTradeConflict: Record<number, string> = {};
+          names.forEach((company, index) => {
+            initialStatus[index] = resolveStatus(company);
+            initialMcaApproval[index] = company?.mcaApproval || "Pending";
+            initialTradeConflict[index] = company?.tradeConflict || "Pending";
+          });
+          setStatusMap(initialStatus);
+          setMcaApprovalMap(initialMcaApproval);
+          setTradeConflictMap(initialTradeConflict);
+        }
+
+        try {
+          const trackerRes = await clientsApi.getTrackingStatus(appNo);
+          if (trackerRes) {
+            const stage1Attempts = trackerRes.stages?.filter(
+              (s: any) => s.stageId === "stage_1_name_application" || s.stageId.startsWith("stage_1_name_application_attempt_")
+            );
+            const activeStage1 = stage1Attempts?.[stage1Attempts.length - 1];
+            if (activeStage1) {
+              const sectionA = activeStage1.sections?.find(
+                (sec: any) => sec.label === "Name Search & Submission" || sec.order === 1
+              );
+              if (sectionA && sectionA.steps) {
+                const findLastStep = (steps: any[], title: string) => {
+                  for (let i = steps.length - 1; i >= 0; i--) {
+                    if (steps[i].title === title) {
+                      return steps[i];
+                    }
+                  }
+                  return null;
+                };
+                const stepTrade = findLastStep(sectionA.steps, "Trademark & IP India check");
+                setIsTrademarkDone(stepTrade?.status === "Done");
+              }
+
+              const sectionB = activeStage1.sections?.find(
+                (sec: any) => sec.label === "Object Clause & RUN Filing" || sec.order === 2
+              );
+              const partAStep = sectionB?.steps?.find(
+                (st: any) => st.title === "SPICe+ Part A filed on MCA"
+              );
+              setIsRocReviewed(partAStep?.status === "Done");
+            }
+          }
+        } catch (trackerErr) {
+          console.error("Error fetching tracker status:", trackerErr);
+        }
+
+        // Fetch object clause status (both admin and client files)
+        const statusData = await clientsApi.getObjectClauseStatus(appNo);
+        setAdminFile(statusData.adminFile);
+        setClientFile(statusData.clientFile);
+      } catch (error) {
+        console.error("Error fetching name application:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [appNo]);
+
+  // Auto-refresh object clause status every 30 seconds to detect client uploads
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const statusData = await clientsApi.getObjectClauseStatus(appNo);
+        setAdminFile(statusData.adminFile);
+        setClientFile(statusData.clientFile);
+      } catch (error) {
+        console.error("Error auto-refreshing status:", error);
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [appNo]);
+
+  // Cleanup blob URLs when preview changes or closes
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        window.URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  const companies =
+    companyNames.length > 0
+      ? companyNames
+      : [
+          { name: "company name 1", fullName: "company name 1", comment: "" },
+          { name: "company name 2", fullName: "company name 2", comment: "" },
+          { name: "company name 3", fullName: "company name 3", comment: "" },
+        ];
+
+  /* ---------------- UI ---------------- */
+
+  return (
+    <div className="w-full p-4 sm:p-6 lg:p-8 min-h-[110vh]">
+      <div className="mb-8 flex items-center justify-between">
+        <div className="text-[16px] font-bold text-secondary">
+          Name resubmission ( Takes 7–15 days for approval )
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={resubmitOriginal}
+            onChange={handleResubmitOriginalToggle}
+            label="Submit another new names"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-10">
+        {/* LEFT SIDE */}
+        <div className="lg:col-span-2">
+          <div className="space-y-6">
+            {companies.map((company, index) => {
+              const hasAnyApproved = Object.values(statusMap).some((s) => s === "Approved");
+              const isDisabled = hasAnyApproved && statusMap[index] !== "Approved";
+
+              return (
+                <div
+                  key={company._id || index}
+                  className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-5"
+                >
+                  {/* HEADER WITH TITLE & PRIORITY */}
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h3 className={`text-base font-bold sm:text-lg ${isDisabled ? "text-gray-400" : "text-[#a84420]"}`}>
+                      {company.fullName || company.name}
+                    </h3>
+                  </div>
+
+                  {/* 3-COLUMN DROPDOWNS ROW */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* OVERALL STATUS */}
+                    <div className="flex flex-col gap-2 relative">
+                      <span className="text-[11px] font-bold text-gray-500 tracking-wider">
+                        OVERALL STATUS
+                      </span>
+                      <div
+                        onClick={() => {
+                          if (isDisabled) return;
+                          setOpenDropdown(
+                            openDropdown?.index === index && openDropdown?.field === "status"
+                              ? null
+                              : { index, field: "status" }
+                          );
+                        }}
+                        className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+                          isDisabled
+                            ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                            : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
+                        }`}
+                      >
+                        <span>{statusMap[index] || "Pending"}</span>
+                        <ChevronDown size={16} className="text-gray-400" />
+                      </div>
+
+                      {openDropdown?.index === index && openDropdown?.field === "status" && (
+                        <div className="absolute left-0 right-0 z-20 mt-[68px] w-full rounded-lg bg-white shadow-lg border border-gray-100 py-1">
+                          {STATUS_OPTIONS.map((option) => {
+                            const isOptionDisabled = option === "Rejected" && !isRocReviewed;
+                            return (
+                              <div
+                                key={option}
+                                onClick={() => {
+                                  if (isOptionDisabled) return;
+                                  handleStatusChange(index, option);
+                                  setOpenDropdown(null);
+                                }}
+                                className={`px-4 py-2 text-sm transition-colors ${
+                                  isOptionDisabled
+                                    ? "text-gray-300 cursor-not-allowed bg-gray-50"
+                                    : statusMap[index] === option
+                                      ? "text-primary font-semibold bg-orange-50/50 cursor-pointer"
+                                      : "text-secondary hover:bg-gray-50 cursor-pointer"
+                                }`}
+                              >
+                                {option}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* MCA APPROVAL */}
+                    <div className="flex flex-col gap-2 relative">
+                      <span className="text-[11px] font-bold text-gray-500 tracking-wider">
+                        MCA APPROVAL
+                      </span>
+                      <div
+                        onClick={() => {
+                          if (isDisabled || isTrademarkDone) return;
+                          setOpenDropdown(
+                            openDropdown?.index === index && openDropdown?.field === "mca"
+                              ? null
+                              : { index, field: "mca" }
+                          );
+                        }}
+                        className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+                          (isDisabled || isTrademarkDone)
+                            ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                            : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
+                        }`}
+                      >
+                        <span>{mcaApprovalMap[index] || "Pending"}</span>
+                        <ChevronDown size={16} className="text-gray-400" />
+                      </div>
+
+                      {openDropdown?.index === index && openDropdown?.field === "mca" && (
+                        <div className="absolute left-0 right-0 z-20 mt-[68px] w-full rounded-lg bg-white shadow-lg border border-gray-100 py-1">
+                          {["Available", "Not Available", "Pending"].map((option) => (
+                            <div
+                              key={option}
+                              onClick={() => {
+                                handleMcaApprovalChange(index, option);
+                                setOpenDropdown(null);
+                              }}
+                              className={`px-4 py-2 text-sm transition-colors ${
+                                mcaApprovalMap[index] === option
+                                  ? "text-primary font-semibold bg-orange-50/50 cursor-pointer"
+                                  : "text-secondary hover:bg-gray-50 cursor-pointer"
+                              }`}
+                            >
+                              {option}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* TRADEMARK & IP */}
+                    <div className="flex flex-col gap-2 relative">
+                      <span className="text-[11px] font-bold text-gray-500 tracking-wider">
+                        TRADEMARK & IP
+                      </span>
+                      <div
+                        onClick={() => {
+                          if (isDisabled || isTrademarkDone) return;
+                          setOpenDropdown(
+                            openDropdown?.index === index && openDropdown?.field === "trade"
+                              ? null
+                              : { index, field: "trade" }
+                          );
+                        }}
+                        className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+                          (isDisabled || isTrademarkDone)
+                            ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                            : tradeConflictMap[index] === "Conflict"
+                              ? "bg-[#fff8f8] text-[#b83232] border-[#f5c2c2] hover:border-[#e0a6a6] cursor-pointer"
+                              : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
+                        }`}
+                      >
+                        <span>{tradeConflictMap[index] || "Pending"}</span>
+                        <ChevronDown size={16} className={tradeConflictMap[index] === "Conflict" ? "text-[#b83232]" : "text-gray-400"} />
+                      </div>
+
+                      {openDropdown?.index === index && openDropdown?.field === "trade" && (
+                        <div className="absolute left-0 right-0 z-20 mt-[68px] w-full rounded-lg bg-white shadow-lg border border-gray-100 py-1">
+                          {["Conflict", "No Conflict", "Pending"].map((option) => (
+                            <div
+                              key={option}
+                              onClick={() => {
+                                handleTradeConflictChange(index, option);
+                                setOpenDropdown(null);
+                              }}
+                              className={`px-4 py-2 text-sm transition-colors ${
+                                tradeConflictMap[index] === option
+                                  ? "text-primary font-semibold bg-orange-50/50 cursor-pointer"
+                                  : "text-secondary hover:bg-gray-50 cursor-pointer"
+                              }`}
+                            >
+                              {option}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* COMMENTS */}
+                  <div className="flex flex-col gap-2">
+                    <label
+                      htmlFor={`company-comment-${index}`}
+                      className="text-[11px] font-bold text-gray-500 tracking-wider"
+                    >
+                      Comments
+                    </label>
+                    <textarea
+                      id={`company-comment-${index}`}
+                      aria-label={`Comments for ${company.fullName || company.name || `company ${index + 1}`}`}
+                      className="w-full min-h-[90px] rounded-lg bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 p-3.5 focus:border-primary focus:ring-1 focus:ring-primary/20 [color-scheme:light] transition-all resize-y"
+                      placeholder="Detailed comments"
+                      defaultValue={company.comment || ""}
+                      onBlur={async (e) => {
+                        const newComment = e.target.value;
+                        if (newComment === company?.comment) return;
+                        try {
+                          await clientsApi.updateCompanyComment(
+                            appNo,
+                            index,
+                            newComment,
+                          );
+                        } catch (error) {
+                          console.error("Failed to update comment", error);
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* RIGHT SIDE */}
+        <div className="lg:col-span-1">
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-secondary">
+                Object Clause of Company
+              </h2>
+              <div className="flex items-center gap-3">
+                <div title="Refresh status">
+                  <RefreshCw
+                    size={18}
+                    onClick={refreshObjectClauseStatus}
+                    className={`cursor-pointer text-secondary hover:text-primary ${isRefreshing ? "animate-spin" : ""}`}
+                  />
+                </div>
+                <FileUploadComponent
+                  context="clients"
+                  allowedFileTypes=".pdf,.doc,.docx"
+                  title="Upload Object Clause"
+                  subtitle="Upload from your computer, Google Drive, or existing documents."
+                  dropLabel="Drag and drop your file here"
+                  onBeforeOpen={() => requireClientTabEdit(admin, "app")}
+                  onFileSelect={handleObjectClauseFileSelected}
+                  renderTrigger={(openPicker) => (
+                    <div title="Upload Object Clause (Admin)">
+                      <Upload
+                        size={20}
+                        onClick={openPicker}
+                        className="cursor-pointer text-primary hover:text-secondary"
+                      />
+                    </div>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {/* Admin Upload */}
+              {adminFile ? (
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-orange-700">
+                      📤 Admin Upload
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div title="Preview">
+                        <Eye
+                          size={16}
+                          onClick={() => handleObjectClausePreview("admin")}
+                          className="cursor-pointer text-orange-600 hover:text-orange-700"
+                        />
+                      </div>
+                      <div title="Download">
+                        <Download
+                          size={16}
+                          onClick={() => handleObjectClauseDownload("admin")}
+                          className="cursor-pointer text-orange-600 hover:text-orange-700"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-secondary truncate">
+                    {getFileName(adminFile.name)}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
+                  <div className="text-xs font-medium text-gray-400 mb-1">
+                    📤 Admin Upload
+                  </div>
+                  <div className="text-sm text-gray-400">No file uploaded</div>
+                </div>
+              )}
+
+              {/* Client Upload */}
+              {clientFile ? (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-blue-700">
+                      👤 Client Upload
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div title="Preview">
+                        <Eye
+                          size={16}
+                          onClick={() => handleObjectClausePreview("client")}
+                          className="cursor-pointer text-blue-600 hover:text-blue-700"
+                        />
+                      </div>
+                      <div title="Download">
+                        <Download
+                          size={16}
+                          onClick={() => handleObjectClauseDownload("client")}
+                          className="cursor-pointer text-blue-600 hover:text-blue-700"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-sm text-secondary truncate">
+                    {getFileName(clientFile.name)}
+                  </div>
+                  {clientFile.uploadedAt && (
+                    <div className="text-xs text-blue-600 mt-1">
+                      {new Date(clientFile.uploadedAt).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
+                  <div className="text-xs font-medium text-gray-400 mb-1">
+                    👤 Client Upload
+                  </div>
+                  <div className="text-sm text-gray-400">No file uploaded</div>
+                </div>
+              )}
+            </div>
+
+            {(adminFile || clientFile) && (
+              <div className="mt-4 p-2 rounded bg-gray-50 text-xs text-gray-600">
+                💡 Tip: Use eye icon to preview, download icon to save file
+              </div>
+            )}
+          </div>
+
+          <div className="w-full mt-4 bg-white p-4 rounded-xl shadow-sm">
+            <label
+              htmlFor="business-brief"
+              className="mb-4 block text-lg font-semibold text-secondary"
+            >
+              About Their business
+            </label>
+
+            <textarea
+              id="business-brief"
+              aria-label="About their business"
+              className="rounded-lg w-full bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 p-2 [color-scheme:light]"
+              value={businessBrief}
+              disabled
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Preview Modal */}
+      <Modal
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          if (previewUrl) {
+            window.URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+          }
+        }}
+        title={`Preview: ${previewFileName}`}
+        maxWidth="md:max-w-[85vw]"
+      >
+        {!previewUrl ? (
+          <p>No preview available</p>
+        ) : (
+          <>
+            {getFileType(previewFileName) === "image" && (
+              <img
+                src={previewUrl}
+                alt={previewFileName}
+                className="w-full max-h-[70vh] object-contain rounded"
+              />
+            )}
+
+            {getFileType(previewFileName) === "pdf" && (
+              <iframe
+                src={previewUrl}
+                className="w-full h-[70vh] border rounded"
+                title={previewFileName}
+              />
+            )}
+
+            {getFileType(previewFileName) === "other" && (
+              <div className="text-center py-8">
+                <p className="text-gray-600 mb-4">
+                  Preview not available for this file type
+                </p>
+                <button
+                  onClick={() =>
+                    previewUrl && window.open(previewUrl, "_blank")
+                  }
+                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary"
+                >
+                  Open in New Tab
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </Modal>
+    </div>
+  );
+}
