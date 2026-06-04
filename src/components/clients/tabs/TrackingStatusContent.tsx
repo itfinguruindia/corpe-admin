@@ -140,9 +140,8 @@ export default function TrackingStatusContent({
   const loadData = async () => {
     try {
       setLoading(true);
-      const trackerData = await clientsApi.getTrackingStatus(appNo);
-      setTracker(trackerData);
 
+      // Always fetch company overview first (needed for Initialize button if tracker is missing)
       try {
         const overview = await clientsApi.getCompanyOverview(appNo);
         if (overview && overview.data) {
@@ -151,6 +150,14 @@ export default function TrackingStatusContent({
       } catch (err) {
         console.error("Error fetching company overview:", err);
       }
+
+      let trackerData = null;
+      try {
+        trackerData = await clientsApi.getTrackingStatus(appNo);
+      } catch (err) {
+        console.error("Error fetching tracker:", err);
+      }
+      setTracker(trackerData);
 
       if (trackerData && trackerData.stages) {
         const initialCollapsed: Record<string, boolean> = {};
@@ -167,8 +174,6 @@ export default function TrackingStatusContent({
           }
         }
       }
-    } catch (error) {
-      console.error("Error fetching tracker:", error);
     } finally {
       setLoading(false);
     }

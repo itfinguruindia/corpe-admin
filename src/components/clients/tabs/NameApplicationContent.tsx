@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown, Upload, Download, RefreshCw, Eye, Clock } from "lucide-react";
+import { ChevronDown, ChevronUp, Upload, Download, RefreshCw, Eye, Clock } from "lucide-react";
 import { toast } from "@heroui/react";
 
 import { FileUploadComponent } from "@/components/upload";
@@ -40,6 +40,8 @@ export default function NameApplicationContent({
   const [companyNames, setCompanyNames] = useState<any[]>([]);
   const [businessBrief, setBusinessBrief] = useState("");
   const [resubmitOriginal, setResubmitOriginal] = useState(false);
+  const [attempts, setAttempts] = useState<any[]>([]);
+  const [expandedAttempts, setExpandedAttempts] = useState<Record<string, boolean>>({ current: true });
   const [adminFile, setAdminFile] = useState<{
     name: string;
     path: string;
@@ -230,6 +232,7 @@ export default function NameApplicationContent({
           setCompanyNames(names);
           setBusinessBrief(data?.businessBrief || "");
           setResubmitOriginal(data?.resubmitOriginal || false);
+          setAttempts(data.attempts || []);
 
           const initialStatus: Record<
             number,
@@ -331,6 +334,223 @@ export default function NameApplicationContent({
           { name: "company name 3", fullName: "company name 3", comment: "" },
         ];
 
+  const renderNameCards = (companiesList: any[], isReadOnly: boolean) => {
+    return (
+      <div className="space-y-6">
+        {companiesList.map((company, index) => {
+          const hasAnyApproved = !isReadOnly && Object.values(statusMap).some((s) => s === "Approved");
+          const isDisabled = isReadOnly || (hasAnyApproved && statusMap[index] !== "Approved");
+
+          const companyStatus = isReadOnly ? resolveStatus(company) : (statusMap[index] || "Pending");
+          const companyMca = isReadOnly ? (company.mcaApproval || "Pending") : (mcaApprovalMap[index] || "Pending");
+          const companyTrade = isReadOnly ? (company.tradeConflict || "Pending") : (tradeConflictMap[index] || "Pending");
+          const companyComment = company.comment || "";
+
+          return (
+            <div
+              key={company._id || index}
+              className={`bg-white rounded-2xl border p-6 shadow-sm space-y-5 transition-all ${
+                isDisabled ? "border-gray-100 opacity-80" : "border-gray-100"
+              }`}
+            >
+              {/* HEADER WITH TITLE & PRIORITY */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className={`text-base font-bold sm:text-lg ${isDisabled ? "text-gray-400" : "text-[#a84420]"}`}>
+                  {company.fullName || company.name}
+                </h3>
+              </div>
+
+              {/* 3-COLUMN DROPDOWNS ROW */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* NAME STATUS */}
+                <div className="flex flex-col gap-2 relative">
+                  <span className="text-[11px] font-bold text-gray-500 tracking-wider">
+                    NAME STATUS
+                  </span>
+                  <div
+                    onClick={() => {
+                      if (isDisabled) return;
+                      setOpenDropdown(
+                        openDropdown?.index === index && openDropdown?.field === "status"
+                          ? null
+                          : { index, field: "status" }
+                      );
+                    }}
+                    className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+                      isDisabled
+                        ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
+                    }`}
+                  >
+                    <span>{companyStatus}</span>
+                    <ChevronDown size={16} className="text-gray-400" />
+                  </div>
+
+                  {!isReadOnly && openDropdown?.index === index && openDropdown?.field === "status" && (
+                    <div className="absolute left-0 right-0 z-20 mt-[68px] w-full rounded-lg bg-white shadow-lg border border-gray-100 py-1">
+                      {STATUS_OPTIONS.map((option) => {
+                        const isOptionDisabled = option === "Rejected" && !isRocReviewed;
+                        return (
+                          <div
+                            key={option}
+                            onClick={() => {
+                              if (isOptionDisabled) return;
+                              handleStatusChange(index, option);
+                              setOpenDropdown(null);
+                            }}
+                            className={`px-4 py-2 text-sm transition-colors ${
+                              isOptionDisabled
+                                ? "text-gray-300 cursor-not-allowed bg-gray-50"
+                                : statusMap[index] === option
+                                  ? "text-primary font-semibold bg-orange-50/50 cursor-pointer"
+                                  : "text-secondary hover:bg-gray-50 cursor-pointer"
+                            }`}
+                          >
+                            {option}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* MCA APPROVAL */}
+                <div className="flex flex-col gap-2 relative">
+                  <span className="text-[11px] font-bold text-gray-500 tracking-wider">
+                    MCA APPROVAL
+                  </span>
+                  <div
+                    onClick={() => {
+                      if (isDisabled || isTrademarkDone) return;
+                      setOpenDropdown(
+                        openDropdown?.index === index && openDropdown?.field === "mca"
+                          ? null
+                          : { index, field: "mca" }
+                      );
+                    }}
+                    className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+                      (isDisabled || isTrademarkDone)
+                        ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                        : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
+                    }`}
+                  >
+                    <span>{companyMca}</span>
+                    <ChevronDown size={16} className="text-gray-400" />
+                  </div>
+
+                  {!isReadOnly && openDropdown?.index === index && openDropdown?.field === "mca" && (
+                    <div className="absolute left-0 right-0 z-20 mt-[68px] w-full rounded-lg bg-white shadow-lg border border-gray-100 py-1">
+                      {["Available", "Not Available", "Pending"].map((option) => (
+                        <div
+                          key={option}
+                          onClick={() => {
+                            handleMcaApprovalChange(index, option);
+                            setOpenDropdown(null);
+                          }}
+                          className={`px-4 py-2 text-sm transition-colors ${
+                            mcaApprovalMap[index] === option
+                              ? "text-primary font-semibold bg-orange-50/50 cursor-pointer"
+                              : "text-secondary hover:bg-gray-50 cursor-pointer"
+                          }`}
+                        >
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* TRADEMARK & IP */}
+                <div className="flex flex-col gap-2 relative">
+                  <span className="text-[11px] font-bold text-gray-500 tracking-wider">
+                    TRADEMARK & IP
+                  </span>
+                  <div
+                    onClick={() => {
+                      if (isDisabled || isTrademarkDone) return;
+                      setOpenDropdown(
+                        openDropdown?.index === index && openDropdown?.field === "trade"
+                          ? null
+                          : { index, field: "trade" }
+                      );
+                    }}
+                    className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+                      (isDisabled || isTrademarkDone)
+                        ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                        : companyTrade === "Conflict"
+                          ? "bg-[#fff8f8] text-[#b83232] border-[#f5c2c2] hover:border-[#e0a6a6] cursor-pointer"
+                          : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
+                    }`}
+                  >
+                    <span>{companyTrade}</span>
+                    <ChevronDown size={16} className={companyTrade === "Conflict" ? "text-[#b83232]" : "text-gray-400"} />
+                  </div>
+
+                  {!isReadOnly && openDropdown?.index === index && openDropdown?.field === "trade" && (
+                    <div className="absolute left-0 right-0 z-20 mt-[68px] w-full rounded-lg bg-white shadow-lg border border-gray-100 py-1">
+                      {["Conflict", "No Conflict", "Pending"].map((option) => (
+                        <div
+                          key={option}
+                          onClick={() => {
+                            handleTradeConflictChange(index, option);
+                            setOpenDropdown(null);
+                          }}
+                          className={`px-4 py-2 text-sm transition-colors ${
+                            tradeConflictMap[index] === option
+                              ? "text-primary font-semibold bg-orange-50/50 cursor-pointer"
+                              : "text-secondary hover:bg-gray-50 cursor-pointer"
+                          }`}
+                        >
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* COMMENTS */}
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor={`company-comment-${isReadOnly ? 'read' : 'edit'}-${index}`}
+                  className="text-[11px] font-bold text-gray-500 tracking-wider"
+                >
+                  Comments
+                </label>
+                <textarea
+                  id={`company-comment-${isReadOnly ? 'read' : 'edit'}-${index}`}
+                  aria-label={`Comments for ${company.fullName || company.name || `company ${index + 1}`}`}
+                  className={`w-full min-h-[90px] rounded-lg text-sm placeholder:text-gray-400 outline-none border p-3.5 transition-all resize-y ${
+                    isReadOnly
+                      ? "bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed"
+                      : "bg-white text-gray-900 border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                  }`}
+                  placeholder={isReadOnly ? "No comments." : "Detailed comments"}
+                  defaultValue={companyComment}
+                  disabled={isReadOnly}
+                  onBlur={async (e) => {
+                    if (isReadOnly) return;
+                    const newComment = e.target.value;
+                    if (newComment === companyComment) return;
+                    try {
+                      await clientsApi.updateCompanyComment(
+                        appNo,
+                        index,
+                        newComment,
+                      );
+                    } catch (error) {
+                      console.error("Failed to update comment", error);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   /* ---------------- UI ---------------- */
 
   return (
@@ -352,203 +572,72 @@ export default function NameApplicationContent({
         {/* LEFT SIDE */}
         <div className="lg:col-span-2">
           <div className="space-y-6">
-            {companies.map((company, index) => {
-              const hasAnyApproved = Object.values(statusMap).some((s) => s === "Approved");
-              const isDisabled = hasAnyApproved && statusMap[index] !== "Approved";
+            {/* Historical Attempts Accordions */}
+            {attempts.map((attempt) => {
+              const isOpen = expandedAttempts[attempt._id];
+              const attemptNames = [attempt.companyName1, attempt.companyName2, attempt.companyName3].filter(Boolean);
 
               return (
-                <div
-                  key={company._id || index}
-                  className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-5"
-                >
-                  {/* HEADER WITH TITLE & PRIORITY */}
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <h3 className={`text-base font-bold sm:text-lg ${isDisabled ? "text-gray-400" : "text-[#a84420]"}`}>
-                      {company.fullName || company.name}
-                    </h3>
-                  </div>
-
-                  {/* 3-COLUMN DROPDOWNS ROW */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {/* OVERALL STATUS */}
-                    <div className="flex flex-col gap-2 relative">
-                      <span className="text-[11px] font-bold text-gray-500 tracking-wider">
-                        OVERALL STATUS
-                      </span>
-                      <div
-                        onClick={() => {
-                          if (isDisabled) return;
-                          setOpenDropdown(
-                            openDropdown?.index === index && openDropdown?.field === "status"
-                              ? null
-                              : { index, field: "status" }
-                          );
-                        }}
-                        className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-                          isDisabled
-                            ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
-                            : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
-                        }`}
-                      >
-                        <span>{statusMap[index] || "Pending"}</span>
-                        <ChevronDown size={16} className="text-gray-400" />
+                <div key={attempt._id} className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-xs">
+                  <div
+                    onClick={() => setExpandedAttempts(prev => ({ ...prev, [attempt._id]: !prev[attempt._id] }))}
+                    className="flex items-center justify-between p-4 bg-slate-50/50 hover:bg-slate-50 cursor-pointer select-none border-b border-gray-100"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-bold font-mono">
+                        {attempt.attemptNumber}
                       </div>
-
-                      {openDropdown?.index === index && openDropdown?.field === "status" && (
-                        <div className="absolute left-0 right-0 z-20 mt-[68px] w-full rounded-lg bg-white shadow-lg border border-gray-100 py-1">
-                          {STATUS_OPTIONS.map((option) => {
-                            const isOptionDisabled = option === "Rejected" && !isRocReviewed;
-                            return (
-                              <div
-                                key={option}
-                                onClick={() => {
-                                  if (isOptionDisabled) return;
-                                  handleStatusChange(index, option);
-                                  setOpenDropdown(null);
-                                }}
-                                className={`px-4 py-2 text-sm transition-colors ${
-                                  isOptionDisabled
-                                    ? "text-gray-300 cursor-not-allowed bg-gray-50"
-                                    : statusMap[index] === option
-                                      ? "text-primary font-semibold bg-orange-50/50 cursor-pointer"
-                                      : "text-secondary hover:bg-gray-50 cursor-pointer"
-                                }`}
-                              >
-                                {option}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">
+                          Attempt {attempt.attemptNumber} ({attempt.companyNameStatus?.toUpperCase()})
+                        </h4>
+                        <p className="text-xs text-slate-400 font-mono mt-0.5">
+                          Submitted on {new Date(attempt.createdAt).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
-
-                    {/* MCA APPROVAL */}
-                    <div className="flex flex-col gap-2 relative">
-                      <span className="text-[11px] font-bold text-gray-500 tracking-wider">
-                        MCA APPROVAL
-                      </span>
-                      <div
-                        onClick={() => {
-                          if (isDisabled || isTrademarkDone) return;
-                          setOpenDropdown(
-                            openDropdown?.index === index && openDropdown?.field === "mca"
-                              ? null
-                              : { index, field: "mca" }
-                          );
-                        }}
-                        className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-                          (isDisabled || isTrademarkDone)
-                            ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
-                            : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
-                        }`}
-                      >
-                        <span>{mcaApprovalMap[index] || "Pending"}</span>
-                        <ChevronDown size={16} className="text-gray-400" />
-                      </div>
-
-                      {openDropdown?.index === index && openDropdown?.field === "mca" && (
-                        <div className="absolute left-0 right-0 z-20 mt-[68px] w-full rounded-lg bg-white shadow-lg border border-gray-100 py-1">
-                          {["Available", "Not Available", "Pending"].map((option) => (
-                            <div
-                              key={option}
-                              onClick={() => {
-                                handleMcaApprovalChange(index, option);
-                                setOpenDropdown(null);
-                              }}
-                              className={`px-4 py-2 text-sm transition-colors ${
-                                mcaApprovalMap[index] === option
-                                  ? "text-primary font-semibold bg-orange-50/50 cursor-pointer"
-                                  : "text-secondary hover:bg-gray-50 cursor-pointer"
-                              }`}
-                            >
-                              {option}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* TRADEMARK & IP */}
-                    <div className="flex flex-col gap-2 relative">
-                      <span className="text-[11px] font-bold text-gray-500 tracking-wider">
-                        TRADEMARK & IP
-                      </span>
-                      <div
-                        onClick={() => {
-                          if (isDisabled || isTrademarkDone) return;
-                          setOpenDropdown(
-                            openDropdown?.index === index && openDropdown?.field === "trade"
-                              ? null
-                              : { index, field: "trade" }
-                          );
-                        }}
-                        className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-                          (isDisabled || isTrademarkDone)
-                            ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
-                            : tradeConflictMap[index] === "Conflict"
-                              ? "bg-[#fff8f8] text-[#b83232] border-[#f5c2c2] hover:border-[#e0a6a6] cursor-pointer"
-                              : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
-                        }`}
-                      >
-                        <span>{tradeConflictMap[index] || "Pending"}</span>
-                        <ChevronDown size={16} className={tradeConflictMap[index] === "Conflict" ? "text-[#b83232]" : "text-gray-400"} />
-                      </div>
-
-                      {openDropdown?.index === index && openDropdown?.field === "trade" && (
-                        <div className="absolute left-0 right-0 z-20 mt-[68px] w-full rounded-lg bg-white shadow-lg border border-gray-100 py-1">
-                          {["Conflict", "No Conflict", "Pending"].map((option) => (
-                            <div
-                              key={option}
-                              onClick={() => {
-                                handleTradeConflictChange(index, option);
-                                setOpenDropdown(null);
-                              }}
-                              className={`px-4 py-2 text-sm transition-colors ${
-                                tradeConflictMap[index] === option
-                                  ? "text-primary font-semibold bg-orange-50/50 cursor-pointer"
-                                  : "text-secondary hover:bg-gray-50 cursor-pointer"
-                              }`}
-                            >
-                              {option}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                    <div>
+                      {isOpen ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
                     </div>
                   </div>
-
-                  {/* COMMENTS */}
-                  <div className="flex flex-col gap-2">
-                    <label
-                      htmlFor={`company-comment-${index}`}
-                      className="text-[11px] font-bold text-gray-500 tracking-wider"
-                    >
-                      Comments
-                    </label>
-                    <textarea
-                      id={`company-comment-${index}`}
-                      aria-label={`Comments for ${company.fullName || company.name || `company ${index + 1}`}`}
-                      className="w-full min-h-[90px] rounded-lg bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 p-3.5 focus:border-primary focus:ring-1 focus:ring-primary/20 [color-scheme:light] transition-all resize-y"
-                      placeholder="Detailed comments"
-                      defaultValue={company.comment || ""}
-                      onBlur={async (e) => {
-                        const newComment = e.target.value;
-                        if (newComment === company?.comment) return;
-                        try {
-                          await clientsApi.updateCompanyComment(
-                            appNo,
-                            index,
-                            newComment,
-                          );
-                        } catch (error) {
-                          console.error("Failed to update comment", error);
-                        }
-                      }}
-                    />
-                  </div>
+                  {isOpen && (
+                    <div className="p-6 space-y-6 bg-slate-50/10">
+                      {renderNameCards(attemptNames, true)}
+                    </div>
+                  )}
                 </div>
               );
             })}
+
+            {/* Active/Current Attempt Accordion */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-xs">
+              <div
+                onClick={() => setExpandedAttempts(prev => ({ ...prev, current: !prev.current }))}
+                className="flex items-center justify-between p-4 bg-orange-50/30 hover:bg-orange-50/50 cursor-pointer select-none border-b border-orange-100"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold font-mono">
+                    {attempts.length + 1}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-orange-950">
+                      Current Attempt (Attempt {attempts.length + 1}) — Active
+                    </h4>
+                    <p className="text-xs text-orange-700/60 font-mono mt-0.5">
+                      Currently editable tracking status
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  {expandedAttempts.current ? <ChevronUp className="w-5 h-5 text-orange-500" /> : <ChevronDown className="w-5 h-5 text-orange-500" />}
+                </div>
+              </div>
+              {expandedAttempts.current && (
+                <div className="p-6 space-y-6">
+                  {renderNameCards(companies, false)}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -687,7 +776,7 @@ export default function NameApplicationContent({
             <textarea
               id="business-brief"
               aria-label="About their business"
-              className="rounded-lg w-full bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 p-2 [color-scheme:light]"
+              className="rounded-lg w-full bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 p-2 scheme-light"
               value={businessBrief}
               disabled
             />
