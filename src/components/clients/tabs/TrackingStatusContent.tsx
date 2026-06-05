@@ -213,9 +213,10 @@ export default function TrackingStatusContent({
       );
       const updated = await clientsApi.getTrackingStatus(appNo);
       setTracker(updated);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update status", error);
-      alert("Failed to update status. Only assigned admin can do this.");
+      const errMsg = error?.response?.data?.message || error?.message || "Unknown error";
+      alert(`Failed to update status: ${errMsg}`);
     }
   };
 
@@ -227,9 +228,10 @@ export default function TrackingStatusContent({
       setNoteText("");
       const updated = await clientsApi.getTrackingStatus(appNo);
       setTracker(updated);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to add note", error);
-      alert("Failed to add note.");
+      const errMsg = error?.response?.data?.message || error?.message || "Unknown error";
+      alert(`Failed to add note: ${errMsg}`);
     } finally {
       setIsSavingNote(false);
     }
@@ -756,7 +758,18 @@ export default function TrackingStatusContent({
                                           handleStatusChange(currentStage.stageId || stage._id, section._id, step._id, val)
                                         }
                                         ariaLabel={`Status for ${step.title}`}
-                                        options={statusOptions}
+                                        options={statusOptions.filter((opt) => {
+                                          if (opt.id === "Not Available") {
+                                            return (
+                                              step.title === "MCA portal availability check" ||
+                                              step.title === "Trademark & IP India check"
+                                            );
+                                          }
+                                          if (opt.id === "Rejected") {
+                                            return step.title === "Name reservation letter received";
+                                          }
+                                          return true;
+                                        })}
                                         renderValue={(val) => (
                                           <Chip
                                             color={getStatusChipColor(val)}

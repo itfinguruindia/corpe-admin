@@ -338,13 +338,14 @@ export default function NameApplicationContent({
     return (
       <div className="space-y-6">
         {companiesList.map((company, index) => {
-          const hasAnyApproved = !isReadOnly && Object.values(statusMap).some((s) => s === "Approved");
-          const isDisabled = isReadOnly || (hasAnyApproved && statusMap[index] !== "Approved");
-
           const companyStatus = isReadOnly ? resolveStatus(company) : (statusMap[index] || "Pending");
           const companyMca = isReadOnly ? (company.mcaApproval || "Pending") : (mcaApprovalMap[index] || "Pending");
           const companyTrade = isReadOnly ? (company.tradeConflict || "Pending") : (tradeConflictMap[index] || "Pending");
           const companyComment = company.comment || "";
+
+          const hasAnyApproved = !isReadOnly && Object.values(statusMap).some((s) => s === "Approved");
+          const isDisabled = isReadOnly || (hasAnyApproved && statusMap[index] !== "Approved") || (companyMca === "Not Available" && companyTrade === "Conflict");
+          const isNameStatusDisabled = isDisabled || (!isReadOnly && !isRocReviewed);
 
           return (
             <div
@@ -369,7 +370,7 @@ export default function NameApplicationContent({
                   </span>
                   <div
                     onClick={() => {
-                      if (isDisabled) return;
+                      if (isNameStatusDisabled) return;
                       setOpenDropdown(
                         openDropdown?.index === index && openDropdown?.field === "status"
                           ? null
@@ -377,7 +378,7 @@ export default function NameApplicationContent({
                       );
                     }}
                     className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-                      isDisabled
+                      isNameStatusDisabled
                         ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
                         : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
                     }`}
@@ -521,15 +522,15 @@ export default function NameApplicationContent({
                   id={`company-comment-${isReadOnly ? 'read' : 'edit'}-${index}`}
                   aria-label={`Comments for ${company.fullName || company.name || `company ${index + 1}`}`}
                   className={`w-full min-h-[90px] rounded-lg text-sm placeholder:text-gray-400 outline-none border p-3.5 transition-all resize-y ${
-                    isReadOnly
+                    isDisabled
                       ? "bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed"
                       : "bg-white text-gray-900 border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary/20"
                   }`}
-                  placeholder={isReadOnly ? "No comments." : "Detailed comments"}
+                  placeholder={isDisabled ? (isReadOnly ? "No comments." : "Rejected — disabled") : "Detailed comments"}
                   defaultValue={companyComment}
-                  disabled={isReadOnly}
+                  disabled={isDisabled}
                   onBlur={async (e) => {
-                    if (isReadOnly) return;
+                    if (isDisabled) return;
                     const newComment = e.target.value;
                     if (newComment === companyComment) return;
                     try {
@@ -564,6 +565,7 @@ export default function NameApplicationContent({
             checked={resubmitOriginal}
             onChange={handleResubmitOriginalToggle}
             label="Submit another new names"
+            disabled={true}
           />
         </div>
       </div>
@@ -662,14 +664,25 @@ export default function NameApplicationContent({
                   title="Upload Object Clause"
                   subtitle="Upload from your computer, Google Drive, or existing documents."
                   dropLabel="Drag and drop your file here"
+                  disabled={!isTrademarkDone}
                   onBeforeOpen={() => requireClientTabEdit(admin, "app")}
                   onFileSelect={handleObjectClauseFileSelected}
                   renderTrigger={(openPicker) => (
-                    <div title="Upload Object Clause (Admin)">
+                    <div
+                      title={
+                        isTrademarkDone
+                          ? "Upload Object Clause (Admin)"
+                          : "Available after Trademark & IP check is marked Done"
+                      }
+                    >
                       <Upload
                         size={20}
-                        onClick={openPicker}
-                        className="cursor-pointer text-primary hover:text-secondary"
+                        onClick={isTrademarkDone ? openPicker : undefined}
+                        className={
+                          isTrademarkDone
+                            ? "cursor-pointer text-primary hover:text-secondary"
+                            : "cursor-not-allowed text-gray-300 opacity-50"
+                        }
                       />
                     </div>
                   )}
