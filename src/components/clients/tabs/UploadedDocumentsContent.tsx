@@ -30,7 +30,27 @@ const OFFICE_DOC_LABELS: Record<OfficeDocType, string> = {
 
 function getFileName(value?: string) {
   if (!value) return "";
-  return value.split("/").pop() || value;
+  const cleaned = value.replace(/^\.\//, "");
+  return cleaned.split("/").pop() || cleaned;
+}
+
+function normalizeUploadedDoc(
+  doc: UploadedDoc | null | undefined,
+): UploadedDoc | null {
+  if (!doc) return null;
+  const name = getFileName(doc.name || doc.path);
+  if (!name && !doc.path) return null;
+  return { ...doc, name: name || doc.name };
+}
+
+function isStoredInS3(doc: UploadedDoc | null | undefined): boolean {
+  const path = (doc?.path || "").trim();
+  if (!path) return false;
+  return (
+    path.startsWith("/") ||
+    path.startsWith("org/") ||
+    path.startsWith("admin/")
+  );
 }
 
 function ClientUploadCard({
@@ -44,7 +64,9 @@ function ClientUploadCard({
   onPreview: () => void;
   onDownload: () => void;
 }) {
-  if (file?.path || file?.name) {
+  const displayName = getFileName(file?.name || file?.path);
+  const canDownload = isStoredInS3(file);
+  if (displayName) {
     return (
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
         <div className="mb-1 flex items-center justify-between">
@@ -52,29 +74,41 @@ function ClientUploadCard({
             👤 Client Upload
           </span>
           <div className="flex items-center gap-2">
-            <div title="Preview">
+            <div title={canDownload ? "Preview" : "Re-upload required from client app"}>
               <Eye
                 size={16}
-                onClick={onPreview}
-                className="cursor-pointer text-blue-600 hover:text-blue-700"
+                onClick={canDownload ? onPreview : undefined}
+                className={
+                  canDownload
+                    ? "cursor-pointer text-blue-600 hover:text-blue-700"
+                    : "cursor-not-allowed text-gray-300"
+                }
               />
             </div>
-            <div title="Download">
+            <div title={canDownload ? "Download" : "Re-upload required from client app"}>
               <Download
                 size={16}
-                onClick={onDownload}
-                className="cursor-pointer text-blue-600 hover:text-blue-700"
+                onClick={canDownload ? onDownload : undefined}
+                className={
+                  canDownload
+                    ? "cursor-pointer text-blue-600 hover:text-blue-700"
+                    : "cursor-not-allowed text-gray-300"
+                }
               />
             </div>
           </div>
         </div>
         <p className="truncate text-sm font-medium text-secondary">{label}</p>
-        <div className="truncate text-sm text-secondary">
-          {getFileName(file.name)}
-        </div>
-        {file.uploadedAt && (
+        <div className="truncate text-sm text-secondary">{displayName}</div>
+        {file?.uploadedAt && (
           <div className="mt-1 text-xs text-blue-600">
             {new Date(file.uploadedAt).toLocaleDateString()}
+          </div>
+        )}
+        {!canDownload && (
+          <div className="mt-1 text-xs text-amber-600">
+            File metadata saved but not uploaded to storage. Client must
+            re-upload.
           </div>
         )}
       </div>
@@ -115,10 +149,14 @@ export default function UploadedDocumentsContent({
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [peopleResponse, corporateStructure] = await Promise.all([
-          clientsApi.getDirectorAndShareHolders(appNo),
-          clientsApi.getCorporateStructure(appNo).catch(() => null),
-        ]);
+        const peopleResponse = await clientsApi.getDirectorAndShareHolders(appNo);
+
+        let corporateStructure = null;
+        try {
+          corporateStructure = await clientsApi.getCorporateStructure(appNo);
+        } catch (structureError) {
+          console.error("Failed to load registered office documents:", structureError);
+        }
 
         if (peopleResponse?.data) {
           const mappedDirectors = (peopleResponse.data.directors || []).map(
@@ -142,9 +180,14 @@ export default function UploadedDocumentsContent({
         const office = corporateStructure?.registeredOffice;
         if (office) {
           setElectricityBill(
-            office.proofOfOffice || office.proofFile || null,
+            normalizeUploadedDoc(office.proofOfOffice || office.proofFile),
           );
-          setNocDocument(office.proofOfOfficeAddress || null);
+          setNocDocument(
+            normalizeUploadedDoc(office.proofOfOfficeAddress),
+          );
+        } else {
+          setElectricityBill(null);
+          setNocDocument(null);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -181,7 +224,9 @@ export default function UploadedDocumentsContent({
       toast.success("Downloaded successfully");
     } catch (error) {
       console.error("Failed to download document:", error);
-      toast.danger("No file uploaded yet or download failed.");
+      toast.danger(
+        "File not found in storage. Ask the client to re-upload this document.",
+      );
     }
   };
 
@@ -197,7 +242,9 @@ export default function UploadedDocumentsContent({
       setIsPreviewOpen(true);
     } catch (error) {
       console.error("Failed to preview document:", error);
-      toast.danger("No file uploaded yet or preview failed.");
+      toast.danger(
+        "File not found in storage. Ask the client to re-upload this document.",
+      );
     }
   };
 
@@ -217,7 +264,10 @@ export default function UploadedDocumentsContent({
     );
   }
 
-  const hasOfficeDocs = Boolean(electricityBill?.path || nocDocument?.path);
+  const hasOfficeDocs = Boolean(
+    getFileName(electricityBill?.name || electricityBill?.path) ||
+      getFileName(nocDocument?.name || nocDocument?.path),
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
