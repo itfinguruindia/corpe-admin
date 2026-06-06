@@ -638,6 +638,53 @@ export const clientsApi = {
     return response.data as Blob;
   },
 
+  // Download corporate structure document
+  downloadCorporateStructureDocument: async (
+    applicationNo: string,
+    docType: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/corporate-structure/download/${docType}`,
+      {
+        responseType: "blob",
+      },
+    );
+    return response.data as Blob;
+  },
+
+  // Upload corporate structure document
+  uploadCorporateStructureDocument: async (
+    applicationNo: string,
+    docType: string,
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("document", file);
+    formData.append("proof", file);
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/corporate-structure/upload/${docType}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  // Delete corporate structure document
+  deleteCorporateStructureDocument: async (
+    applicationNo: string,
+    docType: string,
+  ) => {
+    const response = await axiosInstance.delete(
+      `/admin/clients/${applicationNo}/corporate-structure/delete/${docType}`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
   // Get tracking status by appNo
   getTrackingStatus: async (applicationNo: string) => {
     const response = await axiosInstance.get(`/admin/tracker/app/${applicationNo}`);

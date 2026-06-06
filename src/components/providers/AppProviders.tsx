@@ -11,7 +11,7 @@ export default function AppProviders({
   return (
     <ReduxProvider>
       {children}
-      <Toast.Provider placement="top end" />
+      <Toast.Provider placement="bottom end" />
     </ReduxProvider>
   );
 }

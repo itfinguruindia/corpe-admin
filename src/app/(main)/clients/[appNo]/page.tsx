@@ -17,10 +17,10 @@ import PricingAndPaymentContent from "@/components/clients/tabs/PricingAndPaymen
 const TABS = [
   { key: "company-overview", label: "Company Overview" },
   { key: "directors", label: "Directors" },
+  { key: "shareholders", label: "Shareholders" },
   { key: "moa-aoa", label: "MOA & AOA" },
   { key: "tracking-status", label: "Tracking Status" },
   { key: "application", label: "Name Application" },
-  { key: "shareholders", label: "Shareholders" },
   { key: "uploaded-documents", label: "Uploaded Documents" },
   { key: "registration-documents", label: "Registration Documents" },
   { key: "pricing-and-payment", label: "Pricing & Payment" },
