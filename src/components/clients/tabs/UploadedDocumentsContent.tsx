@@ -2,7 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Users, UserCheck, Eye, Download, FileText, Trash2, Upload } from "lucide-react";
+import {
+  Users,
+  UserCheck,
+  Eye,
+  Download,
+  FileText,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { Spinner, toast } from "@heroui/react";
 
 import { clientsApi } from "@/lib/api/clients";
@@ -21,8 +29,12 @@ export default function UploadedDocumentsContent({
 }: UploadedDocumentsContentProps) {
   const router = useRouter();
   const { admin } = usePermissions();
-  const [directors, setDirectors] = useState<{ id: string; directorNumber: number }[]>([]);
-  const [shareholders, setShareholders] = useState<{ id: string; shareholderNumber: number }[]>([]);
+  const [directors, setDirectors] = useState<
+    { id: string; directorNumber: number }[]
+  >([]);
+  const [shareholders, setShareholders] = useState<
+    { id: string; shareholderNumber: number }[]
+  >([]);
   const [officeDocs, setOfficeDocs] = useState<{
     proofOfOffice?: { name: string; path: string } | null;
     proofOfOfficeAddress?: { name: string; path: string } | null;
@@ -67,11 +79,14 @@ export default function UploadedDocumentsContent({
         }
 
         if (overviewResponse && overviewResponse.data) {
-          const registeredOffice = overviewResponse.data.corporateStructure?.registeredOffice;
+          const registeredOffice =
+            overviewResponse.data.corporateStructure?.registeredOffice;
           setOfficeDocs({
             proofOfOffice: registeredOffice?.proofOfOffice ?? null,
-            proofOfOfficeAddress: registeredOffice?.proofOfOfficeAddress ?? null,
-            proofOfOfficeAddressAdminDraft: registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
+            proofOfOfficeAddress:
+              registeredOffice?.proofOfOfficeAddress ?? null,
+            proofOfOfficeAddressAdminDraft:
+              registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
           });
         }
       } catch (error) {
@@ -92,9 +107,16 @@ export default function UploadedDocumentsContent({
     router.push(`/clients/${appNo}/shareholders/${shareholder.id}/documents`);
   };
 
-  const handleDocPreview = async (docType: string, documentType: string, fileName: string) => {
+  const handleDocPreview = async (
+    docType: string,
+    documentType: string,
+    fileName: string,
+  ) => {
     try {
-      const blob = await clientsApi.downloadCorporateStructureDocument(appNo, docType);
+      const blob = await clientsApi.downloadCorporateStructureDocument(
+        appNo,
+        docType,
+      );
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
       setPreviewFileName(fileName);
@@ -108,7 +130,10 @@ export default function UploadedDocumentsContent({
 
   const handleDocDownload = async (docType: string, fileName: string) => {
     try {
-      const blob = await clientsApi.downloadCorporateStructureDocument(appNo, docType);
+      const blob = await clientsApi.downloadCorporateStructureDocument(
+        appNo,
+        docType,
+      );
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -138,11 +163,14 @@ export default function UploadedDocumentsContent({
         // Reload data to reflect the changes
         const overviewResponse = await clientsApi.getCompanyOverview(appNo);
         if (overviewResponse && overviewResponse.data) {
-          const registeredOffice = overviewResponse.data.corporateStructure?.registeredOffice;
+          const registeredOffice =
+            overviewResponse.data.corporateStructure?.registeredOffice;
           setOfficeDocs({
             proofOfOffice: registeredOffice?.proofOfOffice ?? null,
-            proofOfOfficeAddress: registeredOffice?.proofOfOfficeAddress ?? null,
-            proofOfOfficeAddressAdminDraft: registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
+            proofOfOfficeAddress:
+              registeredOffice?.proofOfOfficeAddress ?? null,
+            proofOfOfficeAddressAdminDraft:
+              registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
           });
         }
       } catch (error) {
@@ -166,11 +194,13 @@ export default function UploadedDocumentsContent({
       // Reload data
       const overviewResponse = await clientsApi.getCompanyOverview(appNo);
       if (overviewResponse && overviewResponse.data) {
-        const registeredOffice = overviewResponse.data.corporateStructure?.registeredOffice;
+        const registeredOffice =
+          overviewResponse.data.corporateStructure?.registeredOffice;
         setOfficeDocs({
           proofOfOffice: registeredOffice?.proofOfOffice ?? null,
           proofOfOfficeAddress: registeredOffice?.proofOfOfficeAddress ?? null,
-          proofOfOfficeAddressAdminDraft: registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
+          proofOfOfficeAddressAdminDraft:
+            registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
         });
       }
     } catch (error) {
@@ -183,7 +213,7 @@ export default function UploadedDocumentsContent({
     label: string,
     docType: string,
     fileObj: { name: string; path: string } | null | undefined,
-    allowUpload: boolean = true
+    allowUpload: boolean = true,
   ) => {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[180px]">
@@ -214,12 +244,17 @@ export default function UploadedDocumentsContent({
           {fileObj ? (
             <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex items-center gap-2">
               <FileText className="w-5 h-5 text-gray-400 shrink-0" />
-              <p className="text-sm text-gray-600 truncate flex-1" title={fileObj.name}>
+              <p
+                className="text-sm text-gray-600 truncate flex-1"
+                title={fileObj.name}
+              >
                 {fileObj.name}
               </p>
             </div>
           ) : (
-            <p className="text-sm text-gray-400 italic">No document uploaded yet</p>
+            <p className="text-sm text-gray-400 italic">
+              No document uploaded yet
+            </p>
           )}
         </div>
 
@@ -250,7 +285,7 @@ export default function UploadedDocumentsContent({
     docTypeClient: string,
     docTypeAdmin: string,
     clientFile: { name: string; path: string } | null | undefined,
-    adminFile: { name: string; path: string } | null | undefined
+    adminFile: { name: string; path: string } | null | undefined,
   ) => {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[180px]">
@@ -258,7 +293,7 @@ export default function UploadedDocumentsContent({
           <div className="flex items-start justify-between gap-4 mb-4">
             <h3 className="text-base font-bold text-secondary">{label}</h3>
           </div>
-          
+
           <div className="space-y-4">
             {/* Admin Template Slot */}
             <div className="border border-orange-100 bg-orange-50/20 rounded-xl p-4">
@@ -268,7 +303,9 @@ export default function UploadedDocumentsContent({
                 </span>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleDocUpload(docTypeAdmin, "Admin Template")}
+                    onClick={() =>
+                      handleDocUpload(docTypeAdmin, "Admin Template")
+                    }
                     title="Upload template"
                     className="p-1.5 text-gray-500 hover:text-primary hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
                   >
@@ -276,7 +313,9 @@ export default function UploadedDocumentsContent({
                   </button>
                   {adminFile && (
                     <button
-                      onClick={() => handleDocDelete(docTypeAdmin, "Admin Template")}
+                      onClick={() =>
+                        handleDocDelete(docTypeAdmin, "Admin Template")
+                      }
                       title="Delete template"
                       className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                     >
@@ -285,25 +324,36 @@ export default function UploadedDocumentsContent({
                   )}
                 </div>
               </div>
-              
+
               {adminFile ? (
                 <div className="bg-white border border-orange-100 rounded-lg p-3 flex items-center justify-between gap-2 shadow-xs">
                   <div className="flex items-center gap-2 truncate">
                     <FileText className="w-5 h-5 text-orange-400 shrink-0" />
-                    <p className="text-sm text-gray-600 truncate" title={adminFile.name}>
+                    <p
+                      className="text-sm text-gray-600 truncate"
+                      title={adminFile.name}
+                    >
                       {adminFile.name}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <button
-                      onClick={() => handleDocPreview(docTypeAdmin, "Admin Template", adminFile.name)}
+                      onClick={() =>
+                        handleDocPreview(
+                          docTypeAdmin,
+                          "Admin Template",
+                          adminFile.name,
+                        )
+                      }
                       className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-secondary transition-colors cursor-pointer"
                     >
                       <Eye className="w-4 h-4" />
                       Preview
                     </button>
                     <button
-                      onClick={() => handleDocDownload(docTypeAdmin, adminFile.name)}
+                      onClick={() =>
+                        handleDocDownload(docTypeAdmin, adminFile.name)
+                      }
                       className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-secondary transition-colors cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
@@ -312,7 +362,10 @@ export default function UploadedDocumentsContent({
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-400 italic pl-1">No template uploaded yet. (Upload required to enable client upload)</p>
+                <p className="text-sm text-gray-400 italic pl-1">
+                  No template uploaded yet. (Upload required to enable client
+                  upload)
+                </p>
               )}
             </div>
 
@@ -325,7 +378,9 @@ export default function UploadedDocumentsContent({
                 <div className="flex items-center gap-2">
                   {clientFile && (
                     <button
-                      onClick={() => handleDocDelete(docTypeClient, "Client Signed Copy")}
+                      onClick={() =>
+                        handleDocDelete(docTypeClient, "Client Signed Copy")
+                      }
                       title="Delete client copy"
                       className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                     >
@@ -339,20 +394,31 @@ export default function UploadedDocumentsContent({
                 <div className="bg-white border border-blue-100 rounded-lg p-3 flex items-center justify-between gap-2 shadow-xs">
                   <div className="flex items-center gap-2 truncate">
                     <FileText className="w-5 h-5 text-blue-400 shrink-0" />
-                    <p className="text-sm text-gray-600 truncate" title={clientFile.name}>
+                    <p
+                      className="text-sm text-gray-600 truncate"
+                      title={clientFile.name}
+                    >
                       {clientFile.name}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <button
-                      onClick={() => handleDocPreview(docTypeClient, "Client Signed Copy", clientFile.name)}
+                      onClick={() =>
+                        handleDocPreview(
+                          docTypeClient,
+                          "Client Signed Copy",
+                          clientFile.name,
+                        )
+                      }
                       className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-secondary transition-colors cursor-pointer"
                     >
                       <Eye className="w-4 h-4" />
                       Preview
                     </button>
                     <button
-                      onClick={() => handleDocDownload(docTypeClient, clientFile.name)}
+                      onClick={() =>
+                        handleDocDownload(docTypeClient, clientFile.name)
+                      }
                       className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-secondary transition-colors cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
@@ -361,7 +427,9 @@ export default function UploadedDocumentsContent({
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-400 italic pl-1">No document uploaded yet</p>
+                <p className="text-sm text-gray-400 italic pl-1">
+                  No document uploaded yet
+                </p>
               )}
             </div>
           </div>
@@ -382,7 +450,10 @@ export default function UploadedDocumentsContent({
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-10">
-          <p className="text-gray-500 mt-2 text-lg">Manage and view uploaded documents for directors, shareholders, and registered office proofs.</p>
+          <p className="text-gray-500 mt-2 text-lg">
+            Manage and view uploaded documents for directors, shareholders, and
+            registered office proofs.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
@@ -420,7 +491,9 @@ export default function UploadedDocumentsContent({
               <div className="bg-blue-50 p-2 rounded-lg">
                 <Users className="text-blue-600 w-6 h-6" />
               </div>
-              <h2 className="text-2xl font-bold text-secondary">Shareholders</h2>
+              <h2 className="text-2xl font-bold text-secondary">
+                Shareholders
+              </h2>
               <span className="bg-gray-200 text-gray-700 px-3 py-0.5 rounded-full text-sm font-medium ml-auto">
                 {shareholders.length}
               </span>
@@ -449,26 +522,36 @@ export default function UploadedDocumentsContent({
             <div className="bg-amber-50 p-2 rounded-lg">
               <FileText className="text-amber-600 w-6 h-6" />
             </div>
-            <h2 className="text-2xl font-bold text-secondary">Registered Office Documents</h2>
+            <h2 className="text-2xl font-bold text-secondary">
+              Registered Office Documents
+            </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {renderOfficeDocCard("Upload latest electricity bill", "proofOfOffice", officeDocs.proofOfOffice, false)}
+            {renderOfficeDocCard(
+              "Upload latest electricity bill",
+              "proofOfOffice",
+              officeDocs.proofOfOffice,
+              false,
+            )}
             {renderDualOfficeDocCard(
               "Proof of office address along with NOC, if applicable (Conveyance/ Lease deed/ Rent Agreement along with rent receipts)",
               "proofOfOfficeAddress",
               "proofOfOfficeAddressAdminDraft",
               officeDocs.proofOfOfficeAddress,
-              officeDocs.proofOfOfficeAddressAdminDraft
+              officeDocs.proofOfOfficeAddressAdminDraft,
             )}
           </div>
         </section>
 
-        {directors.length === 0 && shareholders.length === 0 && !officeDocs.proofOfOffice && !officeDocs.proofOfOfficeAddress && (
-          <div className="mt-20">
-            <EmptyState message="No entities or registered office documents found. Please check the application status." />
-          </div>
-        )}
+        {directors.length === 0 &&
+          shareholders.length === 0 &&
+          !officeDocs.proofOfOffice &&
+          !officeDocs.proofOfOfficeAddress && (
+            <div className="mt-20">
+              <EmptyState message="No entities or registered office documents found. Please check the application status." />
+            </div>
+          )}
       </div>
 
       {/* Preview Modal */}
@@ -504,7 +587,9 @@ export default function UploadedDocumentsContent({
 
             {getFileType(previewFileName) === "other" && (
               <div className="flex flex-col items-center justify-center p-8">
-                <p className="text-gray-500 mb-4">No online preview available for this file type.</p>
+                <p className="text-gray-500 mb-4">
+                  No online preview available for this file type.
+                </p>
                 <button
                   onClick={() => {
                     const link = document.createElement("a");
