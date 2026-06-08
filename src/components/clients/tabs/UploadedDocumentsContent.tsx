@@ -2,192 +2,94 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Users, UserCheck, Download, Eye } from "lucide-react";
+import {
+  Users,
+  UserCheck,
+  Eye,
+  Download,
+  FileText,
+  RefreshCw,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { Spinner, toast } from "@heroui/react";
 
 import { clientsApi } from "@/lib/api/clients";
 import TabCard from "@/components/dashboard/TabCard";
 import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
+import { usePermissions } from "@/hooks/usePermissions";
+import { requireClientTabEdit } from "@/utils/clientPermissions";
 
 interface UploadedDocumentsContentProps {
   appNo: string;
-}
-
-interface UploadedDoc {
-  name?: string;
-  path?: string;
-  uploadedAt?: string;
-}
-
-type OfficeDocType = "proofOfOffice" | "proofOfOfficeAddress";
-
-const OFFICE_DOC_LABELS: Record<OfficeDocType, string> = {
-  proofOfOffice: "Latest Electricity Bill",
-  proofOfOfficeAddress:
-    "Proof of Office Address with NOC (Conveyance / Lease deed / Rent Agreement)",
-};
-
-function getFileName(value?: string) {
-  if (!value) return "";
-  const cleaned = value.replace(/^\.\//, "");
-  return cleaned.split("/").pop() || cleaned;
-}
-
-function normalizeUploadedDoc(
-  doc: UploadedDoc | null | undefined,
-): UploadedDoc | null {
-  if (!doc) return null;
-  const name = getFileName(doc.name || doc.path);
-  if (!name && !doc.path) return null;
-  return { ...doc, name: name || doc.name };
-}
-
-function isStoredInS3(doc: UploadedDoc | null | undefined): boolean {
-  const path = (doc?.path || "").trim();
-  if (!path) return false;
-  return (
-    path.startsWith("/") ||
-    path.startsWith("org/") ||
-    path.startsWith("admin/")
-  );
-}
-
-function ClientUploadCard({
-  label,
-  file,
-  onPreview,
-  onDownload,
-}: {
-  label: string;
-  file: UploadedDoc | null;
-  onPreview: () => void;
-  onDownload: () => void;
-}) {
-  const displayName = getFileName(file?.name || file?.path);
-  const canDownload = isStoredInS3(file);
-  if (displayName) {
-    return (
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-xs font-semibold text-blue-700">
-            👤 Client Upload
-          </span>
-          <div className="flex items-center gap-2">
-            <div title={canDownload ? "Preview" : "Re-upload required from client app"}>
-              <Eye
-                size={16}
-                onClick={canDownload ? onPreview : undefined}
-                className={
-                  canDownload
-                    ? "cursor-pointer text-blue-600 hover:text-blue-700"
-                    : "cursor-not-allowed text-gray-300"
-                }
-              />
-            </div>
-            <div title={canDownload ? "Download" : "Re-upload required from client app"}>
-              <Download
-                size={16}
-                onClick={canDownload ? onDownload : undefined}
-                className={
-                  canDownload
-                    ? "cursor-pointer text-blue-600 hover:text-blue-700"
-                    : "cursor-not-allowed text-gray-300"
-                }
-              />
-            </div>
-          </div>
-        </div>
-        <p className="truncate text-sm font-medium text-secondary">{label}</p>
-        <div className="truncate text-sm text-secondary">{displayName}</div>
-        {file?.uploadedAt && (
-          <div className="mt-1 text-xs text-blue-600">
-            {new Date(file.uploadedAt).toLocaleDateString()}
-          </div>
-        )}
-        {!canDownload && (
-          <div className="mt-1 text-xs text-amber-600">
-            File metadata saved but not uploaded to storage. Client must
-            re-upload.
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
-      <div className="mb-1 text-xs font-medium text-gray-400">
-        👤 Client Upload
-      </div>
-      <p className="text-sm font-medium text-gray-500">{label}</p>
-      <div className="text-sm text-gray-400">No file uploaded</div>
-    </div>
-  );
 }
 
 export default function UploadedDocumentsContent({
   appNo,
 }: UploadedDocumentsContentProps) {
   const router = useRouter();
+  const { admin } = usePermissions();
   const [directors, setDirectors] = useState<
     { id: string; directorNumber: number }[]
   >([]);
   const [shareholders, setShareholders] = useState<
     { id: string; shareholderNumber: number }[]
   >([]);
-  const [electricityBill, setElectricityBill] = useState<UploadedDoc | null>(
-    null,
-  );
-  const [nocDocument, setNocDocument] = useState<UploadedDoc | null>(null);
+  const [officeDocs, setOfficeDocs] = useState<{
+    proofOfOffice?: { name: string; path: string } | null;
+    proofOfOfficeAddress?: { name: string; path: string } | null;
+    proofOfOfficeAddressAdminDraft?: { name: string; path: string } | null;
+  }>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Preview Modal States
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState("");
   const [previewFileName, setPreviewFileName] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const peopleResponse = await clientsApi.getDirectorAndShareHolders(appNo);
+        const [response, overviewResponse] = await Promise.all([
+          clientsApi.getDirectorAndShareHolders(appNo),
+          clientsApi.getCompanyOverview(appNo),
+        ]);
 
-        let corporateStructure = null;
-        try {
-          corporateStructure = await clientsApi.getCorporateStructure(appNo);
-        } catch (structureError) {
-          console.error("Failed to load registered office documents:", structureError);
-        }
-
-        if (peopleResponse?.data) {
-          const mappedDirectors = (peopleResponse.data.directors || []).map(
-            (d: { directorId?: string }, idx: number) => ({
+        if (response && response.data) {
+          // Map directors
+          const mappedDirectors = (response.data.directors || []).map(
+            (d: any, idx: number) => ({
               id: d.directorId || `${idx}`,
               directorNumber: idx + 1,
             }),
           );
 
-          const mappedShareholders = (
-            peopleResponse.data.shareholders || []
-          ).map((s: { shareholderId?: string }, idx: number) => ({
-            id: s.shareholderId || `${idx}`,
-            shareholderNumber: idx + 1,
-          }));
+          // Map shareholders
+          const mappedShareholders = (response.data.shareholders || []).map(
+            (s: any, idx: number) => ({
+              id: s.shareholderId || `${idx}`,
+              shareholderNumber: idx + 1,
+            }),
+          );
 
           setDirectors(mappedDirectors);
           setShareholders(mappedShareholders);
         }
 
-        const office = corporateStructure?.registeredOffice;
-        if (office) {
-          setElectricityBill(
-            normalizeUploadedDoc(office.proofOfOffice || office.proofFile),
-          );
-          setNocDocument(
-            normalizeUploadedDoc(office.proofOfOfficeAddress),
-          );
-        } else {
-          setElectricityBill(null);
-          setNocDocument(null);
+        if (overviewResponse && overviewResponse.data) {
+          const registeredOffice =
+            overviewResponse.data.corporateStructure?.registeredOffice;
+          setOfficeDocs({
+            proofOfOffice: registeredOffice?.proofOfOffice ?? null,
+            proofOfOfficeAddress:
+              registeredOffice?.proofOfOfficeAddress ?? null,
+            proofOfOfficeAddressAdminDraft:
+              registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
+          });
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -207,97 +109,414 @@ export default function UploadedDocumentsContent({
     router.push(`/clients/${appNo}/shareholders/${shareholder.id}/documents`);
   };
 
-  const handleDownload = async (docType: OfficeDocType, file?: UploadedDoc | null) => {
+  const handleDocPreview = async (
+    docType: string,
+    documentType: string,
+    fileName: string,
+  ) => {
     try {
       const blob = await clientsApi.downloadCorporateStructureDocument(
         appNo,
         docType,
       );
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = getFileName(file?.name) || `${docType}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success("Downloaded successfully");
-    } catch (error) {
-      console.error("Failed to download document:", error);
-      toast.danger(
-        "File not found in storage. Ask the client to re-upload this document.",
-      );
-    }
-  };
-
-  const handlePreview = async (docType: OfficeDocType, file?: UploadedDoc | null) => {
-    try {
-      const blob = await clientsApi.downloadCorporateStructureDocument(
-        appNo,
-        docType,
-      );
-      const url = window.URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
-      setPreviewFileName(getFileName(file?.name) || `${docType}.pdf`);
+      setPreviewFileName(fileName);
+      setPreviewTitle(documentType);
       setIsPreviewOpen(true);
     } catch (error) {
       console.error("Failed to preview document:", error);
-      toast.danger(
-        "File not found in storage. Ask the client to re-upload this document.",
-      );
+      toast.danger("Could not open document.");
     }
   };
 
-  const closePreview = () => {
-    setIsPreviewOpen(false);
-    if (previewUrl) {
-      window.URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
+  const handleDocDownload = async (docType: string, fileName: string) => {
+    try {
+      const blob = await clientsApi.downloadCorporateStructureDocument(
+        appNo,
+        docType,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName || `${docType}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Document downloaded successfully.");
+    } catch (error) {
+      console.error("Failed to download document:", error);
+      toast.danger("Could not download document.");
     }
+  };
+
+  const handleDocUpload = (docType: string, label: string) => {
+    if (!requireClientTabEdit(admin, "company")) return;
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".pdf,.jpg,.jpeg,.png";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        await clientsApi.uploadCorporateStructureDocument(appNo, docType, file);
+        toast.success(`${label} uploaded successfully.`);
+        // Reload data to reflect the changes
+        const overviewResponse = await clientsApi.getCompanyOverview(appNo);
+        if (overviewResponse && overviewResponse.data) {
+          const registeredOffice =
+            overviewResponse.data.corporateStructure?.registeredOffice;
+          setOfficeDocs({
+            proofOfOffice: registeredOffice?.proofOfOffice ?? null,
+            proofOfOfficeAddress:
+              registeredOffice?.proofOfOfficeAddress ?? null,
+            proofOfOfficeAddressAdminDraft:
+              registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
+          });
+        }
+      } catch (error) {
+        console.error("Error uploading document:", error);
+        toast.danger(`Failed to upload ${label}.`);
+      }
+    };
+    input.click();
+  };
+
+  const handleDocDelete = async (docType: string, label: string) => {
+    if (!requireClientTabEdit(admin, "company")) return;
+
+    if (!confirm(`Are you sure you want to delete the ${label}?`)) {
+      return;
+    }
+
+    try {
+      await clientsApi.deleteCorporateStructureDocument(appNo, docType);
+      toast.success(`${label} deleted successfully.`);
+      // Reload data
+      const overviewResponse = await clientsApi.getCompanyOverview(appNo);
+      if (overviewResponse && overviewResponse.data) {
+        const registeredOffice =
+          overviewResponse.data.corporateStructure?.registeredOffice;
+        setOfficeDocs({
+          proofOfOffice: registeredOffice?.proofOfOffice ?? null,
+          proofOfOfficeAddress: registeredOffice?.proofOfOfficeAddress ?? null,
+          proofOfOfficeAddressAdminDraft:
+            registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast.danger(`Failed to delete ${label}.`);
+    }
+  };
+
+  const loadOfficeDocs = async () => {
+    const overviewResponse = await clientsApi.getCompanyOverview(appNo);
+    if (overviewResponse && overviewResponse.data) {
+      const registeredOffice =
+        overviewResponse.data.corporateStructure?.registeredOffice;
+      setOfficeDocs({
+        proofOfOffice: registeredOffice?.proofOfOffice ?? null,
+        proofOfOfficeAddress: registeredOffice?.proofOfOfficeAddress ?? null,
+        proofOfOfficeAddressAdminDraft:
+          registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
+      });
+    }
+  };
+
+  const refreshOfficeDocs = async () => {
+    try {
+      setIsRefreshing(true);
+      await loadOfficeDocs();
+      toast.success("Office documents refreshed");
+    } catch (error) {
+      console.error("Error refreshing office documents:", error);
+      toast.danger("Failed to refresh office documents.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const renderOfficeDocCard = (
+    label: string,
+    docType: string,
+    fileObj: { name: string; path: string } | null | undefined,
+    allowUpload: boolean = true,
+  ) => {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[180px]">
+        <div>
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <h3 className="text-base font-bold text-secondary">{label}</h3>
+            <div className="flex items-center gap-2 shrink-0">
+              {allowUpload && (
+                <button
+                  onClick={() => handleDocUpload(docType, label)}
+                  title="Upload document"
+                  className="p-1.5 text-gray-500 hover:text-primary hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Upload className="w-4 h-4" />
+                </button>
+              )}
+              {fileObj && (
+                <button
+                  onClick={() => handleDocDelete(docType, label)}
+                  title="Delete document"
+                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+          {fileObj ? (
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-gray-400 shrink-0" />
+              <p
+                className="text-sm text-gray-600 truncate flex-1"
+                title={fileObj.name}
+              >
+                {fileObj.name}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 italic">
+              No document uploaded yet
+            </p>
+          )}
+        </div>
+
+        {fileObj && (
+          <div className="flex items-center gap-4 mt-4 border-t pt-4 border-gray-100">
+            <button
+              onClick={() => handleDocPreview(docType, label, fileObj.name)}
+              className="flex items-center gap-2 text-sm font-semibold text-primary hover:text-secondary transition-colors cursor-pointer"
+            >
+              <Eye className="w-4 h-4" />
+              Preview
+            </button>
+            <button
+              onClick={() => handleDocDownload(docType, fileObj.name)}
+              className="flex items-center gap-2 text-sm font-semibold text-primary hover:text-secondary transition-colors cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              Download
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDualOfficeDocCard = (
+    label: string,
+    docTypeClient: string,
+    docTypeAdmin: string,
+    clientFile: { name: string; path: string } | null | undefined,
+    adminFile: { name: string; path: string } | null | undefined,
+    onRefresh?: () => void,
+    refreshing?: boolean,
+  ) => {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[180px]">
+        <div>
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <h3 className="text-base font-bold text-secondary">{label}</h3>
+            {onRefresh && (
+              <div title="Refresh status" className="shrink-0">
+                <RefreshCw
+                  size={18}
+                  onClick={refreshing ? undefined : onRefresh}
+                  className={`cursor-pointer text-secondary hover:text-primary ${refreshing ? "animate-spin" : ""}`}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {/* Admin Template Slot */}
+            <div className="border border-orange-100 bg-orange-50/20 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-orange-700 tracking-wider">
+                  📤 ADMIN TEMPLATE
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() =>
+                      handleDocUpload(docTypeAdmin, "Admin Template")
+                    }
+                    title="Upload template"
+                    className="p-1.5 text-gray-500 hover:text-primary hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Upload className="w-4 h-4" />
+                  </button>
+                  {adminFile && (
+                    <button
+                      onClick={() =>
+                        handleDocDelete(docTypeAdmin, "Admin Template")
+                      }
+                      title="Delete template"
+                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {adminFile ? (
+                <div className="bg-white border border-orange-100 rounded-lg p-3 flex items-center justify-between gap-2 shadow-xs">
+                  <div className="flex items-center gap-2 truncate">
+                    <FileText className="w-5 h-5 text-orange-400 shrink-0" />
+                    <p
+                      className="text-sm text-gray-600 truncate"
+                      title={adminFile.name}
+                    >
+                      {adminFile.name}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <button
+                      onClick={() =>
+                        handleDocPreview(
+                          docTypeAdmin,
+                          "Admin Template",
+                          adminFile.name,
+                        )
+                      }
+                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-secondary transition-colors cursor-pointer"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Preview
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleDocDownload(docTypeAdmin, adminFile.name)
+                      }
+                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-secondary transition-colors cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 italic pl-1">
+                  No template uploaded yet. (Upload required to enable client
+                  upload)
+                </p>
+              )}
+            </div>
+
+            {/* Client Signed Copy Slot */}
+            <div className="border border-blue-100 bg-blue-50/20 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-blue-700 tracking-wider">
+                  👤 CLIENT SIGNED COPY
+                </span>
+                <div className="flex items-center gap-2">
+                  {clientFile && (
+                    <button
+                      onClick={() =>
+                        handleDocDelete(docTypeClient, "Client Signed Copy")
+                      }
+                      title="Delete client copy"
+                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {clientFile ? (
+                <div className="bg-white border border-blue-100 rounded-lg p-3 flex items-center justify-between gap-2 shadow-xs">
+                  <div className="flex items-center gap-2 truncate">
+                    <FileText className="w-5 h-5 text-blue-400 shrink-0" />
+                    <p
+                      className="text-sm text-gray-600 truncate"
+                      title={clientFile.name}
+                    >
+                      {clientFile.name}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <button
+                      onClick={() =>
+                        handleDocPreview(
+                          docTypeClient,
+                          "Client Signed Copy",
+                          clientFile.name,
+                        )
+                      }
+                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-secondary transition-colors cursor-pointer"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Preview
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleDocDownload(docTypeClient, clientFile.name)
+                      }
+                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-secondary transition-colors cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 italic pl-1">
+                  No document uploaded yet
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex items-center justify-center min-h-[50vh]">
         <Spinner size="lg" />
       </div>
     );
   }
 
-  const hasOfficeDocs = Boolean(
-    getFileName(electricityBill?.name || electricityBill?.path) ||
-      getFileName(nocDocument?.name || nocDocument?.path),
-  );
-
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <div className="mx-auto max-w-7xl space-y-10">
-        <div className="mb-2">
-          <p className="text-lg text-gray-500">
-            Manage and view uploaded documents for directors and shareholders.
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-10">
+          <p className="text-gray-500 mt-2 text-lg">
+            Manage and view uploaded documents for directors, shareholders, and
+            registered office proofs.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
+          {/* Directors Section */}
           <section>
-            <div className="mb-6 flex items-center gap-3 border-b border-gray-200 pb-4">
-              <div className="rounded-lg bg-primary/10 p-2">
-                <UserCheck className="h-6 w-6 text-primary" />
+            <div className="flex items-center gap-3 mb-6 border-b border-gray-200 pb-4">
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <UserCheck className="text-primary w-6 h-6" />
               </div>
               <h2 className="text-2xl font-bold text-secondary">Directors</h2>
-              <span className="ml-auto rounded-full bg-gray-200 px-3 py-0.5 text-sm font-medium text-gray-700">
+              <span className="bg-gray-200 text-gray-700 px-3 py-0.5 rounded-full text-sm font-medium ml-auto">
                 {directors.length}
               </span>
             </div>
 
             {directors.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {directors.map((director) => (
                   <TabCard
                     key={director.id}
                     label={`Director ${director.directorNumber}`}
                     onClick={() => handleDirectorClick(director)}
-                    className="text-left shadow-sm transition-all hover:border-primary/50 hover:shadow-md"
+                    className="text-left hover:border-primary/50 transition-all shadow-sm hover:shadow-md"
                   />
                 ))}
               </div>
@@ -306,25 +525,28 @@ export default function UploadedDocumentsContent({
             )}
           </section>
 
+          {/* Shareholders Section */}
           <section>
-            <div className="mb-6 flex items-center gap-3 border-b border-gray-200 pb-4">
-              <div className="rounded-lg bg-blue-50 p-2">
-                <Users className="h-6 w-6 text-blue-600" />
+            <div className="flex items-center gap-3 mb-6 border-b border-gray-200 pb-4">
+              <div className="bg-blue-50 p-2 rounded-lg">
+                <Users className="text-blue-600 w-6 h-6" />
               </div>
-              <h2 className="text-2xl font-bold text-secondary">Shareholders</h2>
-              <span className="ml-auto rounded-full bg-gray-200 px-3 py-0.5 text-sm font-medium text-gray-700">
+              <h2 className="text-2xl font-bold text-secondary">
+                Shareholders
+              </h2>
+              <span className="bg-gray-200 text-gray-700 px-3 py-0.5 rounded-full text-sm font-medium ml-auto">
                 {shareholders.length}
               </span>
             </div>
 
             {shareholders.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {shareholders.map((shareholder) => (
                   <TabCard
                     key={shareholder.id}
                     label={`Shareholder ${shareholder.shareholderNumber}`}
                     onClick={() => handleShareholderClick(shareholder)}
-                    className="text-left shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
+                    className="text-left hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
                   />
                 ))}
               </div>
@@ -334,90 +556,98 @@ export default function UploadedDocumentsContent({
           </section>
         </div>
 
-        {directors.length === 0 && shareholders.length === 0 && (
-          <div className="mt-10">
-            <EmptyState message="No entities found. Please check the application status." />
-          </div>
-        )}
-
-        <section>
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-semibold text-secondary">
+        {/* Registered Office Documents Section */}
+        <section className="mb-12">
+          <div className="flex items-center gap-3 mb-6 border-b border-gray-200 pb-4">
+            <div className="bg-amber-50 p-2 rounded-lg">
+              <FileText className="text-amber-600 w-6 h-6" />
+            </div>
+            <h2 className="text-2xl font-bold text-secondary">
               Registered Office Documents
             </h2>
+          </div>
 
-            <div className="space-y-3">
-              <ClientUploadCard
-                label={OFFICE_DOC_LABELS.proofOfOffice}
-                file={electricityBill}
-                onPreview={() =>
-                  handlePreview("proofOfOffice", electricityBill)
-                }
-                onDownload={() =>
-                  handleDownload("proofOfOffice", electricityBill)
-                }
-              />
-              <ClientUploadCard
-                label={OFFICE_DOC_LABELS.proofOfOfficeAddress}
-                file={nocDocument}
-                onPreview={() =>
-                  handlePreview("proofOfOfficeAddress", nocDocument)
-                }
-                onDownload={() =>
-                  handleDownload("proofOfOfficeAddress", nocDocument)
-                }
-              />
-            </div>
-
-            {hasOfficeDocs && (
-              <div className="mt-4 rounded bg-gray-50 p-2 text-xs text-gray-600">
-                Tip: Use the eye icon to preview, download icon to save file
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {renderOfficeDocCard(
+              "Upload latest electricity bill",
+              "proofOfOffice",
+              officeDocs.proofOfOffice,
+              false,
+            )}
+            {renderDualOfficeDocCard(
+              "Proof of office address along with NOC, if applicable (Conveyance/ Lease deed/ Rent Agreement along with rent receipts)",
+              "proofOfOfficeAddress",
+              "proofOfOfficeAddressAdminDraft",
+              officeDocs.proofOfOfficeAddress,
+              officeDocs.proofOfOfficeAddressAdminDraft,
+              refreshOfficeDocs,
+              isRefreshing,
             )}
           </div>
         </section>
+
+        {directors.length === 0 &&
+          shareholders.length === 0 &&
+          !officeDocs.proofOfOffice &&
+          !officeDocs.proofOfOfficeAddress && (
+            <div className="mt-20">
+              <EmptyState message="No entities or registered office documents found. Please check the application status." />
+            </div>
+          )}
       </div>
 
+      {/* Preview Modal */}
       <Modal
         isOpen={isPreviewOpen}
-        onClose={closePreview}
-        title={`Preview: ${previewFileName}`}
-        maxWidth="md:max-w-[85vw]"
+        onClose={() => {
+          setIsPreviewOpen(false);
+          if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+            setPreviewFileName("");
+          }
+        }}
+        title={previewTitle}
       >
-        {!previewUrl ? (
-          <p>No preview available</p>
-        ) : (
+        {previewUrl ? (
           <>
             {getFileType(previewFileName) === "image" && (
               <img
                 src={previewUrl}
-                alt={previewFileName}
-                className="max-h-[70vh] w-full rounded object-contain"
+                alt="Document Preview"
+                className="w-full max-h-[70vh] object-contain rounded"
               />
             )}
 
             {getFileType(previewFileName) === "pdf" && (
               <iframe
                 src={previewUrl}
-                className="h-[70vh] w-full rounded border"
-                title={previewFileName}
+                title="Document PDF Preview"
+                className="w-full h-[70vh] border rounded"
               />
             )}
 
             {getFileType(previewFileName) === "other" && (
-              <div className="py-8 text-center">
-                <p className="mb-4 text-gray-600">
-                  Preview not available for this file type
+              <div className="flex flex-col items-center justify-center p-8">
+                <p className="text-gray-500 mb-4">
+                  No online preview available for this file type.
                 </p>
                 <button
-                  onClick={() => previewUrl && window.open(previewUrl, "_blank")}
-                  className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-secondary"
+                  onClick={() => {
+                    const link = document.createElement("a");
+                    link.href = previewUrl;
+                    link.download = previewFileName;
+                    link.click();
+                  }}
+                  className="bg-primary hover:bg-secondary text-white font-medium px-4 py-2 rounded-lg transition-colors"
                 >
-                  Open in New Tab
+                  Download to View
                 </button>
               </div>
             )}
           </>
+        ) : (
+          <p>No preview available</p>
         )}
       </Modal>
     </div>
@@ -426,11 +656,11 @@ export default function UploadedDocumentsContent({
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-4 py-16 text-center shadow-sm">
-      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-50">
-        <Users className="h-8 w-8 text-gray-300" />
+    <div className="text-center py-16 px-4 bg-white rounded-2xl border border-dashed border-gray-300 shadow-sm">
+      <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+        <Users className="text-gray-300 w-8 h-8" />
       </div>
-      <p className="font-medium text-gray-500">{message}</p>
+      <p className="text-gray-500 font-medium">{message}</p>
     </div>
   );
 }
