@@ -8,6 +8,7 @@ import {
   Eye,
   Download,
   FileText,
+  RefreshCw,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -41,6 +42,7 @@ export default function UploadedDocumentsContent({
     proofOfOfficeAddressAdminDraft?: { name: string; path: string } | null;
   }>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Preview Modal States
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -209,6 +211,33 @@ export default function UploadedDocumentsContent({
     }
   };
 
+  const loadOfficeDocs = async () => {
+    const overviewResponse = await clientsApi.getCompanyOverview(appNo);
+    if (overviewResponse && overviewResponse.data) {
+      const registeredOffice =
+        overviewResponse.data.corporateStructure?.registeredOffice;
+      setOfficeDocs({
+        proofOfOffice: registeredOffice?.proofOfOffice ?? null,
+        proofOfOfficeAddress: registeredOffice?.proofOfOfficeAddress ?? null,
+        proofOfOfficeAddressAdminDraft:
+          registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
+      });
+    }
+  };
+
+  const refreshOfficeDocs = async () => {
+    try {
+      setIsRefreshing(true);
+      await loadOfficeDocs();
+      toast.success("Office documents refreshed");
+    } catch (error) {
+      console.error("Error refreshing office documents:", error);
+      toast.danger("Failed to refresh office documents.");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const renderOfficeDocCard = (
     label: string,
     docType: string,
@@ -286,12 +315,23 @@ export default function UploadedDocumentsContent({
     docTypeAdmin: string,
     clientFile: { name: string; path: string } | null | undefined,
     adminFile: { name: string; path: string } | null | undefined,
+    onRefresh?: () => void,
+    refreshing?: boolean,
   ) => {
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[180px]">
         <div>
           <div className="flex items-start justify-between gap-4 mb-4">
             <h3 className="text-base font-bold text-secondary">{label}</h3>
+            {onRefresh && (
+              <div title="Refresh status" className="shrink-0">
+                <RefreshCw
+                  size={18}
+                  onClick={refreshing ? undefined : onRefresh}
+                  className={`cursor-pointer text-secondary hover:text-primary ${refreshing ? "animate-spin" : ""}`}
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -540,6 +580,8 @@ export default function UploadedDocumentsContent({
               "proofOfOfficeAddressAdminDraft",
               officeDocs.proofOfOfficeAddress,
               officeDocs.proofOfOfficeAddressAdminDraft,
+              refreshOfficeDocs,
+              isRefreshing,
             )}
           </div>
         </section>

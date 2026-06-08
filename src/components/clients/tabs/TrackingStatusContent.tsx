@@ -160,15 +160,31 @@ export default function TrackingStatusContent({
       setTracker(trackerData);
 
       if (trackerData && trackerData.stages) {
+        // For stages with re-attempts (e.g. Name Application after a rejection),
+        // treat the last attempt's status/sections as the effective ones.
+        const getEffectiveStage = (stage: TrackerStage): TrackerStage => {
+          if (stage.attempts && stage.attempts.length > 0) {
+            return stage.attempts[stage.attempts.length - 1];
+          }
+          return stage;
+        };
+
+        // Open the first stage whose effective status is "In Progress";
+        // otherwise fall back to stage 1 (order 1).
+        const firstInProgressIndex = trackerData.stages.findIndex(
+          (stage: TrackerStage) => getEffectiveStage(stage).status === "In Progress"
+        );
+        const openIndex = firstInProgressIndex >= 0 ? firstInProgressIndex : 0;
+
         const initialCollapsed: Record<string, boolean> = {};
         trackerData.stages.forEach((stage: TrackerStage, index: number) => {
-          initialCollapsed[stage._id] = index !== trackerData.currentStageIndex;
+          initialCollapsed[stage._id] = index !== openIndex;
         });
         setCollapsedStages(initialCollapsed);
 
-        const currentStage = trackerData.stages[trackerData.currentStageIndex];
-        if (currentStage && currentStage.sections.length > 0) {
-          const firstStep = currentStage.sections[0].steps[0];
+        const openStage = getEffectiveStage(trackerData.stages[openIndex]);
+        if (openStage && openStage.sections.length > 0) {
+          const firstStep = openStage.sections[0].steps[0];
           if (firstStep) {
             setSelectedStepId(firstStep._id);
           }

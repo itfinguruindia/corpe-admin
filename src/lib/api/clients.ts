@@ -100,20 +100,6 @@ export const clientsApi = {
     return response.data?.data ?? response.data;
   },
 
-  // Download corporate structure document (proofOfOffice, proofOfOfficeAddress, etc.)
-  downloadCorporateStructureDocument: async (
-    applicationNo: string,
-    docType: string,
-  ) => {
-    const response = await axiosInstance.get(
-      `/admin/clients/${applicationNo}/corporate-structure/${docType}/download`,
-      {
-        responseType: "blob",
-      },
-    );
-    return response.data as Blob;
-  },
-
   // Get directors and shareholders by application number
   getDirectorAndShareHolders: async (applicationNo: string) => {
     const response = await axiosInstance.get(
