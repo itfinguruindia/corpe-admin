@@ -6,9 +6,11 @@ import { MoaAoaDocument } from "@/types/moaAoa";
 import { clientsApi } from "@/lib/api/clients";
 import { Eye, Download, Upload } from "lucide-react";
 import { FileUploadComponent } from "@/components/upload";
+import Modal from "@/components/ui/Modal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { requireClientTabEdit } from "@/utils/clientPermissions";
 import { notifyApiError } from "@/utils/apiErrors";
+import { getFileType } from "@/utils/helpers";
 
 interface MoaAoaContentProps {
   appNo: string;
@@ -34,6 +36,11 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
 
   const [companyMiscDocs, setCompanyMiscDocs] =
     useState<CompanyMiscRow[]>(baseMiscRows);
+
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [previewFileName, setPreviewFileName] = useState("");
 
   const mapApiDataToDocuments = (
     data: any,
@@ -156,15 +163,28 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
     loadData();
   }, [appNo]);
 
-  const handleView = async (doc: MoaAoaDocument) => {
+  const handlePreview = async (doc: MoaAoaDocument) => {
     try {
       const docType =
         doc.documentType.toLowerCase() === "aoa" ? "aoa" : "moa";
       const blob = await clientsApi.downloadMoaAoaDocument(appNo, docType);
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      setPreviewUrl(url);
+      setPreviewFileName(doc.fileName || docType.toUpperCase());
+      setPreviewTitle(doc.documentType);
+      setIsPreviewOpen(true);
     } catch (error) {
       console.error("Error viewing MOA/AOA document:", error);
+      toast("Could not open document.", { variant: "danger" });
+    }
+  };
+
+  const closePreview = () => {
+    setIsPreviewOpen(false);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+      setPreviewFileName("");
     }
   };
 
@@ -214,11 +234,14 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
     }
   };
 
-  const handleMiscView = async (row: CompanyMiscRow) => {
+  const handleMiscPreview = async (row: CompanyMiscRow) => {
     try {
       const blob = await clientsApi.downloadCompanyMiscDocument(appNo, row.key);
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      setPreviewUrl(url);
+      setPreviewFileName(row.fileName || row.label);
+      setPreviewTitle(row.label);
+      setIsPreviewOpen(true);
     } catch (error: any) {
       const status = error?.response?.status;
       if (status === 404) {
@@ -353,7 +376,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
                   <div className="flex items-center gap-6">
                     {/* View Icon */}
                     <button
-                      onClick={() => handleView(document)}
+                      onClick={() => handlePreview(document)}
                       disabled={document.status === "pending"}
                       className={`transition-colors ${
                         document.status === "pending"
@@ -418,7 +441,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
                 <div className="flex items-center gap-6">
                   {/* View Icon */}
                   <button
-                    onClick={() => handleMiscView(row)}
+                    onClick={() => handleMiscPreview(row)}
                     disabled={row.status === "pending"}
                     className={`transition-colors ${
                       row.status === "pending"
@@ -468,6 +491,54 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
             ))}
           </div>
         </Card>
+
+        {/* Preview Modal */}
+        <Modal
+          isOpen={isPreviewOpen}
+          onClose={closePreview}
+          title={previewTitle}
+        >
+          {previewUrl ? (
+            <>
+              {getFileType(previewFileName) === "image" && (
+                <img
+                  src={previewUrl}
+                  alt="Document Preview"
+                  className="w-full max-h-[70vh] object-contain rounded"
+                />
+              )}
+
+              {getFileType(previewFileName) === "pdf" && (
+                <iframe
+                  src={previewUrl}
+                  title="Document PDF Preview"
+                  className="w-full h-[70vh] border rounded"
+                />
+              )}
+
+              {getFileType(previewFileName) === "other" && (
+                <div className="flex flex-col items-center justify-center p-8">
+                  <p className="text-gray-500 mb-4">
+                    No online preview available for this file type.
+                  </p>
+                  <button
+                    onClick={() => {
+                      const link = document.createElement("a");
+                      link.href = previewUrl;
+                      link.download = previewFileName;
+                      link.click();
+                    }}
+                    className="bg-primary hover:bg-secondary text-white font-medium px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Download to View
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <p>No preview available</p>
+          )}
+        </Modal>
       </div>
     </div>
   );
