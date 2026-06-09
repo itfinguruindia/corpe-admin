@@ -42,6 +42,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
               dateOfBirth: d.dateOfBirth || "-",
               nationality: d.nationality || "-",
               passportNo: d.passportNumber || "-",
+              isForeignResident: Boolean(d.isForeignResident),
               occupationType: d.occupationType || "-",
               placeOfBirth: d.placeOfBirth?.city || "-",
               educationQualification: d.educationQualification || "-",
@@ -113,6 +114,11 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
                       {director.email} • {director.phoneNo}
+                      {(director as { isForeignResident?: boolean }).isForeignResident && (
+                        <span className="ml-2 text-xs font-medium text-[#3D63A4]">
+                          • NRI / Foreign Resident
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>

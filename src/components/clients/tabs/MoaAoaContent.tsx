@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { toast, Card, Spinner } from "@heroui/react";
-import { MoaAoaDocument } from "@/types/moaAoa";
-import { clientsApi } from "@/lib/api/clients";
-import { Eye, Download, Upload } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { toast, Spinner } from "@heroui/react";
+import { Eye, Download, Upload, RefreshCw } from "lucide-react";
+
 import { FileUploadComponent } from "@/components/upload";
 import Modal from "@/components/ui/Modal";
+import { clientsApi } from "@/lib/api/clients";
+import type { CompanyMiscDocType, MoaAoaDocType } from "@/lib/api/clients";
 import { usePermissions } from "@/hooks/usePermissions";
 import { requireClientTabEdit } from "@/utils/clientPermissions";
 import { notifyApiError } from "@/utils/apiErrors";
@@ -16,326 +17,377 @@ interface MoaAoaContentProps {
   appNo: string;
 }
 
+type DocFile = {
+  name: string;
+  path: string;
+  uploadedAt?: string;
+} | null;
+
+type DocumentSection = {
+  key: string;
+  label: string;
+  kind: "moa-aoa" | "misc";
+  docType: MoaAoaDocType | CompanyMiscDocType;
+  adminFile: DocFile;
+  clientFile: DocFile;
+};
+
+const INITIAL_SECTIONS: DocumentSection[] = [
+  {
+    key: "moa",
+    label: "MOA",
+    kind: "moa-aoa",
+    docType: "moa",
+    adminFile: null,
+    clientFile: null,
+  },
+  {
+    key: "aoa",
+    label: "AOA",
+    kind: "moa-aoa",
+    docType: "aoa",
+    adminFile: null,
+    clientFile: null,
+  },
+  {
+    key: "miscellaneous1",
+    label: "Miscellaneous 1",
+    kind: "misc",
+    docType: "miscellaneous1",
+    adminFile: null,
+    clientFile: null,
+  },
+  {
+    key: "miscellaneous2",
+    label: "Miscellaneous 2",
+    kind: "misc",
+    docType: "miscellaneous2",
+    adminFile: null,
+    clientFile: null,
+  },
+  {
+    key: "miscellaneous3",
+    label: "Miscellaneous 3",
+    kind: "misc",
+    docType: "miscellaneous3",
+    adminFile: null,
+    clientFile: null,
+  },
+];
+
 export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
   const { admin } = usePermissions();
-  const [documents, setDocuments] = useState<MoaAoaDocument[]>([]);
+  const [sections, setSections] = useState<DocumentSection[]>(INITIAL_SECTIONS);
   const [isLoading, setIsLoading] = useState(true);
-
-  type CompanyMiscRow = {
-    key: "miscellaneous1" | "miscellaneous2" | "miscellaneous3";
-    label: string;
-    status: "uploaded" | "pending";
-    fileName?: string;
-  };
-
-  const baseMiscRows: CompanyMiscRow[] = [
-    { key: "miscellaneous1", label: "Miscellaneous 1", status: "pending" },
-    { key: "miscellaneous2", label: "Miscellaneous 2", status: "pending" },
-    { key: "miscellaneous3", label: "Miscellaneous 3", status: "pending" },
-  ];
-
-  const [companyMiscDocs, setCompanyMiscDocs] =
-    useState<CompanyMiscRow[]>(baseMiscRows);
-
+  const [refreshingKey, setRefreshingKey] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewTitle, setPreviewTitle] = useState("");
   const [previewFileName, setPreviewFileName] = useState("");
 
-  const mapApiDataToDocuments = (
-    data: any,
-    applicationNo: string,
-  ): MoaAoaDocument[] => {
-    if (!data) return [];
-
-    const { moa, aoa } = data as any;
-
-    const toDoc = (
-      source: any | null | undefined,
-      type: "MOA" | "AOA",
-    ): MoaAoaDocument => ({
-      id: type.toLowerCase(),
-      applicationNo,
-      documentType: type,
-      fileName: source?.fileName ?? source?.name,
-      fileUrl: source?.fileUrl ?? source?.url,
-      status:
-        source && (source.fileUrl || source.url) ? "uploaded" : "pending",
-      uploadedAt: source?.uploadedAt,
-      updatedAt: source?.updatedAt,
-    });
-
-    const docs: MoaAoaDocument[] = [];
-    docs.push(toDoc(moa, "MOA"));
-    docs.push(toDoc(aoa, "AOA"));
-    return docs;
+  const getFileName = (value: string) => {
+    if (!value) return "";
+    return value.split("/").pop() || value;
   };
+
+  const loadSectionStatus = useCallback(
+    async (section: DocumentSection): Promise<DocumentSection> => {
+      if (section.kind === "moa-aoa") {
+        const status = await clientsApi.getMoaAoaDocFilesStatus(
+          appNo,
+          section.docType as MoaAoaDocType,
+        );
+        return {
+          ...section,
+          adminFile: status.adminFile,
+          clientFile: status.clientFile,
+        };
+      }
+
+      const status = await clientsApi.getCompanyMiscDocStatus(
+        appNo,
+        section.docType as CompanyMiscDocType,
+      );
+      return {
+        ...section,
+        adminFile: status.adminFile,
+        clientFile: status.clientFile,
+      };
+    },
+    [appNo],
+  );
+
+  const loadAllSections = useCallback(async () => {
+    const updated = await Promise.all(
+      INITIAL_SECTIONS.map((section) => loadSectionStatus(section)),
+    );
+    setSections(updated);
+  }, [loadSectionStatus]);
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        let docs: MoaAoaDocument[];
-
-        try {
-          const data = await clientsApi.getMoaAoaDocuments(appNo);
-          docs = mapApiDataToDocuments(data, appNo);
-        } catch (error: any) {
-          const status = error?.response?.status;
-          const message = error?.response?.data?.message;
-          if (status === 404 && message === "Corporate documents not found") {
-            docs = [
-              {
-                id: "moa",
-                applicationNo: appNo,
-                documentType: "MOA",
-                status: "pending",
-              },
-              {
-                id: "aoa",
-                applicationNo: appNo,
-                documentType: "AOA",
-                status: "pending",
-              },
-            ];
-          } else {
-            throw error;
-          }
-        }
-
-        const [moaStatus, aoaStatus] = await Promise.all([
-          clientsApi.getMoaAoaDocStatus(appNo, "moa"),
-          clientsApi.getMoaAoaDocStatus(appNo, "aoa"),
-        ]);
-
-        setDocuments(
-          docs.map((doc) => {
-            const apiStatus =
-              doc.documentType.toLowerCase() === "aoa" ? aoaStatus : moaStatus;
-            const hasFileFromList = !!(doc.fileUrl || (doc as any).url);
-            const status =
-              apiStatus === "uploaded" || hasFileFromList ? "uploaded" : "pending";
-            return { ...doc, status };
-          }),
-        );
-
-        // Load company-level Misc documents (Misc 1–3)
-        try {
-          const miscData = await clientsApi.getCompanyMiscDocuments(appNo);
-          const [misc1Status, misc2Status, misc3Status] = await Promise.all([
-            clientsApi.getCompanyMiscDocStatus(appNo, "miscellaneous1"),
-            clientsApi.getCompanyMiscDocStatus(appNo, "miscellaneous2"),
-            clientsApi.getCompanyMiscDocStatus(appNo, "miscellaneous3"),
-          ]);
-
-          const rows: CompanyMiscRow[] = baseMiscRows.map((row) => {
-            const slot = miscData?.[row.key];
-            const statusResult =
-              row.key === "miscellaneous1"
-                ? misc1Status
-                : row.key === "miscellaneous2"
-                  ? misc2Status
-                  : misc3Status;
-            const finalName =
-              statusResult.name ?? slot?.name ?? row.fileName ?? undefined;
-
-            return {
-              ...row,
-              status: statusResult.status,
-              fileName: finalName ?? undefined,
-            };
-          });
-
-          setCompanyMiscDocs(rows);
-        } catch (miscError) {
-          console.error("Error fetching company misc documents:", miscError);
-          // Keep base rows with pending status if API fails
-          setCompanyMiscDocs(baseMiscRows);
-        }
+        await loadAllSections();
       } catch (error) {
         console.error("Error fetching MOA & AOA:", error);
-        setDocuments([]);
+        setSections(INITIAL_SECTIONS);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadData();
-  }, [appNo]);
+  }, [loadAllSections]);
 
-  const handlePreview = async (doc: MoaAoaDocument) => {
+  const refreshSection = async (sectionKey: string) => {
+    const section = sections.find((s) => s.key === sectionKey);
+    if (!section) return;
+
     try {
-      const docType =
-        doc.documentType.toLowerCase() === "aoa" ? "aoa" : "moa";
-      const blob = await clientsApi.downloadMoaAoaDocument(appNo, docType);
-      const url = URL.createObjectURL(blob);
+      setRefreshingKey(sectionKey);
+      const updated = await loadSectionStatus(section);
+      setSections((prev) =>
+        prev.map((s) => (s.key === sectionKey ? updated : s)),
+      );
+      toast.success("Status refreshed");
+    } catch (error) {
+      console.error("Error refreshing status:", error);
+      toast("Failed to refresh status", { variant: "danger" });
+    } finally {
+      setRefreshingKey(null);
+    }
+  };
+
+  const downloadBlob = async (
+    section: DocumentSection,
+    source: "admin" | "client",
+    fileName: string,
+  ) => {
+    const blob =
+      section.kind === "moa-aoa"
+        ? await clientsApi.downloadMoaAoaDocument(
+            appNo,
+            section.docType as MoaAoaDocType,
+            source,
+          )
+        : await clientsApi.downloadCompanyMiscDocument(
+            appNo,
+            section.docType as CompanyMiscDocType,
+            source,
+          );
+
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleDownload = async (
+    section: DocumentSection,
+    source: "admin" | "client",
+  ) => {
+    const file = source === "admin" ? section.adminFile : section.clientFile;
+    if (!file) return;
+
+    try {
+      await downloadBlob(section, source, file.name);
+      toast.success(`Downloaded ${source} file successfully`);
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      toast("Failed to download document", { variant: "danger" });
+    }
+  };
+
+  const handlePreview = async (
+    section: DocumentSection,
+    source: "admin" | "client",
+  ) => {
+    const file = source === "admin" ? section.adminFile : section.clientFile;
+    if (!file) return;
+
+    try {
+      const blob =
+        section.kind === "moa-aoa"
+          ? await clientsApi.downloadMoaAoaDocument(
+              appNo,
+              section.docType as MoaAoaDocType,
+              source,
+            )
+          : await clientsApi.downloadCompanyMiscDocument(
+              appNo,
+              section.docType as CompanyMiscDocType,
+              source,
+            );
+
+      const url = window.URL.createObjectURL(blob);
       setPreviewUrl(url);
-      setPreviewFileName(doc.fileName || docType.toUpperCase());
-      setPreviewTitle(doc.documentType);
+      setPreviewFileName(file.name);
       setIsPreviewOpen(true);
     } catch (error) {
-      console.error("Error viewing MOA/AOA document:", error);
-      toast("Could not open document.", { variant: "danger" });
+      console.error("Error previewing document:", error);
+      toast("Failed to preview document", { variant: "danger" });
     }
   };
 
-  const closePreview = () => {
-    setIsPreviewOpen(false);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-      setPreviewFileName("");
-    }
-  };
-
-  const handleDownload = async (doc: MoaAoaDocument) => {
-    try {
-      const docType =
-        doc.documentType.toLowerCase() === "aoa" ? "aoa" : "moa";
-      const blob = await clientsApi.downloadMoaAoaDocument(appNo, docType);
-      const url = URL.createObjectURL(blob);
-      const link = window.document.createElement("a");
-      link.href = url;
-      link.download = doc.fileName || docType.toUpperCase();
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error downloading MOA/AOA document:", error);
-    }
-  };
-
-  const handleMiscFileSelected = async (row: CompanyMiscRow, file: File) => {
+  const handleAdminUpload = async (section: DocumentSection, file: File) => {
     if (!file) return;
     if (!requireClientTabEdit(admin, "moa")) return;
-    try {
-      await clientsApi.uploadCompanyMiscDocument(appNo, row.key, file);
-      toast.success("Draft uploaded. Client will see it in the Download button.");
-      const statusResult = await clientsApi.getCompanyMiscDocStatus(
-        appNo,
-        row.key,
-      );
-      setCompanyMiscDocs((prev) =>
-        prev.map((item) =>
-          item.key === row.key
-            ? {
-                ...item,
-                status: statusResult.status,
-                fileName: statusResult.name ?? item.fileName,
-              }
-            : item,
-        ),
-      );
-    } catch (error) {
-      console.error("Error uploading misc document:", error);
-      notifyApiError(error, {
-        fallback: "Could not upload document.",
-        actionLabel: "upload company documents",
-      });
-    }
-  };
 
-  const handleMiscPreview = async (row: CompanyMiscRow) => {
     try {
-      const blob = await clientsApi.downloadCompanyMiscDocument(appNo, row.key);
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
-      setPreviewFileName(row.fileName || row.label);
-      setPreviewTitle(row.label);
-      setIsPreviewOpen(true);
-    } catch (error: any) {
-      const status = error?.response?.status;
-      if (status === 404) {
-        toast("No document available yet.", { variant: "danger" });
-        setCompanyMiscDocs((prev) =>
-          prev.map((item) =>
-            item.key === row.key
-              ? { ...item, status: "pending", fileName: undefined }
-              : item,
-          ),
+      if (section.kind === "moa-aoa") {
+        await clientsApi.uploadMoaAoaDocument(
+          appNo,
+          section.docType as MoaAoaDocType,
+          file,
         );
       } else {
-        console.error("Error viewing misc document:", error);
-        toast("Could not open document.", { variant: "danger" });
-      }
-    }
-  };
-
-  const handleMiscDownload = async (row: CompanyMiscRow) => {
-    try {
-      const blob = await clientsApi.downloadCompanyMiscDocument(appNo, row.key);
-      const url = URL.createObjectURL(blob);
-      const link = window.document.createElement("a");
-      link.href = url;
-
-      if (row.fileName) {
-        // Use exact name returned by backend for consistency
-        link.download = row.fileName;
-      } else {
-        // Fallback: infer extension from MIME type
-        const mime = blob.type;
-        let ext = "";
-        if (mime === "application/pdf") ext = ".pdf";
-        else if (mime === "image/png") ext = ".png";
-        else if (mime === "image/jpeg") ext = ".jpg";
-        else if (mime === "image/webp") ext = ".webp";
-
-        const baseName = row.label.replace(/\s+/g, "-");
-        link.download = `${baseName}${ext}`;
-      }
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error: any) {
-      const status = error?.response?.status;
-      if (status === 404) {
-        toast("No document available yet.", { variant: "danger" });
-        setCompanyMiscDocs((prev) =>
-          prev.map((item) =>
-            item.key === row.key
-              ? { ...item, status: "pending", fileName: undefined }
-              : item,
-          ),
+        await clientsApi.uploadCompanyMiscDocument(
+          appNo,
+          section.docType as CompanyMiscDocType,
+          file,
         );
-      } else {
-        console.error("Error downloading misc document:", error);
-        toast("Could not download document.", { variant: "danger" });
       }
-    }
-  };
 
-  const handleMoaAoaFileSelected = async (documentType: string, file: File) => {
-    if (!file) return;
-    if (!requireClientTabEdit(admin, "moa")) return;
-    try {
-      const docType =
-        documentType.toLowerCase() === "aoa" ? "aoa" : "moa";
-      await clientsApi.uploadMoaAoaDocument(appNo, docType, file);
-      toast.success("Draft uploaded. Client will see it in the Download button.");
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          doc.documentType.toLowerCase() === docType
-            ? { ...doc, status: "uploaded" as const }
-            : doc,
-        ),
+      toast.success(
+        "Draft uploaded. Client will see it in the Download button.",
       );
-      const [moaStatus, aoaStatus] = await Promise.all([
-        clientsApi.getMoaAoaDocStatus(appNo, "moa"),
-        clientsApi.getMoaAoaDocStatus(appNo, "aoa"),
-      ]);
-      setDocuments((prev) =>
-        prev.map((doc) => ({
-          ...doc,
-          status:
-            doc.documentType.toLowerCase() === "aoa" ? aoaStatus : moaStatus,
-        })),
+      const updated = await loadSectionStatus(section);
+      setSections((prev) =>
+        prev.map((s) => (s.key === section.key ? updated : s)),
       );
     } catch (error) {
-      console.error("Error uploading MOA/AOA document:", error);
+      console.error("Error uploading document:", error);
       notifyApiError(error, {
         fallback: "Could not upload document.",
         actionLabel: "upload MOA/AOA documents",
       });
     }
   };
+
+  const renderUploadCard = (section: DocumentSection) => (
+    <div
+      key={section.key}
+      className="rounded-xl bg-white p-4 shadow-sm h-full flex flex-col"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-semibold text-secondary">
+          {section.label}
+        </h2>
+        <div className="flex items-center gap-3">
+          <div title="Refresh status">
+            <RefreshCw
+              size={18}
+              onClick={() => refreshSection(section.key)}
+              className={`cursor-pointer text-secondary hover:text-primary ${
+                refreshingKey === section.key ? "animate-spin" : ""
+              }`}
+            />
+          </div>
+          <FileUploadComponent
+            context="clients"
+            allowedFileTypes=".pdf,.doc,.docx"
+            title={`Upload ${section.label}`}
+            subtitle="Upload from your computer, Google Drive, or existing documents."
+            dropLabel="Drag and drop your file here"
+            onBeforeOpen={() => requireClientTabEdit(admin, "moa")}
+            onFileSelect={(file) => handleAdminUpload(section, file)}
+            renderTrigger={(openPicker) => (
+              <div title={`Upload ${section.label} (Admin)`}>
+                <Upload
+                  size={20}
+                  onClick={openPicker}
+                  className="cursor-pointer text-primary hover:text-secondary"
+                />
+              </div>
+            )}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2 flex-1">
+        {section.adminFile ? (
+          <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-orange-700">
+                📤 Admin Upload (CorpE)
+              </span>
+              <div className="flex items-center gap-2">
+                <div title="Preview">
+                  <Eye
+                    size={16}
+                    onClick={() => handlePreview(section, "admin")}
+                    className="cursor-pointer text-orange-600 hover:text-orange-700"
+                  />
+                </div>
+                <div title="Download">
+                  <Download
+                    size={16}
+                    onClick={() => handleDownload(section, "admin")}
+                    className="cursor-pointer text-orange-600 hover:text-orange-700"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="text-sm text-secondary truncate">
+              {getFileName(section.adminFile.name)}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
+            <div className="text-xs font-medium text-gray-400 mb-1">
+              📤 Admin Upload (CorpE)
+            </div>
+            <div className="text-sm text-gray-400">No file uploaded</div>
+          </div>
+        )}
+
+        {section.clientFile ? (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-blue-700">
+                👤 Client Upload (Signed)
+              </span>
+              <div className="flex items-center gap-2">
+                <div title="Preview">
+                  <Eye
+                    size={16}
+                    onClick={() => handlePreview(section, "client")}
+                    className="cursor-pointer text-blue-600 hover:text-blue-700"
+                  />
+                </div>
+                <div title="Download">
+                  <Download
+                    size={16}
+                    onClick={() => handleDownload(section, "client")}
+                    className="cursor-pointer text-blue-600 hover:text-blue-700"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="text-sm text-secondary truncate">
+              {getFileName(section.clientFile.name)}
+            </div>
+            {section.clientFile.uploadedAt && (
+              <div className="text-xs text-blue-600 mt-1">
+                {new Date(section.clientFile.uploadedAt).toLocaleDateString()}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
+            <div className="text-xs font-medium text-gray-400 mb-1">
+              👤 Client Upload (Signed)
+            </div>
+            <div className="text-sm text-gray-400">No file uploaded</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   if (isLoading) {
     return (
@@ -348,198 +400,72 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Section title */}
         <div className="mb-6">
           <div className="inline-block px-6 py-3 rounded-lg bg-linear-to-br from-white to-orange-100 text-secondary shadow-md font-medium">
             MOA & AOA
           </div>
         </div>
 
-        {/* MOA, AOA & Company Misc Documents Section */}
-        <Card className="p-8">
-          {/* Documents List */}
-          <div className="space-y-0">
-            {documents.length === 0 ? (
-              <div className="py-6 text-center text-gray-500">
-                No MOA/AOA uploaded yet.
-              </div>
-            ) : (
-              documents.map((document) => (
-                <div
-                  key={document.id}
-                  className="flex items-center justify-between py-6 border-b border-[#F9A826]"
-                >
-                  <span className="text-base font-medium text-gray-900">
-                    {document.documentType}
-                  </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {sections.map((section) => renderUploadCard(section))}
+        </div>
 
-                  <div className="flex items-center gap-6">
-                    {/* View Icon */}
-                    <button
-                      onClick={() => handlePreview(document)}
-                      disabled={document.status === "pending"}
-                      className={`transition-colors ${
-                        document.status === "pending"
-                          ? "text-gray-300 cursor-not-allowed"
-                          : "text-primary hover:text-[#d55a39]"
-                      }`}
-                      title="View"
-                    >
-                      <Eye className="w-6 h-6" />
-                    </button>
+        <div className="mt-5 p-3 rounded-lg bg-white shadow-sm text-xs text-gray-600">
+          💡 Orange = CorpE draft for client to download. Blue = signed copy
+          uploaded by client.
+        </div>
+      </div>
 
-                    {/* Download Icon */}
-                    <button
-                      onClick={() => handleDownload(document)}
-                      disabled={document.status === "pending"}
-                      className={`transition-colors ${
-                        document.status === "pending"
-                          ? "text-gray-300 cursor-not-allowed"
-                          : "text-primary hover:text-[#d55a39]"
-                      }`}
-                      title="Download"
-                    >
-                      <Download className="w-6 h-6" />
-                    </button>
-
-                    <FileUploadComponent
-                      context="clients"
-                      allowedFileTypes=".pdf,.doc,.docx"
-                      title={`Upload ${document.documentType}`}
-                      subtitle="Upload from your computer, Google Drive, or existing documents."
-                      dropLabel="Drag and drop your file here"
-                      onBeforeOpen={() => requireClientTabEdit(admin, "moa")}
-                      onFileSelect={(file) =>
-                        handleMoaAoaFileSelected(document.documentType, file)
-                      }
-                      renderTrigger={(openPicker) => (
-                        <button
-                          type="button"
-                          onClick={openPicker}
-                          className="text-primary hover:text-[#d55a39] transition-colors"
-                          title="Upload"
-                        >
-                          <Upload className="w-6 h-6" />
-                        </button>
-                      )}
-                    />
-                  </div>
-                </div>
-              ))
+      <Modal
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          if (previewUrl) {
+            window.URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+          }
+        }}
+        title={`Preview: ${previewFileName}`}
+        maxWidth="md:max-w-[85vw]"
+      >
+        {!previewUrl ? (
+          <p>No preview available</p>
+        ) : (
+          <>
+            {getFileType(previewFileName) === "image" && (
+              <img
+                src={previewUrl}
+                alt={previewFileName}
+                className="w-full max-h-[70vh] object-contain rounded"
+              />
             )}
 
-            {/* Company Misc Documents rows (Misc 1–3) – same design as MOA/AOA, shown just after AOA */}
-            {companyMiscDocs.map((row) => (
-              <div
-                key={row.key}
-                className="flex items-center justify-between py-6 border-b border-[#F9A826]"
-              >
-                <span className="text-base font-medium text-gray-900">
-                  {row.label}
-                </span>
+            {getFileType(previewFileName) === "pdf" && (
+              <iframe
+                src={previewUrl}
+                className="w-full h-[70vh] border rounded"
+                title={previewFileName}
+              />
+            )}
 
-                <div className="flex items-center gap-6">
-                  {/* View Icon */}
-                  <button
-                    onClick={() => handleMiscPreview(row)}
-                    disabled={row.status === "pending"}
-                    className={`transition-colors ${
-                      row.status === "pending"
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-primary hover:text-[#d55a39]"
-                    }`}
-                    title="View"
-                  >
-                    <Eye className="w-6 h-6" />
-                  </button>
-
-                  {/* Download Icon */}
-                  <button
-                    onClick={() => handleMiscDownload(row)}
-                    disabled={row.status === "pending"}
-                    className={`transition-colors ${
-                      row.status === "pending"
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-primary hover:text-[#d55a39]"
-                    }`}
-                    title="Download"
-                  >
-                    <Download className="w-6 h-6" />
-                  </button>
-
-                  <FileUploadComponent
-                    context="clients"
-                    allowedFileTypes=".pdf,.doc,.docx"
-                    title={`Upload ${row.label}`}
-                    subtitle="Upload from your computer, Google Drive, or existing documents."
-                    dropLabel="Drag and drop your file here"
-                    onBeforeOpen={() => requireClientTabEdit(admin, "moa")}
-                    onFileSelect={(file) => handleMiscFileSelected(row, file)}
-                    renderTrigger={(openPicker) => (
-                      <button
-                        type="button"
-                        onClick={openPicker}
-                        className="text-primary hover:text-[#d55a39] transition-colors"
-                        title="Upload"
-                      >
-                        <Upload className="w-6 h-6" />
-                      </button>
-                    )}
-                  />
-                </div>
+            {getFileType(previewFileName) === "other" && (
+              <div className="text-center py-8">
+                <p className="text-gray-600 mb-4">
+                  Preview not available for this file type
+                </p>
+                <button
+                  onClick={() =>
+                    previewUrl && window.open(previewUrl, "_blank")
+                  }
+                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary"
+                >
+                  Open in New Tab
+                </button>
               </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Preview Modal */}
-        <Modal
-          isOpen={isPreviewOpen}
-          onClose={closePreview}
-          title={previewTitle}
-        >
-          {previewUrl ? (
-            <>
-              {getFileType(previewFileName) === "image" && (
-                <img
-                  src={previewUrl}
-                  alt="Document Preview"
-                  className="w-full max-h-[70vh] object-contain rounded"
-                />
-              )}
-
-              {getFileType(previewFileName) === "pdf" && (
-                <iframe
-                  src={previewUrl}
-                  title="Document PDF Preview"
-                  className="w-full h-[70vh] border rounded"
-                />
-              )}
-
-              {getFileType(previewFileName) === "other" && (
-                <div className="flex flex-col items-center justify-center p-8">
-                  <p className="text-gray-500 mb-4">
-                    No online preview available for this file type.
-                  </p>
-                  <button
-                    onClick={() => {
-                      const link = document.createElement("a");
-                      link.href = previewUrl;
-                      link.download = previewFileName;
-                      link.click();
-                    }}
-                    className="bg-primary hover:bg-secondary text-white font-medium px-4 py-2 rounded-lg transition-colors"
-                  >
-                    Download to View
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <p>No preview available</p>
-          )}
-        </Modal>
-      </div>
+            )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }
