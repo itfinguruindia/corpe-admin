@@ -1,12 +1,12 @@
 import axiosInstance from "@/lib/axios";
 import type { NameStatus } from "@/types/company";
 
-type MoaAoaDocType = "moa" | "aoa";
+export type MoaAoaDocType = "moa" | "aoa";
 
 type MoaAoaStatus = "open" | "clientUpload" | "TeamUpload";
 
 // Company-level miscellaneous document slots
-type CompanyMiscDocType =
+export type CompanyMiscDocType =
   | "miscellaneous"
   | "miscellaneous1"
   | "miscellaneous2"
@@ -262,15 +262,34 @@ export const clientsApi = {
     applicationNo: string,
     docType: MoaAoaDocType,
   ): Promise<"uploaded" | "pending"> => {
+    const result = await clientsApi.getMoaAoaDocFilesStatus(
+      applicationNo,
+      docType,
+    );
+    return result.status;
+  },
+
+  getMoaAoaDocFilesStatus: async (
+    applicationNo: string,
+    docType: MoaAoaDocType,
+  ): Promise<{
+    status: "uploaded" | "pending";
+    adminFile: { name: string; path: string } | null;
+    clientFile: { name: string; path: string; uploadedAt?: string } | null;
+  }> => {
     try {
       const response = await axiosInstance.get(
         `/admin/clients/${applicationNo}/moa-aoa/${docType}/status`,
       );
       const data = response.data?.data ?? response.data;
       const status = data?.status?.toLowerCase?.();
-      return status === "uploaded" ? "uploaded" : "pending";
+      return {
+        status: status === "uploaded" ? "uploaded" : "pending",
+        adminFile: data?.adminFile ?? null,
+        clientFile: data?.clientFile ?? null,
+      };
     } catch {
-      return "pending";
+      return { status: "pending", adminFile: null, clientFile: null };
     }
   },
 
@@ -313,13 +332,15 @@ export const clientsApi = {
   downloadMoaAoaDocument: async (
     applicationNo: string,
     docType: MoaAoaDocType,
+    source?: "admin" | "client",
   ) => {
-    const response = await axiosInstance.get(
-      `/admin/clients/${applicationNo}/moa-aoa/${docType}/download`,
-      {
-        responseType: "blob",
-      },
-    );
+    const url = source
+      ? `/admin/clients/${applicationNo}/moa-aoa/${docType}/download?source=${source}`
+      : `/admin/clients/${applicationNo}/moa-aoa/${docType}/download`;
+
+    const response = await axiosInstance.get(url, {
+      responseType: "blob",
+    });
     return response.data as Blob;
   },
 
@@ -376,7 +397,12 @@ export const clientsApi = {
   getCompanyMiscDocStatus: async (
     applicationNo: string,
     docType: CompanyMiscDocType,
-  ): Promise<MiscDocStatusResult> => {
+  ): Promise<
+    MiscDocStatusResult & {
+      adminFile: { name: string; path: string } | null;
+      clientFile: { name: string; path: string; uploadedAt?: string } | null;
+    }
+  > => {
     try {
       const response = await axiosInstance.get(
         `/admin/clients/${applicationNo}/company-documents/misc/${docType}/status`,
@@ -386,9 +412,16 @@ export const clientsApi = {
       return {
         status: status === "uploaded" ? "uploaded" : "pending",
         name: data?.name ?? null,
+        adminFile: data?.adminFile ?? null,
+        clientFile: data?.clientFile ?? null,
       };
     } catch {
-      return { status: "pending", name: null };
+      return {
+        status: "pending",
+        name: null,
+        adminFile: null,
+        clientFile: null,
+      };
     }
   },
 
@@ -416,13 +449,15 @@ export const clientsApi = {
   downloadCompanyMiscDocument: async (
     applicationNo: string,
     docType: CompanyMiscDocType,
+    source?: "admin" | "client",
   ) => {
-    const response = await axiosInstance.get(
-      `/admin/clients/${applicationNo}/company-documents/misc/${docType}/download`,
-      {
-        responseType: "blob",
-      },
-    );
+    const url = source
+      ? `/admin/clients/${applicationNo}/company-documents/misc/${docType}/download?source=${source}`
+      : `/admin/clients/${applicationNo}/company-documents/misc/${docType}/download`;
+
+    const response = await axiosInstance.get(url, {
+      responseType: "blob",
+    });
     return response.data as Blob;
   },
 
