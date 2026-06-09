@@ -26,6 +26,7 @@ export function useNotifications() {
   const playNotificationSound = useCallback(() => {
     if (preferences?.soundEnabled) {
       const audio = new Audio("/sounds/notification.mp3");
+      audio.volume = 0.8;
       audio.play().catch((err) => {
         // Only log if it's not a 'no supported source' error to keep console clean if file is missing
         if (err.name !== "NotSupportedError") {

@@ -16,7 +16,7 @@ export default function DashboardHeader() {
   const isRootDashboard = pathname === "/dashboard";
 
   return (
-    <header className="sticky top-0 z-20 grid grid-cols-2 grid-rows-1 md:grid-cols-[1fr_auto] gap-y-6 md:gap-x-6 w-full bg-white px-4 md:px-8 shadow-sm border-b border-gray-100 py-4 md:py-8">
+    <header className="sticky top-0 z-20 grid grid-cols-2 grid-rows-1 md:grid-cols-[1fr_auto] gap-y-4 md:gap-y-0 md:gap-x-6 w-full bg-white px-4 md:px-8 shadow-sm border-b border-gray-100 py-4 md:py-8">
       {/* Left Side: Mobile Menu, Navigation & Search */}
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 flex-1">
         <div className="flex items-center gap-3 w-full md:w-auto">

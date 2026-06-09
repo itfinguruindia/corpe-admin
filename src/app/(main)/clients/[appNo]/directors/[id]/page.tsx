@@ -18,6 +18,7 @@ export default function DirectorDetailPage() {
   const [hasDIN, setHasDIN] = useState(false);
   const [kycVerified, setKycVerified] = useState(false);
   const [dscApplication, setDscApplication] = useState(false);
+  const [isStage2Enabled, setIsStage2Enabled] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -81,6 +82,22 @@ export default function DirectorDetailPage() {
           setAllDirectors([]);
           setDirector(null);
         }
+
+        try {
+          const trackerRes = await clientsApi.getTrackingStatus(appNo as string);
+          if (trackerRes) {
+            const activeStage = trackerRes.stages && typeof trackerRes.currentStageIndex === 'number'
+              ? trackerRes.stages[trackerRes.currentStageIndex]
+              : null;
+            const isStage2 = activeStage?.stageId === "stage_2_documents_kyc";
+            setIsStage2Enabled(isStage2);
+          } else {
+            setIsStage2Enabled(false);
+          }
+        } catch (trackerErr) {
+          console.error("Error fetching tracker status:", trackerErr);
+          setIsStage2Enabled(false);
+        }
       } catch (error) {
         console.error("Error fetching director:", error);
         setAllDirectors([]);
@@ -96,6 +113,7 @@ export default function DirectorDetailPage() {
   }, [appNo, id]);
 
   const handleKycToggle = async () => {
+    if (!isStage2Enabled) return;
     if (!requireClientTabEdit(admin, "director")) return;
     const newValue = !kycVerified;
     try {
@@ -109,6 +127,7 @@ export default function DirectorDetailPage() {
   };
 
   const handleDscToggle = async () => {
+    if (!isStage2Enabled) return;
     if (!requireClientTabEdit(admin, "director")) return;
     const newValue = !dscApplication;
     try {
@@ -296,7 +315,7 @@ export default function DirectorDetailPage() {
                 KYC Verified
               </span>
 
-              <Switch checked={kycVerified} onChange={handleKycToggle} />
+              <Switch checked={kycVerified} onChange={handleKycToggle} disabled={!isStage2Enabled} />
             </div>
 
             {/* DSC Application */}
@@ -305,7 +324,7 @@ export default function DirectorDetailPage() {
                 DSC Application
               </span>
 
-              <Switch checked={dscApplication} onChange={handleDscToggle} />
+              <Switch checked={dscApplication} onChange={handleDscToggle} disabled={!isStage2Enabled} />
             </div>
           </div>
         </div>

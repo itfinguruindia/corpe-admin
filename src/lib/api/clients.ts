@@ -1,12 +1,12 @@
 import axiosInstance from "@/lib/axios";
 import type { NameStatus } from "@/types/company";
 
-type MoaAoaDocType = "moa" | "aoa";
+export type MoaAoaDocType = "moa" | "aoa";
 
 type MoaAoaStatus = "open" | "clientUpload" | "TeamUpload";
 
 // Company-level miscellaneous document slots
-type CompanyMiscDocType =
+export type CompanyMiscDocType =
   | "miscellaneous"
   | "miscellaneous1"
   | "miscellaneous2"
@@ -92,6 +92,14 @@ export const clientsApi = {
     return response.data;
   },
 
+  // Get corporate structure step data (registered office, proofs, directors/shareholders summary)
+  getCorporateStructure: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/corporate-structure`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
   // Get directors and shareholders by application number
   getDirectorAndShareHolders: async (applicationNo: string) => {
     const response = await axiosInstance.get(
@@ -104,6 +112,15 @@ export const clientsApi = {
   getNameApplication: async (applicationNo: string) => {
     const response = await axiosInstance.get(
       `/admin/clients/${applicationNo}/getNameApplication`,
+    );
+    return response.data;
+  },
+
+  // Toggle resubmitOriginal for name application
+  toggleResubmitOriginal: async (applicationNo: string, resubmitOriginal: boolean) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/name-application/resubmit-original`,
+      { resubmitOriginal },
     );
     return response.data;
   },
@@ -130,6 +147,32 @@ export const clientsApi = {
     const response = await axiosInstance.patch(
       `/admin/clients/${applicationNo}/company/${companyIndex}/comment`,
       { comment },
+    );
+    return response.data;
+  },
+
+  // Update company MCA approval
+  updateCompanyMcaApproval: async (
+    applicationNo: string,
+    companyIndex: number,
+    mcaApproval: string,
+  ) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/company/${companyIndex}/mca-approval`,
+      { mcaApproval },
+    );
+    return response.data;
+  },
+
+  // Update company Trade conflict
+  updateCompanyTradeConflict: async (
+    applicationNo: string,
+    companyIndex: number,
+    tradeConflict: string,
+  ) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/company/${companyIndex}/trade-conflict`,
+      { tradeConflict },
     );
     return response.data;
   },
@@ -219,15 +262,34 @@ export const clientsApi = {
     applicationNo: string,
     docType: MoaAoaDocType,
   ): Promise<"uploaded" | "pending"> => {
+    const result = await clientsApi.getMoaAoaDocFilesStatus(
+      applicationNo,
+      docType,
+    );
+    return result.status;
+  },
+
+  getMoaAoaDocFilesStatus: async (
+    applicationNo: string,
+    docType: MoaAoaDocType,
+  ): Promise<{
+    status: "uploaded" | "pending";
+    adminFile: { name: string; path: string } | null;
+    clientFile: { name: string; path: string; uploadedAt?: string } | null;
+  }> => {
     try {
       const response = await axiosInstance.get(
         `/admin/clients/${applicationNo}/moa-aoa/${docType}/status`,
       );
       const data = response.data?.data ?? response.data;
       const status = data?.status?.toLowerCase?.();
-      return status === "uploaded" ? "uploaded" : "pending";
+      return {
+        status: status === "uploaded" ? "uploaded" : "pending",
+        adminFile: data?.adminFile ?? null,
+        clientFile: data?.clientFile ?? null,
+      };
     } catch {
-      return "pending";
+      return { status: "pending", adminFile: null, clientFile: null };
     }
   },
 
@@ -270,13 +332,15 @@ export const clientsApi = {
   downloadMoaAoaDocument: async (
     applicationNo: string,
     docType: MoaAoaDocType,
+    source?: "admin" | "client",
   ) => {
-    const response = await axiosInstance.get(
-      `/admin/clients/${applicationNo}/moa-aoa/${docType}/download`,
-      {
-        responseType: "blob",
-      },
-    );
+    const url = source
+      ? `/admin/clients/${applicationNo}/moa-aoa/${docType}/download?source=${source}`
+      : `/admin/clients/${applicationNo}/moa-aoa/${docType}/download`;
+
+    const response = await axiosInstance.get(url, {
+      responseType: "blob",
+    });
     return response.data as Blob;
   },
 
@@ -333,7 +397,12 @@ export const clientsApi = {
   getCompanyMiscDocStatus: async (
     applicationNo: string,
     docType: CompanyMiscDocType,
-  ): Promise<MiscDocStatusResult> => {
+  ): Promise<
+    MiscDocStatusResult & {
+      adminFile: { name: string; path: string } | null;
+      clientFile: { name: string; path: string; uploadedAt?: string } | null;
+    }
+  > => {
     try {
       const response = await axiosInstance.get(
         `/admin/clients/${applicationNo}/company-documents/misc/${docType}/status`,
@@ -343,9 +412,16 @@ export const clientsApi = {
       return {
         status: status === "uploaded" ? "uploaded" : "pending",
         name: data?.name ?? null,
+        adminFile: data?.adminFile ?? null,
+        clientFile: data?.clientFile ?? null,
       };
     } catch {
-      return { status: "pending", name: null };
+      return {
+        status: "pending",
+        name: null,
+        adminFile: null,
+        clientFile: null,
+      };
     }
   },
 
@@ -373,13 +449,15 @@ export const clientsApi = {
   downloadCompanyMiscDocument: async (
     applicationNo: string,
     docType: CompanyMiscDocType,
+    source?: "admin" | "client",
   ) => {
-    const response = await axiosInstance.get(
-      `/admin/clients/${applicationNo}/company-documents/misc/${docType}/download`,
-      {
-        responseType: "blob",
-      },
-    );
+    const url = source
+      ? `/admin/clients/${applicationNo}/company-documents/misc/${docType}/download?source=${source}`
+      : `/admin/clients/${applicationNo}/company-documents/misc/${docType}/download`;
+
+    const response = await axiosInstance.get(url, {
+      responseType: "blob",
+    });
     return response.data as Blob;
   },
 
@@ -601,6 +679,53 @@ export const clientsApi = {
       },
     );
     return response.data as Blob;
+  },
+
+  // Download corporate structure document
+  downloadCorporateStructureDocument: async (
+    applicationNo: string,
+    docType: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/corporate-structure/download/${docType}`,
+      {
+        responseType: "blob",
+      },
+    );
+    return response.data as Blob;
+  },
+
+  // Upload corporate structure document
+  uploadCorporateStructureDocument: async (
+    applicationNo: string,
+    docType: string,
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("document", file);
+    formData.append("proof", file);
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/corporate-structure/upload/${docType}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  // Delete corporate structure document
+  deleteCorporateStructureDocument: async (
+    applicationNo: string,
+    docType: string,
+  ) => {
+    const response = await axiosInstance.delete(
+      `/admin/clients/${applicationNo}/corporate-structure/delete/${docType}`,
+    );
+    return response.data?.data ?? response.data;
   },
 
   // Get tracking status by appNo

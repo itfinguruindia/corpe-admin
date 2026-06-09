@@ -126,7 +126,7 @@ export default function NotificationBell() {
         onClick={() => setIsOpen(!isOpen)}
         className={clsx(
           "relative flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 outline-none",
-          "shadow-none border-0 ring-0 min-h-0 min-w-0 p-0 [background-image:none]",
+          "shadow-none border-0 ring-0 min-h-0 min-w-0 p-0 bg-none",
           isOpen
             ? "bg-primary-100 text-primary-600 shadow-inner"
             : "bg-transparent text-primary-500 hover:bg-gray-100"
@@ -164,7 +164,7 @@ export default function NotificationBell() {
                   <Button
                     type="button"
                     onClick={handleMarkAllAsRead}
-                    className="flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-bold text-primary-600 hover:bg-primary-50 rounded-lg transition-colors shadow-none border-0 ring-0 outline-none min-h-0 h-auto [background-image:none]"
+                    className="flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-bold text-primary-600 rounded-lg transition-colors shadow-none border-0 ring-0 outline-none min-h-0 h-auto bg-none"
                   >
                     <Check size={14} />
                     <span>Mark all read</span>
