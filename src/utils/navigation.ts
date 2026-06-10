@@ -1,21 +1,38 @@
 type ClientRouter = {
   push: (href: string, options?: object) => void | Promise<unknown>;
   replace: (href: string, options?: object) => void | Promise<unknown>;
+  refresh: () => void | Promise<unknown>;
+  back: () => void;
 };
 
 /**
- * Benign Next.js App Router abort when a newer navigation supersedes the current one.
+ * Benign Next.js App Router abort when a newer navigation supersedes the current one,
+ * or when a concurrent re-render (e.g. live toast/notification) invalidates transition state.
  */
 export function isSkippedTransitionError(error: unknown): boolean {
   if (!error) return false;
-  if (error instanceof Error) {
-    return (
-      error.name === "AbortError" ||
-      error.message.includes("Transition was skipped") ||
-      error.message.includes("Cancel rendering route")
-    );
-  }
-  return String(error).includes("Transition was skipped");
+
+  const name =
+    error instanceof Error
+      ? error.name
+      : typeof error === "object" && error && "name" in error
+        ? String((error as { name?: string }).name)
+        : "";
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error && "message" in error
+        ? String((error as { message?: string }).message)
+        : String(error);
+
+  return (
+    name === "AbortError" ||
+    name === "InvalidStateError" ||
+    message.includes("Transition was skipped") ||
+    message.includes("Transition was aborted because of invalid state") ||
+    message.includes("Cancel rendering route")
+  );
 }
 
 function swallowSkippedTransition(promise: void | Promise<unknown>) {
@@ -45,6 +62,10 @@ export function safeRouterReplace(
   options?: object,
 ) {
   swallowSkippedTransition(router.replace(href, options));
+}
+
+export function safeRouterRefresh(router: Pick<ClientRouter, "refresh">) {
+  swallowSkippedTransition(router.refresh());
 }
 
 /**

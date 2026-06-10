@@ -7,15 +7,26 @@ import { isSkippedTransitionError } from "@/utils/navigation";
 
 function NavigationRejectionHandler() {
   useEffect(() => {
+    const swallowIfBenign = (error: unknown) =>
+      isSkippedTransitionError(error);
+
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
-      if (isSkippedTransitionError(event.reason)) {
+      if (swallowIfBenign(event.reason)) {
+        event.preventDefault();
+      }
+    };
+
+    const onError = (event: ErrorEvent) => {
+      if (swallowIfBenign(event.error ?? event.message)) {
         event.preventDefault();
       }
     };
 
     window.addEventListener("unhandledrejection", onUnhandledRejection);
+    window.addEventListener("error", onError);
     return () => {
       window.removeEventListener("unhandledrejection", onUnhandledRejection);
+      window.removeEventListener("error", onError);
     };
   }, []);
 
