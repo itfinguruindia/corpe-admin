@@ -161,7 +161,7 @@ export default function TrackingStatusContent({
 
       if (trackerData && trackerData.stages) {
         // For stages with re-attempts (e.g. Name Application after a rejection),
-        // treat the last attempt's status/sections as the effective ones.
+        // use the last attempt's sections/steps for the first-step selection.
         const getEffectiveStage = (stage: TrackerStage): TrackerStage => {
           if (stage.attempts && stage.attempts.length > 0) {
             return stage.attempts[stage.attempts.length - 1];
@@ -169,10 +169,13 @@ export default function TrackingStatusContent({
           return stage;
         };
 
-        // Open the first stage whose effective status is "In Progress";
+        // Open the first stage whose own status is "In Progress";
+        // (stage.status on the grouped entry is always current —
+        //  the backing store's JSON copies in stage.attempts are not
+        //  updated by recomputeStageStatuses, so we never use them here.)
         // otherwise fall back to stage 1 (order 1).
         const firstInProgressIndex = trackerData.stages.findIndex(
-          (stage: TrackerStage) => getEffectiveStage(stage).status === "In Progress"
+          (stage: TrackerStage) => stage.status === "In Progress"
         );
         const openIndex = firstInProgressIndex >= 0 ? firstInProgressIndex : 0;
 
@@ -769,7 +772,7 @@ export default function TrackingStatusContent({
                                     <div className="w-36">
                                       <CustomSelect
                                         value={step.status}
-                                        isDisabled={step.isEditable === false}
+                                        isDisabled={step.isEditable === false || step.title === "All documents delivered to you"}
                                         onChange={(val) =>
                                           handleStatusChange(currentStage.stageId || stage._id, section._id, step._id, val)
                                         }

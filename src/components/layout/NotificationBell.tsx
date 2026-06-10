@@ -164,7 +164,7 @@ export default function NotificationBell() {
                   <Button
                     type="button"
                     onClick={handleMarkAllAsRead}
-                    className="flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-bold text-primary-600 rounded-lg transition-colors shadow-none border-0 ring-0 outline-none min-h-0 h-auto bg-none"
+                    className="flex items-center gap-1.5 px-2 py-1.5 text-[11px] bg-white font-bold text-primary-600 rounded-lg shadow border-0 ring-0 outline-none min-h-0 h-auto"
                   >
                     <Check size={14} />
                     <span>Mark all read</span>

@@ -7,10 +7,14 @@ import { toast } from "@heroui/react";
 
 import { clientsApi } from "@/lib/api/clients";
 import CustomSelect from "@/components/ui/CustomSelect";
+import Modal from "@/components/ui/Modal";
 import { RegistrationData } from "@/types/registrationDocuments";
 import { usePermissions } from "@/hooks/usePermissions";
 import { requireClientTabEdit } from "@/utils/clientPermissions";
 import { notifyApiError } from "@/utils/apiErrors";
+import { getFileType } from "@/utils/helpers";
+
+const CIN_REGEX = /^[LUlu][0-9]{5}[A-Za-z]{2}[0-9]{4}[A-Za-z]{3}[0-9]{6}$/;
 
 const COMPANY_STATUS_OPTIONS = [
   { id: "pending", label: "Pending" },
@@ -40,18 +44,28 @@ export default function RegistrationDocumentsContent({
   const [data, setData] = useState<RegistrationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [cinInput, setCinInput] = useState("");
+  const [isCinEditable, setIsCinEditable] = useState(true);
+  const [cinError, setCinError] = useState("");
   const [companyStatus, setCompanyStatus] = useState<string>("pending");
   const [activeUploadDocType, setActiveUploadDocType] = useState<string | null>(
     null,
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [previewFileName, setPreviewFileName] = useState("");
+
   const loadData = async () => {
     try {
       setIsLoading(true);
       const result = await clientsApi.getRegistrationData(appNo);
       setData(result);
-      if (result?.cin) setCinInput(result.cin);
+      if (result?.cin) {
+        setCinInput(result.cin);
+        setIsCinEditable(false);
+      }
       if (result?.companyStatus) setCompanyStatus(result.companyStatus);
     } catch (error) {
       console.error("Failed to load registration data:", error);
@@ -66,6 +80,12 @@ export default function RegistrationDocumentsContent({
 
   const handleCinSubmit = async () => {
     if (!requireClientTabEdit(admin, "regDoc")) return;
+    if (!CIN_REGEX.test(cinInput)) {
+      setCinError("Please enter a valid CIN (e.g. L12345AB1234DEF123456)");
+      return;
+    }
+    setCinError("");
+    setIsCinEditable(false);
     try {
       await clientsApi.updateCinAndStatus(appNo, cinInput, companyStatus);
       toast.success("CIN updated successfully!");
@@ -97,6 +117,12 @@ export default function RegistrationDocumentsContent({
 
   const handleUploadClick = (docType: string) => {
     if (!requireClientTabEdit(admin, "regDoc")) return;
+    if (!data?.cin) {
+      toast.warning(
+        "Please submit a valid CIN first to unlock document uploads.",
+      );
+      return;
+    }
     setActiveUploadDocType(docType);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -148,14 +174,26 @@ export default function RegistrationDocumentsContent({
     }
   };
 
-  const handleView = async (docType: string) => {
+  const handlePreview = async (docType: string, fileName: string) => {
     try {
       const blob = await clientsApi.downloadRegistrationDocument(appNo, docType);
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setPreviewFileName(fileName);
+      setPreviewTitle(docType);
+      setIsPreviewOpen(true);
     } catch (error) {
-      console.error("Failed to view document:", error);
-      toast.danger("No file uploaded yet or view failed.");
+      console.error("Failed to preview document:", error);
+      toast.danger("Could not open document.");
+    }
+  };
+
+  const closePreview = () => {
+    setIsPreviewOpen(false);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+      setPreviewFileName("");
     }
   };
 
@@ -174,10 +212,6 @@ export default function RegistrationDocumentsContent({
       </div>
     );
   }
-
-  const pendingCount = data.documents.filter(
-    (d) => d.status === "pending",
-  ).length;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans p-6">
@@ -199,13 +233,6 @@ export default function RegistrationDocumentsContent({
               </h2>
             </div>
           </div>
-
-          {/* Status Badge */}
-          {pendingCount > 0 && (
-            <div className="bg-[#F7C948] text-secondary px-4 py-2 rounded-lg text-sm font-medium shadow-sm">
-              highlights pending documnets
-            </div>
-          )}
         </div>
 
         {/* Company Status */}
@@ -246,27 +273,38 @@ export default function RegistrationDocumentsContent({
         </div>
 
         {/* CIN Section */}
-        <div className="flex items-center mb-12 border-b border-gray-200 pb-8">
-          <label className="text-lg font-bold text-black min-w-20">CIN</label>
-          <div className="flex items-center gap-4 flex-1 max-w-xl">
-            <input
-              type="text"
-              value={cinInput}
-              onChange={(e) => setCinInput(e.target.value)}
-              className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#F46A45] focus:outline-none focus:ring-2 focus:ring-[#F46A45]/20 [color-scheme:light]"
-              placeholder="Enter CIN"
-            />
-            <button
-              onClick={handleCinSubmit}
-              className="bg-[#F46A45] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#d55a39] transition-colors shadow-sm"
-            >
-              Submit
-            </button>
-            {/* Edit Icon for CIN */}
-            <button className="p-2 text-primary hover:bg-orange-50 rounded-lg transition-colors border border-[#F46A45] aspect-square flex items-center justify-center w-10 h-10">
-              <Edit size={18} />
-            </button>
+        <div className="flex flex-col gap-y-4 border-b border-gray-200 pb-8">
+          <div className="flex items-center">
+            <label className="text-lg font-bold text-black min-w-20">CIN</label>
+            <div className="flex items-center gap-4 flex-1 max-w-xl">
+              <input
+                type="text"
+                disabled={!isCinEditable}
+                value={cinInput}
+                onChange={(e) => {
+                  setCinInput(e.target.value.trim());
+                  setCinError("");
+                }}
+                className="disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#F46A45] focus:outline-none focus:ring-2 focus:ring-[#F46A45]/20 scheme-light"
+                placeholder="Enter 21 digit CIN"
+              />
+              <button
+                onClick={handleCinSubmit}
+                className="bg-[#F46A45] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#d55a39] transition-colors shadow-sm"
+              >
+                Submit
+              </button>
+              {/* Edit Icon for CIN */}
+              <button onClick={() => setIsCinEditable(!isCinEditable)} className="p-2 text-primary hover:bg-orange-50 rounded-lg transition-colors border border-[#F46A45] aspect-square flex items-center justify-center w-10 h-10">
+                <Edit size={18} />
+              </button>
+            </div>
           </div>
+           {cinError && (
+            <p className="ml-20 mt-1 text-xs font-medium text-red-600">
+              {cinError}
+            </p>
+          )}
         </div>
 
         {/* Documents List */}
@@ -288,7 +326,12 @@ export default function RegistrationDocumentsContent({
               <div className="flex items-center gap-6">
                 {/* View */}
                 <button
-                  onClick={() => handleView(doc.name)}
+                  onClick={() =>
+                    handlePreview(
+                      doc.name,
+                      (doc as { fileName?: string }).fileName ?? "",
+                    )
+                  }
                   className="text-primary hover:text-[#d55a39] transition-colors p-1"
                   title="View"
                   disabled={doc.status === "pending"}
@@ -316,6 +359,8 @@ export default function RegistrationDocumentsContent({
                   onClick={() => handleUploadClick(doc.name)}
                   className="text-primary hover:text-[#d55a39] transition-colors p-1"
                   title="Upload"
+                  disabled={!data?.cin}
+                  style={{ opacity: !data?.cin ? 0.3 : 1 }}
                 >
                   <Upload size={24} />
                 </button>
@@ -323,6 +368,54 @@ export default function RegistrationDocumentsContent({
             </div>
           ))}
         </div>
+
+        {/* Preview Modal */}
+        <Modal
+          isOpen={isPreviewOpen}
+          onClose={closePreview}
+          title={previewTitle}
+        >
+          {previewUrl ? (
+            <>
+              {getFileType(previewFileName) === "image" && (
+                <img
+                  src={previewUrl}
+                  alt="Document Preview"
+                  className="w-full max-h-[70vh] object-contain rounded"
+                />
+              )}
+
+              {getFileType(previewFileName) === "pdf" && (
+                <iframe
+                  src={previewUrl}
+                  title="Document PDF Preview"
+                  className="w-full h-[70vh] border rounded"
+                />
+              )}
+
+              {getFileType(previewFileName) === "other" && (
+                <div className="flex flex-col items-center justify-center p-8">
+                  <p className="text-gray-500 mb-4">
+                    No online preview available for this file type.
+                  </p>
+                  <button
+                    onClick={() => {
+                      const link = document.createElement("a");
+                      link.href = previewUrl;
+                      link.download = previewFileName;
+                      link.click();
+                    }}
+                    className="bg-primary hover:bg-secondary text-white font-medium px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Download to View
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <p>No preview available</p>
+          )}
+        </Modal>
       </div>
     </div>
   );

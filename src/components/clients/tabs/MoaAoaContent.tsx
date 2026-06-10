@@ -269,9 +269,14 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
   };
 
   const renderUploadCard = (section: DocumentSection) => (
-    <div key={section.key} className="rounded-xl bg-white p-4 shadow-sm h-full flex flex-col">
+    <div
+      key={section.key}
+      className="rounded-xl bg-white p-4 shadow-sm h-full flex flex-col"
+    >
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold text-secondary">{section.label}</h2>
+        <h2 className="text-base font-semibold text-secondary">
+          {section.label}
+        </h2>
         <div className="flex items-center gap-3">
           <div title="Refresh status">
             <RefreshCw
@@ -381,7 +386,6 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
           </div>
         )}
       </div>
-
     </div>
   );
 
