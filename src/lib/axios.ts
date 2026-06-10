@@ -13,6 +13,7 @@ function isAuthRequest(url?: string) {
   return (
     url.includes("/admin/auth/login") ||
     url.includes("/admin/auth/register") ||
+    url.includes("/admin/auth/check-super") ||
     url.includes("/activity-logs/logout") ||
     url.includes("/activity-logs/track")
   );

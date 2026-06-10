@@ -1,8 +1,9 @@
 "use client";
 
-import React, { startTransition, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { usePermissions } from "@/hooks/usePermissions";
+import { safeRouterReplace } from "@/utils/navigation";
 import {
   getRedirectForDeniedRoute,
   getRequiredPermissionsForRoute,
@@ -19,7 +20,7 @@ interface RoutePermissionGuardProps {
 
 /**
  * Blocks rendering of protected pages when the admin lacks route permissions.
- * Authentication is handled separately by proxy.ts (cookie).
+ * Authentication is handled separately by src/proxy.ts (cookie).
  * Edit/upload denial toasts are shown on the page via requireClientTabEdit().
  */
 export default function RoutePermissionGuard({
@@ -71,9 +72,7 @@ export default function RoutePermissionGuard({
       rule?.permissions,
     );
 
-    startTransition(() => {
-      router.replace(redirectTo);
-    });
+    safeRouterReplace(router, redirectTo);
   }, [isDenied, pathname, rule, router, hasPermission, isSuperAdmin]);
 
   if (!rule) {

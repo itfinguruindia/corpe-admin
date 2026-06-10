@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { checkSuperAdmin, registerSuperAdmin } from "@/utils/auth";
 import { redirectAfterAuth } from "@/utils/navigation";
 import { toast } from "@heroui/react";
@@ -18,7 +17,6 @@ import {
 } from "@heroui/react";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -85,7 +83,7 @@ export default function RegisterPage() {
         toast.success(
           "Registration successful! Your account has been created. Please contact the Super Admin to assign you a role before you can login.",
         );
-        router.push("/login");
+        redirectAfterAuth("/login");
         setName("");
         setEmail("");
         setPhoneNumber("");
