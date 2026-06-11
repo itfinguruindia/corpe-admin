@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
-import { InfoField, Switch } from "@/components/ui";
+import { InfoField, Switch, Chip } from "@/components/ui";
 import { usePermissions } from "@/hooks/usePermissions";
 import { requireClientTabEdit } from "@/utils/clientPermissions";
 
@@ -63,6 +63,7 @@ export default function DirectorDetailPage() {
                 : 0,
               kycVerified: d.kycVerified ?? false,
               dscApplication: d.dscApplication ?? false,
+              isBankSigningAuthority: d.isBankSigningAuthority ?? false,
               createdAt: undefined,
               updatedAt: undefined,
             }),
@@ -198,6 +199,9 @@ export default function DirectorDetailPage() {
               <h2 className="text-xl font-semibold text-secondary">
                 Director {director.directorNumber}
               </h2>
+              {director.isBankSigningAuthority && (
+                <Chip label="Bank Signing Authority" variant="blue" />
+              )}
             </div>
             <div className="flex gap-4">
               <button
