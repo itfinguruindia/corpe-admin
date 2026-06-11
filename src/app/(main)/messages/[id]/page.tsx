@@ -2,6 +2,7 @@
 
 import { useEffect, use } from "react";
 import { useRouter } from "next/navigation";
+import { safeRouterReplace } from "@/utils/navigation";
 
 /**
  * Redirect /messages/:id to /messages?room=:id
@@ -16,7 +17,7 @@ export default function ChatRedirectPage({
   const { id } = use(params);
 
   useEffect(() => {
-    router.replace(`/messages?room=${id}`);
+    safeRouterReplace(router, `/messages?room=${id}`);
   }, [id, router]);
 
   return (

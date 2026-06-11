@@ -18,8 +18,9 @@ function clearAuthStorage(): void {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("adminInfo");
-  Cookies.remove("accessToken");
-  Cookies.remove("refreshToken");
+  // Remove with explicit path to match how cookies were set (js-cookie defaults to "/").
+  Cookies.remove("accessToken", { path: "/" });
+  Cookies.remove("refreshToken", { path: "/" });
   store.dispatch(clearAuthData());
 }
 

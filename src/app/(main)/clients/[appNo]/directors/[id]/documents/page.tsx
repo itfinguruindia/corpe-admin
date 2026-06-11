@@ -245,13 +245,15 @@ export default function DirectorDocumentsPage() {
     }
   };
 
-  const loadAllDualSourceDocs = async () => {
+  const loadAllDualSourceDocs = async (isForeignResident?: boolean) => {
     if (!appNo || !id) return;
 
     const docTypes = [
       { key: "dir2", setter: setDir2Files },
       { key: "inc9Director", setter: setInc9Files },
-      { key: "noPanDeclaration", setter: setNoPanFiles },
+      ...(isForeignResident
+        ? [{ key: "noPanDeclaration", setter: setNoPanFiles }]
+        : []),
       { key: "miscellaneous1", setter: setMisc1Files },
       { key: "miscellaneous2", setter: setMisc2Files },
       { key: "miscellaneous3", setter: setMisc3Files },
@@ -291,7 +293,9 @@ export default function DirectorDocumentsPage() {
         setDocuments(transformDocumentsToArray(documentsData));
 
         // Load dual-source document statuses
-        await loadAllDualSourceDocs();
+        await loadAllDualSourceDocs(
+          Boolean((directorData as { isForeignResident?: boolean })?.isForeignResident),
+        );
       } catch (err) {
         console.error("Error loading director documents", err);
       } finally {
@@ -715,11 +719,12 @@ export default function DirectorDocumentsPage() {
           <div className="col-span-1 space-y-4">
             {renderDualSourceCard("DIR-2", "dir2", dir2Files)}
             {renderDualSourceCard("INC-9", "inc9Director", inc9Files)}
-            {renderDualSourceCard(
-              "No PAN Declaration",
-              "noPanDeclaration",
-              noPanFiles,
-            )}
+            {(director as { isForeignResident?: boolean }).isForeignResident &&
+              renderDualSourceCard(
+                "No PAN Declaration",
+                "noPanDeclaration",
+                noPanFiles,
+              )}
           </div>
         </div>
 

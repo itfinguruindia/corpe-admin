@@ -21,6 +21,7 @@ export function proxy(request: NextRequest) {
     "/register",
     "/forgot-password",
     "/reset-password",
+    "/verify-email-change",
   ];
 
   // Check if the current path is a public route
@@ -36,12 +37,17 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If trying to access public route with token (like login/register), redirect to dashboard
+  // If trying to access public route with token (like login/register), redirect to dashboard.
+  // Exempt routes that need to work regardless of auth state.
+  const authExemptPublicRoutes = [
+    "/forgot-password",
+    "/reset-password",
+    "/verify-email-change",
+  ];
   if (
     isPublicRoute &&
     token &&
-    pathname !== "/forgot-password" &&
-    pathname !== "/reset-password"
+    !authExemptPublicRoutes.some((r) => pathname.startsWith(r))
   ) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }

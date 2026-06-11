@@ -126,7 +126,7 @@ export default function NotificationBell() {
         onClick={() => setIsOpen(!isOpen)}
         className={clsx(
           "relative flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 outline-none",
-          "shadow-none border-0 ring-0 min-h-0 min-w-0 p-0 [background-image:none]",
+          "shadow-none border-0 ring-0 min-h-0 min-w-0 p-0 bg-none",
           isOpen
             ? "bg-primary-100 text-primary-600 shadow-inner"
             : "bg-transparent text-primary-500 hover:bg-gray-100"
@@ -164,14 +164,15 @@ export default function NotificationBell() {
                   <Button
                     type="button"
                     onClick={handleMarkAllAsRead}
-                    className="flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-bold text-primary-600 hover:bg-primary-50 rounded-lg transition-colors shadow-none border-0 ring-0 outline-none min-h-0 h-auto [background-image:none]"
+                    className="flex items-center gap-1.5 px-2 py-1.5 text-[11px] bg-white font-bold text-primary-600 rounded-lg shadow border-0 ring-0 outline-none min-h-0 h-auto"
                   >
                     <Check size={14} />
                     <span>Mark all read</span>
                   </Button>
                 )}
                 <Link 
-                  href="/settings?tab=notifications" 
+                  href="/settings?tab=notifications"
+                  prefetch={false}
                   className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   title="Notification Settings"
                   onClick={() => setIsOpen(false)}
@@ -213,6 +214,7 @@ export default function NotificationBell() {
             <div className="p-2 bg-gray-50/50">
               <Link 
                 href="/notifications"
+                prefetch={false}
                 className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-bold text-primary-600 hover:bg-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent hover:border-primary-100"
                 onClick={() => setIsOpen(false)}
               >
@@ -257,6 +259,7 @@ function NotificationItem({
   return (
     <Link 
       href={notification.metadata?.link || "/notifications"}
+      prefetch={false}
       onClick={onClose}
       className={clsx(
         "flex gap-3 p-4 transition-all relative group border-l-4",

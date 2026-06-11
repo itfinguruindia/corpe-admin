@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef, startTransition } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import {
@@ -8,7 +8,7 @@ import {
   setUnreadCount,
   setPreferences,
 } from "@/redux/slices/notificationSlice";
-import { connectSocket, getSocket } from "@/lib/socket";
+import { connectSocket } from "@/lib/socket";
 import notificationService from "@/services/notification.service";
 import { toast } from "@heroui/react";
 
@@ -22,60 +22,68 @@ export function useNotifications() {
   const { preferences } = useSelector(
     (state: RootState) => state.notifications,
   );
+  const preferencesRef = useRef(preferences);
+  preferencesRef.current = preferences;
 
   const playNotificationSound = useCallback(() => {
-    if (preferences?.soundEnabled) {
+    if (preferencesRef.current?.soundEnabled) {
       const audio = new Audio("/sounds/notification.mp3");
+      audio.volume = 0.8;
       audio.play().catch((err) => {
-        // Only log if it's not a 'no supported source' error to keep console clean if file is missing
         if (err.name !== "NotSupportedError") {
           console.error("Could not play notification sound", err);
         }
       });
     }
-  }, [preferences?.soundEnabled]);
+  }, []);
 
   const handleNewNotification = useCallback(
     (data: any) => {
       const { notification } = data;
-      if (notification) {
-        dispatch(addNotification(notification));
+      if (!notification) return;
 
-        // Show a toast for all new notifications
+      // Low-priority updates avoid aborting an in-flight App Router transition.
+      startTransition(() => {
+        dispatch(addNotification(notification));
+      });
+
+      // Defer toast to the next task so root Toast.Provider re-renders don't
+      // collide with router transition state (InvalidStateError).
+      setTimeout(() => {
         toast(notification.title, {
           description: notification.body,
           variant: notification.severity === "critical" ? "danger" : "accent",
           timeout: 5000,
         });
+      }, 0);
 
-        playNotificationSound();
-      }
+      playNotificationSound();
     },
     [dispatch, playNotificationSound],
   );
 
   const handleUnreadCount = useCallback(
     (data: { count: number }) => {
-      dispatch(setUnreadCount(data.count));
+      startTransition(() => {
+        dispatch(setUnreadCount(data.count));
+      });
     },
     [dispatch],
   );
 
   useEffect(() => {
+    if (!admin || preferences) return;
+
+    notificationService.getPreferences().then((prefs) => {
+      if (prefs) dispatch(setPreferences(prefs));
+    });
+  }, [admin, preferences, dispatch]);
+
+  useEffect(() => {
     if (!admin) return;
-
-    // 1. Fetch preferences if not loaded
-    if (!preferences) {
-      notificationService.getPreferences().then((prefs) => {
-        if (prefs) dispatch(setPreferences(prefs));
-      });
-    }
-
-    // 2. Connect socket (skipped if no token or backend unavailable)
     const socket = connectSocket();
     if (!socket) return;
 
-    // 3. Register listeners
     socket.on("notification:new", handleNewNotification);
     socket.on("notification:unreadCount", handleUnreadCount);
 
@@ -83,7 +91,7 @@ export function useNotifications() {
       socket.off("notification:new", handleNewNotification);
       socket.off("notification:unreadCount", handleUnreadCount);
     };
-  }, [admin, preferences, dispatch, handleNewNotification, handleUnreadCount]);
+  }, [admin, dispatch, handleNewNotification, handleUnreadCount]);
 
   return { preferences };
 }

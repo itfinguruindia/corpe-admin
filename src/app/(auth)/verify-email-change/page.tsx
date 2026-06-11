@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { verifyEmailChange } from "@/utils/auth";
+import { redirectAfterAuth } from "@/utils/navigation";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 function VerifyContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
-  const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Verifying your email...");
 
@@ -35,8 +35,7 @@ function VerifyContent() {
         setStatus("success");
         setMessage("Email verified successfully! Redirecting to dashboard...");
         setTimeout(() => {
-          router.push("/");
-          router.refresh(); // Ensure strict auth state refresh
+          redirectAfterAuth("/dashboard");
         }, 2000);
       } catch (error: any) {
         setStatus("error");
@@ -47,7 +46,7 @@ function VerifyContent() {
     };
 
     verify();
-  }, [token, router]);
+  }, [token]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
@@ -78,7 +77,7 @@ function VerifyContent() {
             </h2>
             <p className="mt-2 text-gray-500">{message}</p>
             <button
-              onClick={() => router.push("/")}
+              onClick={() => redirectAfterAuth("/dashboard")}
               className="mt-6 w-full rounded-lg bg-[#3D63A4] px-4 py-2 text-white hover:bg-[#2c4b82] transition-colors"
             >
               Go to Dashboard
