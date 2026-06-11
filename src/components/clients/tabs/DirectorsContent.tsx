@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
 import { Card, Spinner } from "@heroui/react";
+import { Chip } from "@/components/ui";
 
 interface DirectorsContentProps {
   appNo: string;
@@ -54,8 +55,9 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
               shareholdingPercentage: d.proposedShareholdingPercentage
                 ? Number(d.proposedShareholdingPercentage)
                 : 0,
-              kycVerified: false,
-              dscApplication: false,
+              kycVerified: d.kycVerified ?? false,
+              dscApplication: d.dscApplication ?? false,
+              isBankSigningAuthority: d.isBankSigningAuthority ?? false,
               createdAt: undefined,
               updatedAt: undefined,
             }),
@@ -106,15 +108,25 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-gray-900">
-                      Director {director.directorNumber}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-900">
+                        Director {director.directorNumber}
+                      </h3>
+                      {director.isBankSigningAuthority && (
+                        <Chip
+                          label="Bank Signing Authority"
+                          variant="blue"
+                          className="text-xs"
+                        />
+                      )}
+                    </div>
                     <p className="text-sm text-gray-600 mt-1">
                       {director.directorName}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
                       {director.email} • {director.phoneNo}
-                      {(director as { isForeignResident?: boolean }).isForeignResident && (
+                      {(director as { isForeignResident?: boolean })
+                        .isForeignResident && (
                         <span className="ml-2 text-xs font-medium text-[#3D63A4]">
                           • NRI / Foreign Resident
                         </span>

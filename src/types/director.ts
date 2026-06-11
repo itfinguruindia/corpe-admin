@@ -30,6 +30,7 @@ export interface Director {
   shareholdingPercentage: number;
   kycVerified: boolean;
   dscApplication: boolean;
+  isBankSigningAuthority?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
