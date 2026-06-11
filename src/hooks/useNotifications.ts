@@ -71,8 +71,9 @@ export function useNotifications() {
       });
     }
 
-    // 2. Connect socket
+    // 2. Connect socket (skipped if no token or backend unavailable)
     const socket = connectSocket();
+    if (!socket) return;
 
     // 3. Register listeners
     socket.on("notification:new", handleNewNotification);

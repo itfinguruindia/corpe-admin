@@ -27,12 +27,22 @@ const CustomSelect = (props: CustomSelectProps) => {
     <Select
       className={className ?? "min-w-32 w-full"}
       value={value}
-      onChange={(value) => onChange(value as string)}
+      onChange={(value) => {
+        const next =
+          value == null
+            ? ""
+            : typeof value === "string"
+              ? value
+              : String(value);
+        onChange(next);
+      }}
       aria-label={ariaLabel}
       isDisabled={isDisabled}
     >
       {label ? (
-        <Label>{label}</Label>
+        <Label className="mb-2 block text-sm font-medium text-gray-800">
+          {label}
+        </Label>
       ) : (
         <Label className="sr-only">{ariaLabel}</Label>
       )}

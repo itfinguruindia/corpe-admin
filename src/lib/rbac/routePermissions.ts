@@ -51,6 +51,10 @@ export const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     permissions: [PERMISSIONS.ACTIVITY_LOGS_VIEW, PERMISSIONS.AUDIT_VIEW],
   },
   {
+    path: "/compliance-calendar",
+    permissions: [PERMISSIONS.SETTINGS_VIEW],
+  },
+  {
     path: "/settings",
     prefix: true,
     permissions: [PERMISSIONS.SETTINGS_VIEW],
