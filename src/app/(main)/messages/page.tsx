@@ -45,6 +45,7 @@ export default function MessagesPage() {
   useEffect(() => {
     const socket = connectSocket();
     socketRef.current = socket;
+    if (!socket) return;
 
     // Listen for room updates (new messages, etc.)
     const handleRoomUpdated = () => {

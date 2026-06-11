@@ -81,8 +81,8 @@ export function useNotifications() {
 
   useEffect(() => {
     if (!admin) return;
-
     const socket = connectSocket();
+    if (!socket) return;
 
     socket.on("notification:new", handleNewNotification);
     socket.on("notification:unreadCount", handleUnreadCount);
