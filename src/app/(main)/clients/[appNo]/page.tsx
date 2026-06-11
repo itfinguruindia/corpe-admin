@@ -13,6 +13,7 @@ import ShareholdersContent from "@/components/clients/tabs/ShareholdersContent";
 import UploadedDocumentsContent from "@/components/clients/tabs/UploadedDocumentsContent";
 import RegistrationDocumentsContent from "@/components/clients/tabs/RegistrationDocumentsContent";
 import PricingAndPaymentContent from "@/components/clients/tabs/PricingAndPaymentContent";
+import { safeRouterReplace } from "@/utils/navigation";
 
 const TABS = [
   { key: "company-overview", label: "Company Overview" },
@@ -61,7 +62,9 @@ function ClientDetailsTabs() {
     setActiveTab(keyStr);
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", keyStr);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    safeRouterReplace(router, `${pathname}?${params.toString()}`, {
+      scroll: false,
+    });
   };
 
   return (

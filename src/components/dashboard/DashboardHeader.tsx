@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import { safeRouterRefresh } from "@/utils/navigation";
 import { RefreshCcw, Undo2, Menu } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { openMobileSidebar } from "@/redux/slices/layoutSlice";
@@ -61,7 +62,7 @@ export default function DashboardHeader() {
               <Button
                 isIconOnly
                 aria-label="Refresh page"
-                onPress={() => router.refresh()}
+                onPress={() => safeRouterRefresh(router)}
                 className="rounded-full text-primary-500 border border-gray-100 shadow-sm bg-white hover:bg-gray-50 h-9 w-9"
               >
                 <RefreshCcw className="h-4 w-4" />

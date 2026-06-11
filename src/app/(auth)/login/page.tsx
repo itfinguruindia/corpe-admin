@@ -29,6 +29,11 @@ export default function LoginPage() {
   useEffect(() => {
     let cancelled = false;
 
+    // proxy.ts redirects to /dashboard at the edge if the accessToken cookie is present,
+    // so this page only renders when the cookie is absent — do NOT check localStorage here.
+    // Falling back to localStorage would cause an infinite loop: localStorage token exists
+    // but proxy.ts has no cookie → redirect to /dashboard → proxy bounces back to /login.
+
     (async () => {
       try {
         const hasSuper = await checkSuperAdmin();

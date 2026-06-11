@@ -171,7 +171,8 @@ export default function NotificationBell() {
                   </Button>
                 )}
                 <Link 
-                  href="/settings?tab=notifications" 
+                  href="/settings?tab=notifications"
+                  prefetch={false}
                   className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   title="Notification Settings"
                   onClick={() => setIsOpen(false)}
@@ -213,6 +214,7 @@ export default function NotificationBell() {
             <div className="p-2 bg-gray-50/50">
               <Link 
                 href="/notifications"
+                prefetch={false}
                 className="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-bold text-primary-600 hover:bg-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent hover:border-primary-100"
                 onClick={() => setIsOpen(false)}
               >
@@ -257,6 +259,7 @@ function NotificationItem({
   return (
     <Link 
       href={notification.metadata?.link || "/notifications"}
+      prefetch={false}
       onClick={onClose}
       className={clsx(
         "flex gap-3 p-4 transition-all relative group border-l-4",
