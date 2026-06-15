@@ -13,11 +13,13 @@ import ShareholdersContent from "@/components/clients/tabs/ShareholdersContent";
 import UploadedDocumentsContent from "@/components/clients/tabs/UploadedDocumentsContent";
 import RegistrationDocumentsContent from "@/components/clients/tabs/RegistrationDocumentsContent";
 import PricingAndPaymentContent from "@/components/clients/tabs/PricingAndPaymentContent";
+import CommentsContent from "@/components/clients/tabs/CommentsContent";
 import { safeRouterReplace } from "@/utils/navigation";
 
 const TABS = [
   { key: "company-overview", label: "Company Overview" },
   { key: "application", label: "Name Application" },
+  { key: "comments", label: "Comments" },
   { key: "tracking-status", label: "Tracking Status" },
   { key: "directors", label: "Directors" },
   { key: "shareholders", label: "Shareholders" },
@@ -112,6 +114,9 @@ function ClientDetailsTabs() {
             )}
             {activeTab === t.key && t.key === "application" && (
               <NameApplicationContent appNo={appNoStr} />
+            )}
+            {activeTab === t.key && t.key === "comments" && (
+              <CommentsContent appNo={appNoStr} />
             )}
             {activeTab === t.key && t.key === "shareholders" && (
               <ShareholdersContent appNo={appNoStr} />

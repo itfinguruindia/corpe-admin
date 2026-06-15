@@ -809,5 +809,73 @@ export const clientsApi = {
   initializeTracker: async (orgId: string) => {
     const response = await axiosInstance.post(`/admin/tracker/${orgId}/initialize`);
     return response.data?.data ?? response.data;
-  }
+  },
+
+  getGlobalComments: async (applicationNo: string, area?: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/global-comments`,
+      { params: area && area !== "all" ? { area } : {} },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  createGlobalComment: async (
+    applicationNo: string,
+    payload: { content: string; area: string; files?: File[] },
+  ) => {
+    const formData = new FormData();
+    formData.append("content", payload.content);
+    formData.append("area", payload.area);
+    (payload.files || []).forEach((file) => formData.append("file", file));
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/global-comments`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  deleteGlobalComment: async (applicationNo: string, commentId: string) => {
+    const response = await axiosInstance.delete(
+      `/admin/clients/${applicationNo}/global-comments/${commentId}`,
+    );
+    return response.data;
+  },
+
+  downloadGlobalCommentFile: async (
+    applicationNo: string,
+    commentId: string,
+    filePath: string,
+    fileName: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/global-comments/download`,
+      {
+        params: { commentId, filePath },
+        responseType: "blob",
+      },
+    );
+    const blobUrl = window.URL.createObjectURL(response.data);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = fileName;
+    link.click();
+    window.URL.revokeObjectURL(blobUrl);
+  },
+
+  getGlobalCommentFileBlob: async (
+    applicationNo: string,
+    commentId: string,
+    filePath: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/global-comments/download`,
+      {
+        params: { commentId, filePath },
+        responseType: "blob",
+      },
+    );
+    return response.data as Blob;
+  },
 };
