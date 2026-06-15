@@ -13,6 +13,7 @@ export type ClientPermissionTab =
   | "upload"
   | "regDoc"
   | "pricing"
+  | "comments"
   | "client";
 
 /** Edit/create permissions per client tab (client-edit also grants all tab edits). */
@@ -29,6 +30,7 @@ const TAB_MUTATION_PERMISSIONS: Record<ClientPermissionTab, string[]> = {
   upload: [PERMISSIONS.UPLOAD_CREATE],
   regDoc: [PERMISSIONS.REG_DOC_EDIT, PERMISSIONS.REG_DOC_CREATE],
   pricing: [PERMISSIONS.PRICING_EDIT],
+  comments: [PERMISSIONS.MSG_CREATE, PERMISSIONS.MSG_DELETE],
   client: [PERMISSIONS.CLIENT_EDIT],
 };
 

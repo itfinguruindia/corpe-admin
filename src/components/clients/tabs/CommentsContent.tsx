@@ -79,7 +79,7 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
   }, [previewUrl]);
 
   const handlePostComment = async () => {
-    if (!requireClientTabEdit(admin, "application")) return;
+    if (!requireClientTabEdit(admin, "comments")) return;
     if (!newMessage.trim()) {
       toast("Please enter a comment message", { variant: "warning" });
       return;
@@ -106,7 +106,7 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
   };
 
   const handleDelete = async (commentId: string) => {
-    if (!requireClientTabEdit(admin, "application")) return;
+    if (!requireClientTabEdit(admin, "comments")) return;
     try {
       await clientsApi.deleteGlobalComment(appNo, commentId);
       toast("Comment deleted", { variant: "success" });
