@@ -74,6 +74,13 @@ interface TrackerStage {
   attempts?: TrackerStage[];
 }
 
+interface InstallmentInfo {
+  firstInstallmentDue: boolean;
+  firstInstallmentPaid: boolean;
+  secondInstallmentDue: boolean;
+  secondInstallmentPaid: boolean;
+}
+
 interface TrackerData {
   _id: string;
   org: {
@@ -90,6 +97,7 @@ interface TrackerData {
   overallProgress: number;
   currentStageIndex: number;
   stages: TrackerStage[];
+  installmentInfo?: InstallmentInfo;
   assignee?: {
     _id: string;
     name?: string;
@@ -538,6 +546,50 @@ export default function TrackingStatusContent({
           </div>
         </Card>
 
+        {/* Installment Payment Warning Banners */}
+        {tracker.installmentInfo?.firstInstallmentDue && (
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-amber-900">
+                1st Installment Payment Required
+              </p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                The Digital Signature Certificate (DSC) section in Stage 2 and
+                all of Stages 3 &amp; 4 are locked until the client pays the 1st
+                Installment.
+                <a
+                  href={`/clients/${appNo}/pricing-and-payment`}
+                  className="underline font-semibold ml-1"
+                >
+                  Go to Pricing &amp; Payment
+                </a>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {tracker.installmentInfo?.secondInstallmentDue && (
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-amber-900">
+                2nd Installment Payment Required
+              </p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Stages 3 &amp; 4 are locked until the client pays the 2nd
+                Installment.
+                <a
+                  href={`/clients/${appNo}/pricing-and-payment`}
+                  className="underline font-semibold ml-1"
+                >
+                  Go to Pricing &amp; Payment
+                </a>
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4 items-start">
           {/* Left Column: Stage Cards */}
@@ -693,11 +745,41 @@ export default function TrackingStatusContent({
                         <div key={section._id} className="bg-white">
                           {/* Section Header */}
                           <div className="px-4 py-2 bg-slate-50 flex items-center justify-between border-b border-slate-100">
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                              Section: {section.label}
-                            </span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                Section: {section.label}
+                              </span>
+                              {(section.label ===
+                                "Digital Signature Certificate (DSC)" ||
+                                section.label ===
+                                  "Digital Signature Certificate (DSC) procedure" ||
+                                section.label === "DSC procedure") &&
+                                tracker.installmentInfo
+                                  ?.firstInstallmentDue && (
+                                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
+                                    <svg
+                                      className="w-3 h-3"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2.5"
+                                    >
+                                      <rect
+                                        x="3"
+                                        y="11"
+                                        width="18"
+                                        height="11"
+                                        rx="2"
+                                        ry="2"
+                                      />
+                                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                    </svg>
+                                    Locked — 1st Installment Due
+                                  </span>
+                                )}
+                            </div>
                             {section.estimation && (
-                              <span className="text-xs text-slate-400 font-mono">
+                              <span className="text-xs text-slate-400 font-mono shrink-0 ml-2">
                                 Est: {section.estimation}
                               </span>
                             )}
