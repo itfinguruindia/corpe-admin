@@ -387,6 +387,51 @@ export const clientsApi = {
     return response.data as Blob;
   },
 
+  getMcaQueryStatus: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/mca-query/status`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  updateMcaQueryText: async (applicationNo: string, text: string) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/mca-query/text`,
+      { text },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  uploadMcaQueryFile: async (applicationNo: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/mca-query/files`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  deleteMcaQueryFile: async (applicationNo: string, filePath: string) => {
+    const response = await axiosInstance.delete(
+      `/admin/clients/${applicationNo}/mca-query/files?filePath=${encodeURIComponent(filePath)}`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  downloadMcaClarificationFile: async (
+    applicationNo: string,
+    source: "mca" | "client",
+    filePath: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/mca-query/download?source=${source}&filePath=${encodeURIComponent(filePath)}`,
+      { responseType: "blob" },
+    );
+    return response.data as Blob;
+  },
+
   getCompanyMiscDocuments: async (applicationNo: string) => {
     const response = await axiosInstance.get(
       `/admin/clients/${applicationNo}/company-documents/misc`,
