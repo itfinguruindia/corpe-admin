@@ -73,6 +73,17 @@ export default function NameApplicationContent({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>("");
+  const [companyNameStatus, setCompanyNameStatus] = useState("new");
+  const [mcaQueryText, setMcaQueryText] = useState("");
+  const [mcaQueryFiles, setMcaQueryFiles] = useState<
+    Array<{ name: string; path: string }>
+  >([]);
+  const [clientClarification, setClientClarification] = useState("");
+  const [clientClarificationFiles, setClientClarificationFiles] = useState<
+    Array<{ name: string; path: string; uploadedAt?: string }>
+  >([]);
+  const [isSavingMcaQuery, setIsSavingMcaQuery] = useState(false);
+  const [isUploadingMcaFile, setIsUploadingMcaFile] = useState(false);
 
   /* ---------------- HELPERS ---------------- */
 
@@ -89,6 +100,112 @@ export default function NameApplicationContent({
   };
 
   /* ---------------- HANDLERS ---------------- */
+
+  const refreshMcaQueryStatus = async () => {
+    try {
+      const statusData = await clientsApi.getMcaQueryStatus(appNo);
+      setMcaQueryText(statusData?.mcaQuery?.text || "");
+      setMcaQueryFiles(statusData?.mcaQuery?.files || []);
+      setClientClarification(statusData?.clarification || "");
+      setClientClarificationFiles(statusData?.clarificationFiles || []);
+      if (statusData?.companyNameStatus) {
+        setCompanyNameStatus(statusData.companyNameStatus);
+      }
+    } catch (error) {
+      console.error("Error refreshing MCA query status:", error);
+    }
+  };
+
+  const handleSaveMcaQueryText = async () => {
+    if (!requireClientTabEdit(admin, "app")) return;
+    try {
+      setIsSavingMcaQuery(true);
+      await clientsApi.updateMcaQueryText(appNo, mcaQueryText);
+      toast.success("MCA query saved");
+      await refreshMcaQueryStatus();
+    } catch (error) {
+      notifyApiError(error, {
+        fallback: "Failed to save MCA query.",
+        actionLabel: "save MCA query",
+      });
+    } finally {
+      setIsSavingMcaQuery(false);
+    }
+  };
+
+  const handleMcaQueryFileSelected = async (file: File) => {
+    if (!requireClientTabEdit(admin, "app")) return;
+    try {
+      setIsUploadingMcaFile(true);
+      await clientsApi.uploadMcaQueryFile(appNo, file);
+      toast.success("MCA query file uploaded");
+      await refreshMcaQueryStatus();
+    } catch (error) {
+      notifyApiError(error, {
+        fallback: "Failed to upload MCA query file.",
+        actionLabel: "upload MCA query file",
+      });
+    } finally {
+      setIsUploadingMcaFile(false);
+    }
+  };
+
+  const handleDeleteMcaQueryFile = async (filePath: string) => {
+    if (!requireClientTabEdit(admin, "app")) return;
+    try {
+      await clientsApi.deleteMcaQueryFile(appNo, filePath);
+      toast.success("File removed");
+      await refreshMcaQueryStatus();
+    } catch (error) {
+      notifyApiError(error, {
+        fallback: "Failed to remove file.",
+        actionLabel: "remove MCA query file",
+      });
+    }
+  };
+
+  const handleDownloadMcaClarificationFile = async (
+    source: "mca" | "client",
+    filePath: string,
+    fileName: string,
+  ) => {
+    try {
+      const blob = await clientsApi.downloadMcaClarificationFile(
+        appNo,
+        source,
+        filePath,
+      );
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast("Failed to download file", { variant: "danger" });
+    }
+  };
+
+  const handleClarificationFilePreview = async (
+    source: "mca" | "client",
+    filePath: string,
+    fileName: string,
+  ) => {
+    try {
+      const blob = await clientsApi.downloadMcaClarificationFile(
+        appNo,
+        source,
+        filePath,
+      );
+      const url = window.URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setPreviewFileName(fileName);
+      setIsPreviewOpen(true);
+    } catch (error) {
+      console.error("Error previewing clarification file:", error);
+      toast("Failed to preview file", { variant: "danger" });
+    }
+  };
 
   const refreshObjectClauseStatus = async () => {
     try {
@@ -249,6 +366,11 @@ export default function NameApplicationContent({
           setCompanyNames(names);
           setBusinessBrief(data?.businessBrief || "");
           setResubmitOriginal(data?.resubmitOriginal || false);
+          setCompanyNameStatus(data?.companyNameStatus || "new");
+          setMcaQueryText(data?.mcaQuery?.text || "");
+          setMcaQueryFiles(data?.mcaQuery?.files || []);
+          setClientClarification(data?.clarification || "");
+          setClientClarificationFiles(data?.clarificationFiles || []);
           setAttempts(data.attempts || []);
 
           const initialStatus: Record<
@@ -292,7 +414,7 @@ export default function NameApplicationContent({
                 };
                 const stepTrade = findLastStep(
                   sectionA.steps,
-                  "Trademark check",
+                  "Trademark Check",
                 );
                 setIsTrademarkDone(stepTrade?.status === "Done");
               }
@@ -315,6 +437,8 @@ export default function NameApplicationContent({
         const statusData = await clientsApi.getObjectClauseStatus(appNo);
         setAdminFile(statusData.adminFile);
         setClientFile(statusData.clientFile);
+
+        await refreshMcaQueryStatus();
       } catch (error) {
         console.error("Error fetching name application:", error);
       } finally {
@@ -332,6 +456,7 @@ export default function NameApplicationContent({
         const statusData = await clientsApi.getObjectClauseStatus(appNo);
         setAdminFile(statusData.adminFile);
         setClientFile(statusData.clientFile);
+        await refreshMcaQueryStatus();
       } catch (error) {
         console.error("Error auto-refreshing status:", error);
       }
@@ -764,7 +889,7 @@ export default function NameApplicationContent({
                       title={
                         isTrademarkDone
                           ? "Upload Object Clause (Admin)"
-                          : "Available after Trademark check is marked Done"
+                          : "Available after Trademark Check is marked Done"
                       }
                     >
                       <Upload
@@ -869,6 +994,163 @@ export default function NameApplicationContent({
               </div>
             )}
           </div>
+
+          {companyNameStatus === "change-request" && (
+            <div className="w-full mt-4 bg-white p-4 rounded-xl shadow-sm border border-amber-100">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-secondary">
+                  MCA Query (to Client)
+                </h2>
+                <RefreshCw
+                  size={16}
+                  onClick={refreshMcaQueryStatus}
+                  className="cursor-pointer text-secondary hover:text-primary"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mb-3">
+                Enter the MCA name-application query. The client will see this
+                on their resubmission form.
+              </p>
+              <textarea
+                className="rounded-lg w-full bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 p-3 min-h-[100px] scheme-light"
+                value={mcaQueryText}
+                onChange={(e) => setMcaQueryText(e.target.value)}
+                placeholder="Enter MCA query text..."
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveMcaQueryText}
+                  disabled={isSavingMcaQuery}
+                  className="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-secondary disabled:opacity-50"
+                >
+                  {isSavingMcaQuery ? "Saving..." : "Save Query"}
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">
+                    Query attachments
+                  </span>
+                  <FileUploadComponent
+                    context="clients"
+                    allowedFileTypes=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                    title="Upload MCA Query File"
+                    subtitle="Attach files received from MCA."
+                    dropLabel="Drag and drop file here"
+                    disabled={isUploadingMcaFile}
+                    onBeforeOpen={() => requireClientTabEdit(admin, "app")}
+                    onFileSelect={handleMcaQueryFileSelected}
+                    renderTrigger={(openPicker) => (
+                      <Upload
+                        size={18}
+                        onClick={isUploadingMcaFile ? undefined : openPicker}
+                        className={
+                          isUploadingMcaFile
+                            ? "cursor-not-allowed text-gray-300"
+                            : "cursor-pointer text-primary hover:text-secondary"
+                        }
+                      />
+                    )}
+                  />
+                </div>
+                {mcaQueryFiles.length > 0 ? (
+                  mcaQueryFiles.map((file) => (
+                    <div
+                      key={file.path}
+                      className="rounded-lg border border-orange-200 bg-orange-50 p-3 flex items-center justify-between gap-2"
+                    >
+                      <span className="text-sm text-secondary truncate">
+                        {getFileName(file.name)}
+                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Download
+                          size={16}
+                          className="cursor-pointer text-orange-600 hover:text-orange-700"
+                          onClick={() =>
+                            handleDownloadMcaClarificationFile(
+                              "mca",
+                              file.path,
+                              file.name,
+                            )
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMcaQueryFile(file.path)}
+                          className="text-xs text-red-600 hover:text-red-700 font-medium"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-gray-400 border border-dashed rounded-lg p-3">
+                    No query files uploaded
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {(clientClarification || clientClarificationFiles.length > 0) && (
+            <div className="w-full mt-4 bg-white p-4 rounded-xl shadow-sm border border-blue-100">
+              <h2 className="text-lg font-semibold text-secondary mb-3">
+                Client Clarification Response
+              </h2>
+              {clientClarification ? (
+                <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-3 text-sm text-gray-800 whitespace-pre-wrap mb-3">
+                  {clientClarification}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 mb-3">No text provided</p>
+              )}
+              {clientClarificationFiles.length > 0 && (
+                <div className="space-y-2">
+                  {clientClarificationFiles.map((file) => (
+                    <div
+                      key={file.path}
+                      className="rounded-lg border border-blue-200 bg-blue-50 p-3 flex items-center justify-between gap-2"
+                    >
+                      <span className="text-sm text-secondary truncate">
+                        {getFileName(file.name)}
+                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div title="Preview">
+                          <Eye
+                            size={16}
+                            onClick={() =>
+                              handleClarificationFilePreview(
+                                "client",
+                                file.path,
+                                file.name,
+                              )
+                            }
+                            className="cursor-pointer text-blue-600 hover:text-blue-700"
+                          />
+                        </div>
+                        <div title="Download">
+                          <Download
+                            size={16}
+                            className="cursor-pointer text-blue-600 hover:text-blue-700"
+                            onClick={() =>
+                              handleDownloadMcaClarificationFile(
+                                "client",
+                                file.path,
+                                file.name,
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="w-full mt-4 bg-white p-4 rounded-xl shadow-sm">
             <label

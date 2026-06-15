@@ -937,7 +937,7 @@ export default function TrackingStatusContent({
                                                   step.title ===
                                                     "MCA portal availability check" ||
                                                   step.title ===
-                                                    "Trademark check"
+                                                    "Trademark Check"
                                                 );
                                               }
                                               if (opt.id === "Rejected") {
