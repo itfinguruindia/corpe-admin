@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch, Chip } from "@/components/ui";
+import CustomSelect from "@/components/ui/CustomSelect";
 import { usePermissions } from "@/hooks/usePermissions";
 import { requireClientTabEdit } from "@/utils/clientPermissions";
 
@@ -18,6 +19,7 @@ export default function DirectorDetailPage() {
   const [hasDIN, setHasDIN] = useState(false);
   const [kycVerified, setKycVerified] = useState(false);
   const [dscApplication, setDscApplication] = useState(false);
+  const [dinStatus, setDinStatus] = useState<string>("Pending");
   const [isStage2Enabled, setIsStage2Enabled] = useState(false);
 
   useEffect(() => {
@@ -64,6 +66,8 @@ export default function DirectorDetailPage() {
               kycVerified: d.kycVerified ?? false,
               dscApplication: d.dscApplication ?? false,
               isBankSigningAuthority: d.isBankSigningAuthority ?? false,
+              dinStatus: d.dinStatus || "Pending",
+              isDinActivationFeePaid: d.isDinActivationFeePaid ?? false,
               createdAt: undefined,
               updatedAt: undefined,
             }),
@@ -78,6 +82,7 @@ export default function DirectorDetailPage() {
             setHasDIN(foundDirector.hasDIN);
             setKycVerified(foundDirector.kycVerified);
             setDscApplication(foundDirector.dscApplication);
+            setDinStatus(foundDirector.dinStatus || "Pending");
           }
         } else {
           setAllDirectors([]);
@@ -138,6 +143,19 @@ export default function DirectorDetailPage() {
       setDscApplication(newValue);
     } catch (error) {
       console.error("Error updating DSC status:", error);
+    }
+  };
+
+  const handleDinStatusChange = async (newValue: string) => {
+    if (!isStage2Enabled) return;
+    if (!requireClientTabEdit(admin, "director")) return;
+    try {
+      await clientsApi.updateDirectorStatus(appNo as string, id as string, {
+        dinStatus: newValue,
+      });
+      setDinStatus(newValue);
+    } catch (error) {
+      console.error("Error updating DIN status:", error);
     }
   };
 
@@ -252,12 +270,28 @@ export default function DirectorDetailPage() {
                 </button>
               </div>
             </div>
-            <div className="pl-4">
+            <div className="pl-4 flex items-center justify-between gap-4">
               <InfoField
                 label="DIN"
                 value={director?.din || "N/A"}
                 border={false}
               />
+              {hasDIN && (
+                <div className="flex flex-col gap-1 min-w-[150px]">
+                  <span className="text-[12px] font-semibold text-gray-500">DIN Status</span>
+                  <CustomSelect
+                    ariaLabel="DIN Status"
+                    value={dinStatus}
+                    onChange={handleDinStatusChange}
+                    options={[
+                      { id: "Pending", label: "Pending" },
+                      { id: "Active", label: "Active" },
+                      { id: "Inactive", label: "Inactive" },
+                    ]}
+                    isDisabled={!isStage2Enabled || !requireClientTabEdit(admin, "director")}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
