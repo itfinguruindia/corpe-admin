@@ -177,11 +177,11 @@ export const clientsApi = {
     return response.data;
   },
 
-  // Update kycVerified / dscApplication for a director
+  // Update kycVerified / dscApplication / dinStatus for a director
   updateDirectorStatus: async (
     applicationNo: string,
     directorId: string,
-    updates: { kycVerified?: boolean; dscApplication?: boolean },
+    updates: { kycVerified?: boolean; dscApplication?: boolean; dinStatus?: string },
   ) => {
     const response = await axiosInstance.patch(
       `/admin/clients/${applicationNo}/directors/${directorId}/status`,
