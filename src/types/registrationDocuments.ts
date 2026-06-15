@@ -11,5 +11,6 @@ export interface RegistrationData {
   appNo: string;
   cin: string;
   companyStatus: string;
+  officeEmail?: string;
   documents: RegistrationDocument[];
 }

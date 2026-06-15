@@ -13,6 +13,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { requireClientTabEdit } from "@/utils/clientPermissions";
 import { notifyApiError } from "@/utils/apiErrors";
 import { getFileType } from "@/utils/helpers";
+import { PanTanEmailDisclaimer } from "./PanTanEmailDisclaimer";
 
 const CIN_REGEX = /^[LUlu][0-9]{5}[A-Za-z]{2}[0-9]{4}[A-Za-z]{3}[0-9]{6}$/;
 
@@ -309,21 +310,32 @@ export default function RegistrationDocumentsContent({
 
         {/* Documents List */}
         <div className="space-y-0 max-w-5xl">
-          {data.documents.map((doc) => (
+          {data.documents.map((doc) => {
+            const isEmailDeliveryDoc = doc.name === "PAN" || doc.name === "TAN";
+
+            return (
             <div
               key={doc.id}
               className="flex items-center justify-between py-6 border-b border-gray-200 last:border-0 hover:bg-gray-50/50 transition-colors"
             >
-              <div className="flex flex-col">
+              <div className="flex flex-col flex-1 min-w-0 pr-6">
                 <span className="text-lg font-bold text-black">{doc.name}</span>
-                {(doc as { fileName?: string }).fileName && (
-                  <span className="text-sm text-gray-500 font-normal mt-1">
-                    {(doc as { fileName?: string }).fileName}
-                  </span>
+                {isEmailDeliveryDoc ? (
+                  <PanTanEmailDisclaimer
+                    officeEmail={data.officeEmail}
+                    variant="admin"
+                  />
+                ) : (
+                  (doc as { fileName?: string }).fileName && (
+                    <span className="text-sm text-gray-500 font-normal mt-1">
+                      {(doc as { fileName?: string }).fileName}
+                    </span>
+                  )
                 )}
               </div>
 
-              <div className="flex items-center gap-6">
+              {!isEmailDeliveryDoc && (
+              <div className="flex items-center gap-6 shrink-0">
                 {/* View */}
                 <button
                   onClick={() =>
@@ -365,8 +377,10 @@ export default function RegistrationDocumentsContent({
                   <Upload size={24} />
                 </button>
               </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Preview Modal */}
