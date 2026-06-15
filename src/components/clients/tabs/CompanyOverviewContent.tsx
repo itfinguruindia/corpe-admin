@@ -52,6 +52,10 @@ export default function CompanyOverviewContent({
             planChosen: "-", // Dummy
             contactNo: apiData.client?.phoneNumber || "-",
             contactEmail: apiData.client?.email || "-",
+            officePhone:
+              apiData.corporateStructure?.registeredOffice?.officePhone || "-",
+            officeEmail:
+              apiData.corporateStructure?.registeredOffice?.officeEmail || "-",
             clientName: `${apiData.client?.firstName || "-"} ${apiData.client?.lastName || "-"}`,
             capitalDetails:
               apiData.corporateStructure?.capitalDetails?.authorizedCapital ||
@@ -161,6 +165,14 @@ export default function CompanyOverviewContent({
           <InfoField label="Plan Choose" value={companyData.planChosen} />
           <InfoField label="Contact No" value={companyData.contactNo} />
           <InfoField label="Contact Email" value={companyData.contactEmail} />
+          <InfoField
+            label="Office Phone Number"
+            value={companyData.officePhone || "-"}
+          />
+          <InfoField
+            label="Office Email"
+            value={companyData.officeEmail || "-"}
+          />
           <InfoField label="Client Name" value={companyData.clientName} />
           <InfoField
             label="Capital Details"

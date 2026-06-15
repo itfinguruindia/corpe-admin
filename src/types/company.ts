@@ -23,6 +23,8 @@ export interface CompanyOverview {
   planChosen: string;
   contactNo: string;
   contactEmail: string;
+  officePhone?: string;
+  officeEmail?: string;
   clientName: string;
   capitalDetails: number;
   paidUpCapital: number;

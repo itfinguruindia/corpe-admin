@@ -177,11 +177,11 @@ export const clientsApi = {
     return response.data;
   },
 
-  // Update kycVerified / dscApplication for a director
+  // Update kycVerified / dscApplication / dinStatus for a director
   updateDirectorStatus: async (
     applicationNo: string,
     directorId: string,
-    updates: { kycVerified?: boolean; dscApplication?: boolean },
+    updates: { kycVerified?: boolean; dscApplication?: boolean; dinStatus?: string },
   ) => {
     const response = await axiosInstance.patch(
       `/admin/clients/${applicationNo}/directors/${directorId}/status`,
@@ -384,6 +384,51 @@ export const clientsApi = {
     const response = await axiosInstance.get(url, {
       responseType: "blob",
     });
+    return response.data as Blob;
+  },
+
+  getMcaQueryStatus: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/mca-query/status`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  updateMcaQueryText: async (applicationNo: string, text: string) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/mca-query/text`,
+      { text },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  uploadMcaQueryFile: async (applicationNo: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/mca-query/files`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  deleteMcaQueryFile: async (applicationNo: string, filePath: string) => {
+    const response = await axiosInstance.delete(
+      `/admin/clients/${applicationNo}/mca-query/files?filePath=${encodeURIComponent(filePath)}`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  downloadMcaClarificationFile: async (
+    applicationNo: string,
+    source: "mca" | "client",
+    filePath: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/mca-query/download?source=${source}&filePath=${encodeURIComponent(filePath)}`,
+      { responseType: "blob" },
+    );
     return response.data as Blob;
   },
 
@@ -764,5 +809,73 @@ export const clientsApi = {
   initializeTracker: async (orgId: string) => {
     const response = await axiosInstance.post(`/admin/tracker/${orgId}/initialize`);
     return response.data?.data ?? response.data;
-  }
+  },
+
+  getGlobalComments: async (applicationNo: string, area?: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/global-comments`,
+      { params: area && area !== "all" ? { area } : {} },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  createGlobalComment: async (
+    applicationNo: string,
+    payload: { content: string; area: string; files?: File[] },
+  ) => {
+    const formData = new FormData();
+    formData.append("content", payload.content);
+    formData.append("area", payload.area);
+    (payload.files || []).forEach((file) => formData.append("file", file));
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/global-comments`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  deleteGlobalComment: async (applicationNo: string, commentId: string) => {
+    const response = await axiosInstance.delete(
+      `/admin/clients/${applicationNo}/global-comments/${commentId}`,
+    );
+    return response.data;
+  },
+
+  downloadGlobalCommentFile: async (
+    applicationNo: string,
+    commentId: string,
+    filePath: string,
+    fileName: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/global-comments/download`,
+      {
+        params: { commentId, filePath },
+        responseType: "blob",
+      },
+    );
+    const blobUrl = window.URL.createObjectURL(response.data);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = fileName;
+    link.click();
+    window.URL.revokeObjectURL(blobUrl);
+  },
+
+  getGlobalCommentFileBlob: async (
+    applicationNo: string,
+    commentId: string,
+    filePath: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/global-comments/download`,
+      {
+        params: { commentId, filePath },
+        responseType: "blob",
+      },
+    );
+    return response.data as Blob;
+  },
 };
