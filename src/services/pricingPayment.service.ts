@@ -34,10 +34,22 @@ export type PaymentStep = {
   paymentLinkSent?: boolean;
   paymentLinkSentAt?: string | null;
   breakdown?: {
-    rejectionFee: number;
-    installmentBase: number;
-    installmentGST: number;
-    installmentTotal: number;
+    rejectionFee?: number;
+    installmentBase?: number;
+    installmentGST?: number;
+    installmentTotal?: number;
+    indianCount?: number;
+    indianRate?: number;
+    foreignCount?: number;
+    foreignRate?: number;
+    nonShareholderCount?: number;
+    nonShareholderRate?: number;
+    dinCount?: number;
+    dinRate?: number;
+    dinTotal?: number;
+    gstAmount?: number;
+    gstPercentage?: number;
+    currency?: string;
   };
 };
 
