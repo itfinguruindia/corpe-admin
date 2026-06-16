@@ -744,6 +744,16 @@ export default function NameApplicationContent({
 
   /* ---------------- UI ---------------- */
 
+  const hasMcaQuery =
+    Boolean(mcaQueryText.trim()) || mcaQueryFiles.length > 0;
+  const hasClientClarification =
+    Boolean(clientClarification.trim()) || clientClarificationFiles.length > 0;
+  const showMcaQuerySection =
+    companyNameStatus === "change-request" ||
+    hasMcaQuery ||
+    hasClientClarification;
+  const isMcaQueryEditable = companyNameStatus === "change-request";
+
   return (
     <div className="w-full p-4 sm:p-6 lg:p-8 min-h-[110vh]">
       <div className="mb-8 flex items-center justify-between">
@@ -995,7 +1005,7 @@ export default function NameApplicationContent({
             )}
           </div>
 
-          {companyNameStatus === "change-request" && (
+          {showMcaQuerySection && (
             <div className="w-full mt-4 bg-white p-4 rounded-xl shadow-sm border border-amber-100">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-semibold text-secondary">
@@ -1008,52 +1018,65 @@ export default function NameApplicationContent({
                 />
               </div>
               <p className="text-xs text-gray-500 mb-3">
-                Enter the MCA name-application query. The client will see this
-                on their resubmission form.
+                {isMcaQueryEditable
+                  ? "Enter the MCA name-application query. The client will see this on their resubmission form."
+                  : "Original MCA query sent to the client. This remains visible after the client submits their clarification."}
               </p>
-              <textarea
-                className="rounded-lg w-full bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 p-3 min-h-[100px] scheme-light"
-                value={mcaQueryText}
-                onChange={(e) => setMcaQueryText(e.target.value)}
-                placeholder="Enter MCA query text..."
-              />
-              <div className="flex justify-end mt-2">
-                <button
-                  type="button"
-                  onClick={handleSaveMcaQueryText}
-                  disabled={isSavingMcaQuery}
-                  className="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-secondary disabled:opacity-50"
-                >
-                  {isSavingMcaQuery ? "Saving..." : "Save Query"}
-                </button>
-              </div>
+              {isMcaQueryEditable ? (
+                <>
+                  <textarea
+                    className="rounded-lg w-full bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none border border-gray-200 p-3 min-h-[100px] scheme-light"
+                    value={mcaQueryText}
+                    onChange={(e) => setMcaQueryText(e.target.value)}
+                    placeholder="Enter MCA query text..."
+                  />
+                  <div className="flex justify-end mt-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveMcaQueryText}
+                      disabled={isSavingMcaQuery}
+                      className="px-4 py-1.5 text-sm font-medium bg-primary text-white rounded-lg hover:bg-secondary disabled:opacity-50"
+                    >
+                      {isSavingMcaQuery ? "Saving..." : "Save Query"}
+                    </button>
+                  </div>
+                </>
+              ) : mcaQueryText.trim() ? (
+                <div className="rounded-lg border border-amber-100 bg-amber-50/40 p-3 text-sm text-gray-800 whitespace-pre-wrap mb-3">
+                  {mcaQueryText}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 mb-3">No query text provided</p>
+              )}
 
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">
                     Query attachments
                   </span>
-                  <FileUploadComponent
-                    context="clients"
-                    allowedFileTypes=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                    title="Upload MCA Query File"
-                    subtitle="Attach files received from MCA."
-                    dropLabel="Drag and drop file here"
-                    disabled={isUploadingMcaFile}
-                    onBeforeOpen={() => requireClientTabEdit(admin, "app")}
-                    onFileSelect={handleMcaQueryFileSelected}
-                    renderTrigger={(openPicker) => (
-                      <Upload
-                        size={18}
-                        onClick={isUploadingMcaFile ? undefined : openPicker}
-                        className={
-                          isUploadingMcaFile
-                            ? "cursor-not-allowed text-gray-300"
-                            : "cursor-pointer text-primary hover:text-secondary"
-                        }
-                      />
-                    )}
-                  />
+                  {isMcaQueryEditable && (
+                    <FileUploadComponent
+                      context="clients"
+                      allowedFileTypes=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                      title="Upload MCA Query File"
+                      subtitle="Attach files received from MCA."
+                      dropLabel="Drag and drop file here"
+                      disabled={isUploadingMcaFile}
+                      onBeforeOpen={() => requireClientTabEdit(admin, "app")}
+                      onFileSelect={handleMcaQueryFileSelected}
+                      renderTrigger={(openPicker) => (
+                        <Upload
+                          size={18}
+                          onClick={isUploadingMcaFile ? undefined : openPicker}
+                          className={
+                            isUploadingMcaFile
+                              ? "cursor-not-allowed text-gray-300"
+                              : "cursor-pointer text-primary hover:text-secondary"
+                          }
+                        />
+                      )}
+                    />
+                  )}
                 </div>
                 {mcaQueryFiles.length > 0 ? (
                   mcaQueryFiles.map((file) => (
@@ -1065,6 +1088,19 @@ export default function NameApplicationContent({
                         {getFileName(file.name)}
                       </span>
                       <div className="flex items-center gap-2 shrink-0">
+                        <div title="Preview">
+                          <Eye
+                            size={16}
+                            className="cursor-pointer text-orange-600 hover:text-orange-700"
+                            onClick={() =>
+                              handleClarificationFilePreview(
+                                "mca",
+                                file.path,
+                                file.name,
+                              )
+                            }
+                          />
+                        </div>
                         <Download
                           size={16}
                           className="cursor-pointer text-orange-600 hover:text-orange-700"
@@ -1076,13 +1112,15 @@ export default function NameApplicationContent({
                             )
                           }
                         />
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteMcaQueryFile(file.path)}
-                          className="text-xs text-red-600 hover:text-red-700 font-medium"
-                        >
-                          Remove
-                        </button>
+                        {isMcaQueryEditable && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMcaQueryFile(file.path)}
+                            className="text-xs text-red-600 hover:text-red-700 font-medium"
+                          >
+                            Remove
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))
