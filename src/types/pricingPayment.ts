@@ -17,10 +17,22 @@ export interface PaymentStep {
   paymentLinkSent?: boolean;
   paymentLinkSentAt?: string | null;
   breakdown?: {
-    rejectionFee: number;
-    installmentBase: number;
-    installmentGST: number;
-    installmentTotal: number;
+    rejectionFee?: number;
+    installmentBase?: number;
+    installmentGST?: number;
+    installmentTotal?: number;
+    indianCount?: number;
+    indianRate?: number;
+    foreignCount?: number;
+    foreignRate?: number;
+    nonShareholderCount?: number;
+    nonShareholderRate?: number;
+    dinCount?: number;
+    dinRate?: number;
+    dinTotal?: number;
+    gstAmount?: number;
+    gstPercentage?: number;
+    currency?: string;
   };
 }
 
@@ -37,6 +49,7 @@ export interface PricingPayment {
   baseServiceFee: number;
   gst: number; // 18% of base service fee
   finalPaidAmount: number;
+  finalPayableWithGST?: number;
   isLocked: boolean;
   discount?: number;
   paymentSteps: PaymentStep[];
