@@ -7,6 +7,7 @@ export interface IUpdateTicketPayload {
   status?: string;
   assignee?: string | null;
   priority?: string;
+  comment?: string;
 }
 
 function mapAssignee(
@@ -22,7 +23,7 @@ function mapTicketItem(item: Record<string, unknown>): Ticket {
   return {
     id: String(item._id),
     applicationNo: (item.applicationNo as string) || "N/A",
-    category: item.category as string,
+    category: (item.category as string) || "General",
     subject: item.subject as string,
     status: item.status as Ticket["status"],
     assignee: mapAssignee(item.assignee),

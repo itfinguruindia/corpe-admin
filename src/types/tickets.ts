@@ -7,7 +7,7 @@ export type TicketPriority = "low" | "medium" | "high";
 export interface Ticket {
   id: string;
   applicationNo: string;
-  category: string;
+  category?: string;
   subject: string;
   status: TicketStatus;
   assignee: { _id: string; name: string } | null;

@@ -222,7 +222,6 @@ export default function RaisedTicketsPage() {
       const wsData = [
         [
           "Application No.",
-          "Category",
           "Subject",
           "Status",
           "Assignee",
@@ -232,7 +231,6 @@ export default function RaisedTicketsPage() {
         ],
         ...rows.map((t) => [
           t.applicationNo,
-          t.category,
           t.subject,
           t.status,
           t.assignee?.name || "-",
@@ -264,13 +262,6 @@ export default function RaisedTicketsPage() {
         >
           {row.applicationNo}
         </Link>
-      ),
-    },
-    {
-      id: "category",
-      label: "Category",
-      render: (row) => (
-        <span className="text-base text-gray-700">{row.category}</span>
       ),
     },
     {
@@ -516,6 +507,36 @@ export default function RaisedTicketsPage() {
 
                     {/* Comment Section */}
                     <div className="space-y-4">
+                      {(selectedTicket.updates?.length ?? 0) > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            Updates
+                          </h3>
+                          <div className="space-y-2">
+                            {selectedTicket.updates!.map((u) => (
+                              <div
+                                key={u.id || u.timestamp}
+                                className="rounded-xl border border-gray-100 bg-gray-50 p-3"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-xs font-semibold text-secondary">
+                                    {u.author || "Admin"}
+                                  </span>
+                                  <span className="text-[11px] text-gray-500">
+                                    {u.timestamp
+                                      ? new Date(u.timestamp).toLocaleString("en-IN")
+                                      : ""}
+                                  </span>
+                                </div>
+                                <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">
+                                  {u.content}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <textarea
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
@@ -523,27 +544,24 @@ export default function RaisedTicketsPage() {
                         rows={6}
                         className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder-gray-400 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20"
                       />
-                      <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex items-center justify-end">
                         <Button
                           type="button"
-                          variant="ghost"
-                          className="rounded-lg bg-[#FFE5DD] px-6 py-2 text-base font-medium text-secondary transition-all hover:bg-[#ffd5c5]"
+                          className="rounded-lg bg-primary px-6 py-2 text-base font-semibold text-white transition-all hover:bg-secondary disabled:opacity-60"
+                          isDisabled={!comment.trim()}
+                          onPress={async () => {
+                            if (!selectedTicket) return;
+                            const ok = await TicketApi.updateTicket({
+                              ticketId: selectedTicket.id,
+                              comment: comment.trim(),
+                            });
+                            if (ok) {
+                              setComment("");
+                              await loadTickets();
+                            }
+                          }}
                         >
-                          Reply via Email
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="rounded-lg px-6 py-2 text-base font-medium text-secondary transition-all hover:bg-gray-100"
-                        >
-                          Reply via Dashboard Chat
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="rounded-lg px-6 py-2 text-base font-medium text-secondary transition-all hover:bg-gray-100"
-                        >
-                          Call Back
+                          Submit
                         </Button>
                       </div>
                     </div>
