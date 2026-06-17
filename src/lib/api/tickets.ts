@@ -89,4 +89,20 @@ export class TicketApi {
       return false;
     }
   }
+
+  static async getTicketById(ticketId: string): Promise<Ticket | null> {
+    try {
+      const response = await axiosInstance.get(
+        `/admin/support/ticket/${ticketId}`,
+      );
+      const data = response.data?.data ?? response.data;
+      if (response.data?.success && data) {
+        return mapTicketItem(data as Record<string, unknown>);
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching ticket:", error);
+      return null;
+    }
+  }
 }

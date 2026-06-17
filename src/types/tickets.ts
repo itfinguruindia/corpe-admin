@@ -22,7 +22,7 @@ export interface TicketUpdate {
   author: string;
   content: string;
   timestamp: string;
-  type: "comment" | "status_change" | "assignment";
+  type?: "comment" | "status_change" | "assignment";
 }
 
 // API Response types for future integration

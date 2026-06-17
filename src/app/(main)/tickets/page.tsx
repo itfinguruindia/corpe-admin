@@ -15,11 +15,9 @@ import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import ExportDropdown from "@/components/ui/ExportDropdown";
 import {
   Button,
-  Drawer,
   Input,
   Label,
   TextField,
-  useOverlayState,
 } from "@heroui/react";
 import { adminApi } from "@/lib/api";
 import CustomSelect from "@/components/ui/CustomSelect";
@@ -92,13 +90,9 @@ export default function RaisedTicketsPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
 
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-
-  const [comment, setComment] = useState("");
   const [assigneeOptions, setAssigneeOptions] = useState<SearchSelectOption[]>(
     [],
   );
-  const drawerState = useOverlayState();
 
   const loadTickets = async () => {
     setIsLoading(true);
@@ -343,17 +337,12 @@ export default function RaisedTicketsPage() {
       label: "Actions",
       render: (row) => (
         <div className="flex justify-center">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              setSelectedTicket(row);
-              drawerState.open();
-            }}
-            className="h-auto min-w-0 px-1 py-0 text-base font-medium text-gray-700 underline hover:text-secondary"
+          <Link
+            href={`/tickets/${row.id}`}
+            className="text-base font-medium text-gray-700 underline hover:text-secondary"
           >
             view
-          </Button>
+          </Link>
         </div>
       ),
     },
@@ -470,112 +459,6 @@ export default function RaisedTicketsPage() {
           emptyIcon={TicketIcon}
         />
       </div>
-
-      <Drawer state={drawerState}>
-        <Drawer.Backdrop>
-          <Drawer.Content placement="right">
-            <Drawer.Dialog className="bg-white border-l shadow-2xl w-full max-w-md">
-              <Drawer.CloseTrigger className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors" />
-              <Drawer.Header className="border-b py-2">
-                <Drawer.Heading className="text-2xl font-bold text-secondary">
-                  Ticket Details
-                </Drawer.Heading>
-              </Drawer.Header>
-              <Drawer.Body className="overflow-y-auto">
-                {selectedTicket ? (
-                  <div className="flex flex-col justify-between h-full gap-6">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                          Subject
-                        </h3>
-                        <p className="text-lg font-medium text-gray-900">
-                          {selectedTicket.subject}
-                        </p>
-                      </div>
-
-                      <div>
-                        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                          Description
-                        </h3>
-                        <div className="mt-2 p-4 bg-gray-50 rounded-xl border border-gray-100 text-sm text-gray-600 leading-relaxed">
-                          {selectedTicket.description ||
-                            "No description provided."}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Comment Section */}
-                    <div className="space-y-4">
-                      {(selectedTicket.updates?.length ?? 0) > 0 && (
-                        <div className="space-y-2">
-                          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                            Updates
-                          </h3>
-                          <div className="space-y-2">
-                            {selectedTicket.updates!.map((u) => (
-                              <div
-                                key={u.id || u.timestamp}
-                                className="rounded-xl border border-gray-100 bg-gray-50 p-3"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-xs font-semibold text-secondary">
-                                    {u.author || "Admin"}
-                                  </span>
-                                  <span className="text-[11px] text-gray-500">
-                                    {u.timestamp
-                                      ? new Date(u.timestamp).toLocaleString("en-IN")
-                                      : ""}
-                                  </span>
-                                </div>
-                                <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">
-                                  {u.content}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      <textarea
-                        value={comment}
-                        onChange={(e) => setComment(e.target.value)}
-                        placeholder="Comment on the issue here..."
-                        rows={6}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder-gray-400 focus:border-[#FF6A3D] focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]/20"
-                      />
-                      <div className="flex items-center justify-end">
-                        <Button
-                          type="button"
-                          className="rounded-lg bg-primary px-6 py-2 text-base font-semibold text-white transition-all hover:bg-secondary disabled:opacity-60"
-                          isDisabled={!comment.trim()}
-                          onPress={async () => {
-                            if (!selectedTicket) return;
-                            const ok = await TicketApi.updateTicket({
-                              ticketId: selectedTicket.id,
-                              comment: comment.trim(),
-                            });
-                            if (ok) {
-                              setComment("");
-                              await loadTickets();
-                            }
-                          }}
-                        >
-                          Submit
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-400">
-                    No ticket selected
-                  </div>
-                )}
-              </Drawer.Body>
-            </Drawer.Dialog>
-          </Drawer.Content>
-        </Drawer.Backdrop>
-      </Drawer>
     </>
   );
 }
