@@ -95,6 +95,7 @@ export default function PricingAndPaymentContent({
       baseServiceFee: summary.baseServiceFee,
       gst: summary.gstAmount,
       finalPaidAmount: summary.finalPayableWithoutGST, // Frontend uses this for "Final Payable Amount" calculation
+      finalPayableWithGST: summary.finalPayableWithGST,
       isLocked: false, // Default to unlocked if not in API
       discount: summary.discountAmount,
       paymentSteps,
@@ -209,7 +210,7 @@ export default function PricingAndPaymentContent({
               <p className="text-base text-gray-700 font-bold">
                 {formatCurrency(
                   includeGST
-                    ? pricingData.finalPaidAmount * 1.18
+                    ? (pricingData.finalPayableWithGST ?? pricingData.finalPaidAmount)
                     : pricingData.finalPaidAmount,
                   pricingData.currency,
                 )}
@@ -286,31 +287,128 @@ export default function PricingAndPaymentContent({
                           <div className="font-medium text-gray-900">{step.installmentName}</div>
                           {step.breakdown && (
                             <div className="text-xs text-gray-500 mt-2 flex flex-col gap-1 bg-gray-50 p-2.5 rounded border border-gray-100 max-w-xs shadow-sm">
-                              <div className="flex justify-between gap-4">
-                                <span className="text-gray-500">Rejection Fee (Govt):</span>
-                                <span className="font-semibold text-gray-700">
-                                  {formatCurrency(step.breakdown.rejectionFee, pricingData.currency)}
-                                </span>
-                              </div>
-                              <div className="flex justify-between gap-4">
-                                <span className="text-gray-500">1st Installment (Base):</span>
-                                <span className="font-semibold text-gray-700">
-                                  {formatCurrency(step.breakdown.installmentBase, pricingData.currency)}
-                                </span>
-                              </div>
-                              <div className="flex justify-between gap-4">
-                                <span className="text-gray-500">1st Installment GST (18%):</span>
-                                <span className="font-semibold text-gray-700">
-                                  {formatCurrency(step.breakdown.installmentGST, pricingData.currency)}
-                                </span>
-                              </div>
-                              <div className="border-t border-gray-200 my-1"></div>
-                              <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
-                                <span>Combo Total:</span>
-                                <span>
-                                  {formatCurrency(step.breakdown.rejectionFee + step.breakdown.installmentTotal, pricingData.currency)}
-                                </span>
-                              </div>
+                              {/* Option B name rejection Combo Breakdown */}
+                              {typeof step.breakdown.rejectionFee === "number" && (
+                                <>
+                                  <div className="flex justify-between gap-4">
+                                    <span className="text-gray-500">Rejection Fee (Govt):</span>
+                                    <span className="font-semibold text-gray-700">
+                                      {formatCurrency(step.breakdown.rejectionFee, pricingData.currency)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between gap-4">
+                                    <span className="text-gray-500">1st Installment (Base):</span>
+                                    <span className="font-semibold text-gray-700">
+                                      {formatCurrency(step.breakdown.installmentBase || 0, pricingData.currency)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between gap-4">
+                                    <span className="text-gray-500">1st Installment GST (18%):</span>
+                                    <span className="font-semibold text-gray-700">
+                                      {formatCurrency(step.breakdown.installmentGST || 0, pricingData.currency)}
+                                    </span>
+                                  </div>
+                                  <div className="border-t border-gray-200 my-1"></div>
+                                  <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
+                                    <span>Combo Total:</span>
+                                    <span>
+                                      {formatCurrency((step.breakdown.rejectionFee || 0) + (step.breakdown.installmentTotal || 0), pricingData.currency)}
+                                    </span>
+                                  </div>
+                                </>
+                              )}
+
+                              {/* DIN Activation Fee Breakdown */}
+                              {typeof step.breakdown.dinCount === "number" && (
+                                <>
+                                  <div className="flex justify-between gap-4">
+                                    <span className="text-gray-500">DIN Activation Rate:</span>
+                                    <span className="font-semibold text-gray-700">
+                                      {formatCurrency(step.breakdown.dinRate || 0, pricingData.currency)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between gap-4">
+                                    <span className="text-gray-500">Directors Count:</span>
+                                    <span className="font-semibold text-gray-700">
+                                      {step.breakdown.dinCount}
+                                    </span>
+                                  </div>
+                                  <div className="border-t border-gray-200 my-1"></div>
+                                  <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
+                                    <span>Total Activation Fee:</span>
+                                    <span>
+                                      {formatCurrency(step.breakdown.dinTotal || 0, pricingData.currency)}
+                                    </span>
+                                  </div>
+                                </>
+                              )}
+
+                              {/* Regular Installments and Surcharges (Step 2, 3, 5) */}
+                              {typeof step.breakdown.rejectionFee !== "number" && typeof step.breakdown.dinCount !== "number" && (
+                                <>
+                                  {/* Installment Base */}
+                                  {typeof step.breakdown.installmentBase === "number" && step.breakdown.installmentBase > 0 && (
+                                    <div className="flex justify-between gap-4">
+                                      <span className="text-gray-500">Installment Base:</span>
+                                      <span className="font-semibold text-gray-700">
+                                        {formatCurrency(step.breakdown.installmentBase, pricingData.currency)}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Extra Directors */}
+                                  {typeof step.breakdown.indianCount === "number" && step.breakdown.indianCount > 0 && (
+                                    <div className="flex justify-between gap-4">
+                                      <span className="text-gray-500">Extra Directors (Indian) ({step.breakdown.indianCount}):</span>
+                                      <span className="font-semibold text-gray-700">
+                                        +{formatCurrency(step.breakdown.indianCount * (step.breakdown.indianRate || 0), pricingData.currency)}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {typeof step.breakdown.foreignCount === "number" && step.breakdown.foreignCount > 0 && (
+                                    <div className="flex justify-between gap-4">
+                                      <span className="text-gray-500">Extra Directors (Foreign) ({step.breakdown.foreignCount}):</span>
+                                      <span className="font-semibold text-gray-700">
+                                        +{formatCurrency(step.breakdown.foreignCount * (step.breakdown.foreignRate || 0), pricingData.currency)}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Non-Shareholders */}
+                                  {typeof step.breakdown.nonShareholderCount === "number" && step.breakdown.nonShareholderCount > 0 && (
+                                    <div className="flex justify-between gap-4">
+                                      <span className="text-gray-500">Non-Shareholder Directors ({step.breakdown.nonShareholderCount}):</span>
+                                      <span className="font-semibold text-gray-700">
+                                        +{formatCurrency(step.breakdown.nonShareholderCount * (step.breakdown.nonShareholderRate || 0), pricingData.currency)}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* GST details */}
+                                  {typeof step.breakdown.gstAmount === "number" && step.breakdown.gstAmount > 0 && (
+                                    <div className="flex justify-between gap-4">
+                                      <span className="text-gray-500">GST ({step.breakdown.gstPercentage}%):</span>
+                                      <span className="font-semibold text-gray-700">
+                                        +{formatCurrency(step.breakdown.gstAmount, pricingData.currency)}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Total */}
+                                  {typeof step.breakdown.installmentTotal === "number" && (
+                                    <>
+                                      <div className="border-t border-gray-200 my-1"></div>
+                                      <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
+                                        <span>Total:</span>
+                                        <span>
+                                          {formatCurrency(step.breakdown.installmentTotal, pricingData.currency)}
+                                        </span>
+                                      </div>
+                                    </>
+                                  )}
+                                </>
+                              )}
                             </div>
                           )}
                         </td>

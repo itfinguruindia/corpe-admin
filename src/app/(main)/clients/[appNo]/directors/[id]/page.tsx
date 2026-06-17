@@ -68,6 +68,7 @@ export default function DirectorDetailPage() {
               isBankSigningAuthority: d.isBankSigningAuthority ?? false,
               dinStatus: d.dinStatus || "Pending",
               isDinActivationFeePaid: d.isDinActivationFeePaid ?? false,
+              isCommitted: d.isCommitted ?? false,
               createdAt: undefined,
               updatedAt: undefined,
             }),
@@ -119,7 +120,7 @@ export default function DirectorDetailPage() {
   }, [appNo, id]);
 
   const handleKycToggle = async () => {
-    if (!isStage2Enabled) return;
+    if (!isStage2Enabled || !director?.isCommitted) return;
     if (!requireClientTabEdit(admin, "director")) return;
     const newValue = !kycVerified;
     try {
@@ -133,7 +134,7 @@ export default function DirectorDetailPage() {
   };
 
   const handleDscToggle = async () => {
-    if (!isStage2Enabled) return;
+    if (!isStage2Enabled || !director?.isCommitted) return;
     if (!requireClientTabEdit(admin, "director")) return;
     const newValue = !dscApplication;
     try {
@@ -147,7 +148,7 @@ export default function DirectorDetailPage() {
   };
 
   const handleDinStatusChange = async (newValue: string) => {
-    if (!isStage2Enabled) return;
+    if (!isStage2Enabled || !director?.isCommitted) return;
     if (!requireClientTabEdit(admin, "director")) return;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
@@ -287,8 +288,9 @@ export default function DirectorDetailPage() {
                       { id: "Pending", label: "Pending" },
                       { id: "Active", label: "Active" },
                       { id: "Inactive", label: "Inactive" },
+                      { id: "In Progress", label: "In Progress" },
                     ]}
-                    isDisabled={!isStage2Enabled || !requireClientTabEdit(admin, "director")}
+                    isDisabled={!isStage2Enabled || !director.isCommitted || !requireClientTabEdit(admin, "director")}
                   />
                 </div>
               )}
@@ -353,7 +355,7 @@ export default function DirectorDetailPage() {
                 KYC Verified
               </span>
 
-              <Switch checked={kycVerified} onChange={handleKycToggle} disabled={!isStage2Enabled} />
+              <Switch checked={kycVerified} onChange={handleKycToggle} disabled={!isStage2Enabled || !director.isCommitted} />
             </div>
 
             {/* DSC Application */}
@@ -362,7 +364,7 @@ export default function DirectorDetailPage() {
                 DSC Application
               </span>
 
-              <Switch checked={dscApplication} onChange={handleDscToggle} disabled={!isStage2Enabled} />
+              <Switch checked={dscApplication} onChange={handleDscToggle} disabled={!isStage2Enabled || !director.isCommitted} />
             </div>
           </div>
         </div>
