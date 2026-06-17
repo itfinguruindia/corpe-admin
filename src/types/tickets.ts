@@ -7,7 +7,7 @@ export type TicketPriority = "low" | "medium" | "high";
 export interface Ticket {
   id: string;
   applicationNo: string;
-  category: string;
+  category?: string;
   subject: string;
   status: TicketStatus;
   assignee: { _id: string; name: string } | null;
@@ -22,7 +22,7 @@ export interface TicketUpdate {
   author: string;
   content: string;
   timestamp: string;
-  type: "comment" | "status_change" | "assignment";
+  type?: "comment" | "status_change" | "assignment";
 }
 
 // API Response types for future integration
