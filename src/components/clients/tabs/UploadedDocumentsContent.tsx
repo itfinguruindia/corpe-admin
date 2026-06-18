@@ -20,6 +20,7 @@ import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
 import { usePermissions } from "@/hooks/usePermissions";
 import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 
 interface UploadedDocumentsContentProps {
   appNo: string;
@@ -268,6 +269,18 @@ export default function UploadedDocumentsContent({
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
+              <DocumentIssueButton
+                applicationNo={appNo}
+                target={{
+                  entityType: "registeredOffice",
+                  entityId: "registeredOffice",
+                  entityLabel: "Registered Office",
+                  fieldKey: docType,
+                  documentLabel: label,
+                  clientRoute: "corporate-structure",
+                }}
+                className="inline-flex items-center text-primary hover:text-secondary p-1"
+              />
             </div>
           </div>
           {fileObj ? (
@@ -332,6 +345,18 @@ export default function UploadedDocumentsContent({
                 />
               </div>
             )}
+            <DocumentIssueButton
+              applicationNo={appNo}
+              target={{
+                entityType: "registeredOffice",
+                entityId: "registeredOffice",
+                entityLabel: "Registered Office",
+                fieldKey: docTypeClient,
+                documentLabel: label,
+                clientRoute: "corporate-structure",
+              }}
+              className="inline-flex items-center text-primary hover:text-secondary p-1 shrink-0"
+            />
           </div>
 
           <div className="space-y-4">
