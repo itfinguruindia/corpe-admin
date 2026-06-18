@@ -14,6 +14,13 @@ import { requireClientTabEdit } from "@/utils/clientPermissions";
 import { notifyApiError } from "@/utils/apiErrors";
 import { getFileType } from "@/utils/helpers";
 import { PanTanEmailDisclaimer } from "./PanTanEmailDisclaimer";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+
+const REGISTRATION_FIELD_KEYS: Record<string, string> = {
+  PAN: "panDocument",
+  TAN: "TAN",
+  COI: "COI",
+};
 
 const CIN_REGEX = /^[LUlu][0-9]{5}[A-Za-z]{2}[0-9]{4}[A-Za-z]{3}[0-9]{6}$/;
 
@@ -376,6 +383,18 @@ export default function RegistrationDocumentsContent({
                 >
                   <Upload size={24} />
                 </button>
+                <DocumentIssueButton
+                  applicationNo={appNo}
+                  target={{
+                    entityType: "registration",
+                    entityId: "registration",
+                    entityLabel: "Registration Documents",
+                    fieldKey: REGISTRATION_FIELD_KEYS[doc.name] || doc.name,
+                    documentLabel: doc.name,
+                    clientRoute: "registration-documents",
+                  }}
+                  className="inline-flex items-center text-primary hover:text-[#d55a39] p-1"
+                />
               </div>
               )}
             </div>
