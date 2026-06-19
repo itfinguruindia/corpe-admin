@@ -30,7 +30,6 @@ import {
   type ComplianceInput,
   type CompliancePenalty,
 } from "@/lib/api/compliance";
-
 const MONTH_NAMES = [
   "January",
   "February",
