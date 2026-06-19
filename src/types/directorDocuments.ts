@@ -6,6 +6,7 @@ export type DocumentStatus = "uploaded" | "pending" | "approved" | "rejected";
 export interface DirectorDocument {
   id: string;
   directorId: string;
+  fieldKey?: string;
   documentType: string;
   fileName?: string;
   fileUrl?: string;

@@ -13,7 +13,7 @@ export function PanTanEmailDisclaimer({
 
   const clientText = trimmedEmail ? (
     <>
-      This document will be sent directly to your registered office email address
+      This document will be sent directly to your company email address
       that you provided in the <strong>Corporate Structure</strong> step:{" "}
       <strong className="text-[#157A6E]">{trimmedEmail}</strong>. It is not
       available for download on this page. Please check your inbox and spam
@@ -21,25 +21,25 @@ export function PanTanEmailDisclaimer({
     </>
   ) : (
     <>
-      This document will be sent directly to the registered office email address
-      from your <strong>Corporate Structure</strong> step. No office email is on
-      file yet — please complete and verify your Office Email in Corporate
+      This document will be sent directly to the company email address from your{" "}
+      <strong>Corporate Structure</strong> step. No company email is on file yet
+      — please complete and verify your Company Email in Corporate
       Structure.
     </>
   );
 
   const adminText = trimmedEmail ? (
     <>
-      This document is delivered directly to the client&apos;s registered office
-      email from Corporate Structure:{" "}
+      This document is delivered directly to the client&apos;s company email from
+      Corporate Structure:{" "}
       <strong className="text-[#F46A45]">{trimmedEmail}</strong>. Upload and
       download are not required for PAN/TAN on this portal.
     </>
   ) : (
     <>
-      This document is delivered directly to the client&apos;s registered office
-      email from Corporate Structure. No office email is on file yet — ask the
-      client to complete and verify Office Email in Corporate Structure.
+      This document is delivered directly to the client&apos;s company email from
+      Corporate Structure. No company email is on file yet — ask the client to
+      complete and verify Company Email in Corporate Structure.
     </>
   );
 
