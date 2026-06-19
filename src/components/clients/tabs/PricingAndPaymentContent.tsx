@@ -57,16 +57,16 @@ export default function PricingAndPaymentContent({
       }
     };
 
-    const paymentSteps: FrontendPaymentStep[] = steps.map((s: BackendPaymentStep) => {
+    const paymentSteps: FrontendPaymentStep[] = steps.map((s: BackendPaymentStep, index: number) => {
       let actionText = "-";
       if (s.status === "paid") {
         actionText = "Payment Received";
-      } else if ([2, 3, 4, 5].includes(s.stepNumber)) {
+      } else if ([4, 6].includes(s.stepNumber)) {
         actionText = s.paymentLinkSent ? "Resend Payment Link" : "Send Payment Link";
       }
 
       return {
-        step: s.stepNumber,
+        step: index + 1,
         installmentName: s.installmentName,
         amount: s.amount,
         triggerGate: s.triggerGate,
@@ -96,7 +96,7 @@ export default function PricingAndPaymentContent({
       gst: summary.gstAmount,
       finalPaidAmount: summary.finalPayableWithoutGST, // Frontend uses this for "Final Payable Amount" calculation
       finalPayableWithGST: summary.finalPayableWithGST,
-      isLocked: false, // Default to unlocked if not in API
+      isLocked: steps.some((s: BackendPaymentStep) => s.isLocked === true),
       discount: summary.discountAmount,
       paymentSteps,
       currency: summary.currency || "INR",
@@ -179,7 +179,7 @@ export default function PricingAndPaymentContent({
           <InfoField
             label="GST"
             value={formatCurrency(pricingData.gst, pricingData.currency)}
-            sublabel="(18% of Total payable fee)"
+            sublabel={`(${((pricingData.gst / (pricingData.totalPayable || 1)) * 100).toFixed(0)}% of Total payable fee)`}
             sublabelColor="text-gray-500"
           />
           <InfoField
@@ -287,37 +287,6 @@ export default function PricingAndPaymentContent({
                           <div className="font-medium text-gray-900">{step.installmentName}</div>
                           {step.breakdown && (
                             <div className="text-xs text-gray-500 mt-2 flex flex-col gap-1 bg-gray-50 p-2.5 rounded border border-gray-100 max-w-xs shadow-sm">
-                              {/* Option B name rejection Combo Breakdown */}
-                              {typeof step.breakdown.rejectionFee === "number" && (
-                                <>
-                                  <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">Rejection Fee (Govt):</span>
-                                    <span className="font-semibold text-gray-700">
-                                      {formatCurrency(step.breakdown.rejectionFee, pricingData.currency)}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">1st Installment (Base):</span>
-                                    <span className="font-semibold text-gray-700">
-                                      {formatCurrency(step.breakdown.installmentBase || 0, pricingData.currency)}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">1st Installment GST (18%):</span>
-                                    <span className="font-semibold text-gray-700">
-                                      {formatCurrency(step.breakdown.installmentGST || 0, pricingData.currency)}
-                                    </span>
-                                  </div>
-                                  <div className="border-t border-gray-200 my-1"></div>
-                                  <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
-                                    <span>Combo Total:</span>
-                                    <span>
-                                      {formatCurrency((step.breakdown.rejectionFee || 0) + (step.breakdown.installmentTotal || 0), pricingData.currency)}
-                                    </span>
-                                  </div>
-                                </>
-                              )}
-
                               {/* DIN Activation Fee Breakdown */}
                               {typeof step.breakdown.dinCount === "number" && (
                                 <>
@@ -333,18 +302,28 @@ export default function PricingAndPaymentContent({
                                       {step.breakdown.dinCount}
                                     </span>
                                   </div>
+                                  {(step.breakdown as any).dinDirectors?.length > 0 && (
+                                    <div className="flex flex-col gap-0.5 border-t border-gray-100 pt-1 mt-0.5">
+                                      {(step.breakdown as any).dinDirectors.map((dir: any, di: number) => (
+                                        <div key={di} className="flex justify-between gap-4 text-[10px] text-gray-400">
+                                          <span>{dir.name}:</span>
+                                          <span>{formatCurrency((step.breakdown as any).dinRate || 0, pricingData.currency)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                   <div className="border-t border-gray-200 my-1"></div>
                                   <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
                                     <span>Total Activation Fee:</span>
                                     <span>
-                                      {formatCurrency(step.breakdown.dinTotal || 0, pricingData.currency)}
+                                      {formatCurrency((step.breakdown as any).dinTotal || 0, pricingData.currency)}
                                     </span>
                                   </div>
                                 </>
                               )}
 
-                              {/* Regular Installments and Surcharges (Step 2, 3, 5) */}
-                              {typeof step.breakdown.rejectionFee !== "number" && typeof step.breakdown.dinCount !== "number" && (
+                              {/* Regular Installments / Surcharges / Breakdown (excl. DIN) */}
+                              {typeof step.breakdown.dinCount !== "number" && (
                                 <>
                                   {/* Installment Base */}
                                   {typeof step.breakdown.installmentBase === "number" && step.breakdown.installmentBase > 0 && (
