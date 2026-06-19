@@ -24,6 +24,7 @@ import {
   X,
   Rss,
   LogOut,
+  UserRoundX,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
@@ -317,6 +318,15 @@ export default function Sidebar() {
                   href="/marketing/leads"
                   icon={<UserRoundPlus size={15} />}
                   active={pathname === "/marketing/leads"}
+                  collapsed={effectiveCollapsed}
+                />
+              )}
+              {showMarketing && (
+                <SubItem
+                  label="Pending Registration"
+                  href="/marketing/pending-registrations"
+                  icon={<UserRoundX size={15} />}
+                  active={pathname === "/marketing/pending-registrations"}
                   collapsed={effectiveCollapsed}
                 />
               )}
