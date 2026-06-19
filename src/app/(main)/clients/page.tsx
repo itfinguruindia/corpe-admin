@@ -19,10 +19,13 @@ import ClientsTable, {
   Client,
   ITEMS_PER_PAGE,
 } from "@/components/clients/ClientsTable";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 export default function ClientsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { admin, isSuperAdmin, hasPermission } = usePermissions();
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
 
   // Debounced search handler — fires API call with current filters
@@ -180,14 +183,18 @@ export default function ClientsPage() {
 
   const handleAssigneeChange = async (
     appNo: string,
-    opt: SearchSelectOption,
+    opt: SearchSelectOption | null,
   ) => {
     try {
-      await clientsApi.updateAssignee(appNo, opt.id);
+      await clientsApi.updateAssignee(appNo, opt?.id ?? null);
       setClientsData((prev) =>
         prev.map((c) =>
           c.appNo === appNo
-            ? { ...c, assigneeId: opt.id, assignee: opt.name }
+            ? {
+                ...c,
+                assigneeId: opt?.id ?? null,
+                assignee: opt?.name ?? "-",
+              }
             : c,
         ),
       );
@@ -198,14 +205,18 @@ export default function ClientsPage() {
 
   const handleAssignerChange = async (
     appNo: string,
-    opt: SearchSelectOption,
+    opt: SearchSelectOption | null,
   ) => {
     try {
-      await clientsApi.updateAssigner(appNo, opt.id);
+      await clientsApi.updateAssigner(appNo, opt?.id ?? null);
       setClientsData((prev) =>
         prev.map((c) =>
           c.appNo === appNo
-            ? { ...c, assignerId: opt.id, assigner: opt.name }
+            ? {
+                ...c,
+                assignerId: opt?.id ?? null,
+                assigner: opt?.name ?? "-",
+              }
             : c,
         ),
       );
@@ -366,6 +377,10 @@ export default function ClientsPage() {
         totalPages={totalPages}
         total={total}
         onPageChange={handlePageChange}
+        currentAdminId={admin?.id ?? null}
+        isSuperAdmin={isSuperAdmin}
+        canAssignClients={hasPermission(PERMISSIONS.CLIENT_ASSIGN)}
+        canDeleteClients={hasPermission(PERMISSIONS.CLIENT_DELETE)}
       />
     </div>
   );

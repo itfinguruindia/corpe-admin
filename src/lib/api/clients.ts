@@ -66,8 +66,8 @@ export const clientsApi = {
     return response.data;
   },
 
-  // Update assignee for a client
-  updateAssignee: async (applicationNo: string, adminId: string) => {
+  // Update assignee for a client (pass null to unassign)
+  updateAssignee: async (applicationNo: string, adminId: string | null) => {
     const response = await axiosInstance.patch(
       `/admin/clients/${applicationNo}/assignee`,
       { adminId },
@@ -75,8 +75,8 @@ export const clientsApi = {
     return response.data;
   },
 
-  // Update assigner for a client
-  updateAssigner: async (applicationNo: string, adminId: string) => {
+  // Update assigner for a client (pass null to unassign)
+  updateAssigner: async (applicationNo: string, adminId: string | null) => {
     const response = await axiosInstance.patch(
       `/admin/clients/${applicationNo}/assigner`,
       { adminId },

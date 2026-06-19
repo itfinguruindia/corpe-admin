@@ -6,13 +6,12 @@ import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch, Chip } from "@/components/ui";
 import CustomSelect from "@/components/ui/CustomSelect";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 
 export default function DirectorDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
-  const { admin } = usePermissions();
+  const { requireEdit, canEdit } = useClientTabEdit("director");
   const [director, setDirector] = useState<Director | null>(null);
   const [allDirectors, setAllDirectors] = useState<Director[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -121,7 +120,7 @@ export default function DirectorDetailPage() {
 
   const handleKycToggle = async () => {
     if (!isStage2Enabled || !director?.isCommitted) return;
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!requireEdit()) return;
     const newValue = !kycVerified;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
@@ -135,7 +134,7 @@ export default function DirectorDetailPage() {
 
   const handleDscToggle = async () => {
     if (!isStage2Enabled || !director?.isCommitted) return;
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!requireEdit()) return;
     const newValue = !dscApplication;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
@@ -149,7 +148,7 @@ export default function DirectorDetailPage() {
 
   const handleDinStatusChange = async (newValue: string) => {
     if (!isStage2Enabled || !director?.isCommitted) return;
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!requireEdit()) return;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
         dinStatus: newValue,
@@ -290,7 +289,7 @@ export default function DirectorDetailPage() {
                       { id: "Inactive", label: "Inactive" },
                       { id: "In Progress", label: "In Progress" },
                     ]}
-                    isDisabled={!isStage2Enabled || !director.isCommitted || !requireClientTabEdit(admin, "director")}
+                    isDisabled={!isStage2Enabled || !director.isCommitted || !canEdit}
                   />
                 </div>
               )}

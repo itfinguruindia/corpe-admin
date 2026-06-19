@@ -307,35 +307,35 @@ export default function Sidebar() {
 
           {(showMarketing || showNewsletter) && (
             <SidebarSection
-              title="Marketing"
+              title="CRM"
               icon={<Megaphone size={18} />}
-              active={pathname.startsWith("/marketing")}
+              active={pathname.startsWith("/crm")}
               collapsed={effectiveCollapsed}
             >
               {showMarketing && (
                 <SubItem
                   label="Leads"
-                  href="/marketing/leads"
+                  href="/crm/leads"
                   icon={<UserRoundPlus size={15} />}
-                  active={pathname === "/marketing/leads"}
+                  active={pathname === "/crm/leads"}
                   collapsed={effectiveCollapsed}
                 />
               )}
               {showMarketing && (
                 <SubItem
                   label="Pending Registration"
-                  href="/marketing/pending-registrations"
+                  href="/crm/pending-registrations"
                   icon={<UserRoundX size={15} />}
-                  active={pathname === "/marketing/pending-registrations"}
+                  active={pathname === "/crm/pending-registrations"}
                   collapsed={effectiveCollapsed}
                 />
               )}
               {showNewsletter && (
                 <SubItem
                   label="Newsletter"
-                  href="/marketing/newsletter"
+                  href="/crm/newsletter"
                   icon={<Mail size={15} />}
-                  active={pathname === "/marketing/newsletter"}
+                  active={pathname === "/crm/newsletter"}
                   collapsed={effectiveCollapsed}
                 />
               )}

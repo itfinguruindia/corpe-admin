@@ -18,8 +18,7 @@ import { clientsApi } from "@/lib/api/clients";
 import TabCard from "@/components/dashboard/TabCard";
 import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 
 interface UploadedDocumentsContentProps {
@@ -30,7 +29,7 @@ export default function UploadedDocumentsContent({
   appNo,
 }: UploadedDocumentsContentProps) {
   const router = useRouter();
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("company");
   const [directors, setDirectors] = useState<
     { id: string; directorNumber: number }[]
   >([]);
@@ -151,7 +150,7 @@ export default function UploadedDocumentsContent({
   };
 
   const handleDocUpload = (docType: string, label: string) => {
-    if (!requireClientTabEdit(admin, "company")) return;
+    if (!requireEdit()) return;
 
     const input = document.createElement("input");
     input.type = "file";
@@ -185,7 +184,7 @@ export default function UploadedDocumentsContent({
   };
 
   const handleDocDelete = async (docType: string, label: string) => {
-    if (!requireClientTabEdit(admin, "company")) return;
+    if (!requireEdit()) return;
 
     if (!confirm(`Are you sure you want to delete the ${label}?`)) {
       return;

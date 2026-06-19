@@ -160,14 +160,21 @@ const ROUTE_RULES: RouteRule[] = [
     },
   },
   {
-    pattern: /^\/marketing\/leads$/,
+    pattern: /^\/crm\/leads$/,
     meta: {
-      title: "Marketing Leads",
-      description: "View and manage inbound marketing leads.",
+      title: "CRM Leads",
+      description: "View and manage inbound CRM leads.",
     },
   },
   {
-    pattern: /^\/marketing\/newsletter$/,
+    pattern: /^\/crm\/pending-registrations$/,
+    meta: {
+      title: "Pending Registrations",
+      description: "Users who started signup but did not complete registration.",
+    },
+  },
+  {
+    pattern: /^\/crm\/newsletter$/,
     meta: {
       title: "Newsletter Subscribers",
       description: "Manage newsletter subscribers and campaigns.",

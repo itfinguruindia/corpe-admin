@@ -12,8 +12,7 @@ import {
   type GlobalCommentItem,
 } from "@/constants/globalCommentAreas";
 import { getFileType } from "@/utils/helpers";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 
 interface CommentsContentProps {
   appNo: string;
@@ -37,7 +36,7 @@ const formatCommentDate = (value: string) =>
   });
 
 export default function CommentsContent({ appNo }: CommentsContentProps) {
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("comments");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [comments, setComments] = useState<GlobalCommentItem[]>([]);
@@ -79,7 +78,7 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
   }, [previewUrl]);
 
   const handlePostComment = async () => {
-    if (!requireClientTabEdit(admin, "comments")) return;
+    if (!requireEdit()) return;
     if (!newMessage.trim()) {
       toast("Please enter a comment message", { variant: "warning" });
       return;
@@ -106,7 +105,7 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
   };
 
   const handleDelete = async (commentId: string) => {
-    if (!requireClientTabEdit(admin, "comments")) return;
+    if (!requireEdit()) return;
     try {
       await clientsApi.deleteGlobalComment(appNo, commentId);
       toast("Comment deleted", { variant: "success" });

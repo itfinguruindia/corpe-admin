@@ -5,9 +5,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { setAuthData } from "@/redux/slices/authSlice";
 import type { Admin } from "@/types/admin";
+import { refreshAdminSession } from "@/utils/auth";
 
 /**
- * Restores admin + permissions from localStorage when Redux rehydrate is incomplete.
+ * Restores admin + permissions from localStorage and refreshes from the server.
  */
 export default function AuthSessionSync() {
   const dispatch = useDispatch();
@@ -25,25 +26,28 @@ export default function AuthSessionSync() {
       (!admin.isSuperAdmin &&
         (!Array.isArray(admin.permissions) || admin.permissions.length === 0));
 
-    if (!needsHydration) return;
-
-    try {
-      const raw = localStorage.getItem("adminInfo");
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Admin;
-      if (!parsed?.id) return;
-
-      dispatch(
-        setAuthData({
-          accessToken: token,
-          refreshToken: localStorage.getItem("refreshToken"),
-          admin: parsed,
-        }),
-      );
-    } catch {
-      // ignore invalid adminInfo
+    if (needsHydration) {
+      try {
+        const raw = localStorage.getItem("adminInfo");
+        if (raw) {
+          const parsed = JSON.parse(raw) as Admin;
+          if (parsed?.id) {
+            dispatch(
+              setAuthData({
+                accessToken: token,
+                refreshToken: localStorage.getItem("refreshToken"),
+                admin: parsed,
+              }),
+            );
+          }
+        }
+      } catch {
+        // ignore invalid adminInfo
+      }
     }
-  }, [admin, accessToken, dispatch]);
+
+    void refreshAdminSession();
+  }, [admin?.id, accessToken, dispatch]);
 
   return null;
 }

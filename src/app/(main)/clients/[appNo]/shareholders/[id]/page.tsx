@@ -5,13 +5,12 @@ import { useEffect, useState } from "react";
 import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 
 export default function ShareholderDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("shareholder");
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
   const [allShareholders, setAllShareholders] = useState<Shareholder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,7 +132,7 @@ export default function ShareholderDetailPage() {
 
   const handleKycToggle = async () => {
     if (!isStage2Enabled) return;
-    if (!requireClientTabEdit(admin, "shareholder")) return;
+    if (!requireEdit()) return;
     const newValue = !kycVerified;
     try {
       await clientsApi.updateShareholderStatus(appNo as string, id as string, {
@@ -147,7 +146,7 @@ export default function ShareholderDetailPage() {
 
   const handleDscToggle = async () => {
     if (!isStage2Enabled) return;
-    if (!requireClientTabEdit(admin, "shareholder")) return;
+    if (!requireEdit()) return;
     const newValue = !dscApplication;
     try {
       await clientsApi.updateShareholderStatus(appNo as string, id as string, {

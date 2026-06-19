@@ -1,6 +1,10 @@
 import type { Admin } from "@/types/admin";
 import { PERMISSIONS } from "@/utils/permissions";
 import { hasPermission } from "@/utils/permissions";
+import {
+  canMutateClientData,
+  type ClientAssignmentInfo,
+} from "@/utils/clientAssignment";
 import { showRouteAccessDeniedToast } from "@/lib/rbac/routeAccessDenied";
 
 export type ClientPermissionTab =
@@ -37,36 +41,61 @@ const TAB_MUTATION_PERMISSIONS: Record<ClientPermissionTab, string[]> = {
 export function canPerformClientTabEdit(
   admin: Admin | null | undefined,
   tab: ClientPermissionTab,
+  assignment?: ClientAssignmentInfo | null,
 ): boolean {
   if (!admin) return false;
   if (admin.isSuperAdmin) return true;
+
   const tabPerms = TAB_MUTATION_PERMISSIONS[tab];
-  return hasPermission(
+  const hasRbac = hasPermission(
     admin,
     [...tabPerms, PERMISSIONS.CLIENT_EDIT],
     "any",
   );
+  if (!hasRbac) return false;
+
+  if (assignment === undefined) return true;
+  return canMutateClientData(admin, assignment);
 }
 
 /**
  * Call before edit/upload actions on a client tab.
- * Shows a toast when the user lacks the required tab (or client-edit) permission.
+ * Shows a toast when the user lacks permission or is not assigned.
  */
 export function requireClientTabEdit(
   admin: Admin | null | undefined,
   tab: ClientPermissionTab,
+  assignment?: ClientAssignmentInfo | null,
 ): boolean {
-  if (canPerformClientTabEdit(admin, tab)) return true;
-  showRouteAccessDeniedToast();
-  return false;
+  if (!admin) {
+    showRouteAccessDeniedToast();
+    return false;
+  }
+
+  if (admin.isSuperAdmin) return true;
+
+  const tabPerms = TAB_MUTATION_PERMISSIONS[tab];
+  if (!hasPermission(admin, [...tabPerms, PERMISSIONS.CLIENT_EDIT], "any")) {
+    showRouteAccessDeniedToast();
+    return false;
+  }
+
+  if (assignment !== undefined && !canMutateClientData(admin, assignment)) {
+    showRouteAccessDeniedToast(
+      "Only assigned team members can modify this client. You have view-only access.",
+    );
+    return false;
+  }
+
+  return true;
 }
 
-/** @deprecated Use requireClientTabEdit(admin, tab) */
+/** @deprecated Use requireClientTabEdit(admin, tab, assignment) */
 export function canEditClient(admin: Admin | null | undefined): boolean {
   return canPerformClientTabEdit(admin, "client");
 }
 
-/** @deprecated Use requireClientTabEdit(admin, tab) */
+/** @deprecated Use requireClientTabEdit(admin, tab, assignment) */
 export function requireClientEdit(
   admin: Admin | null | undefined,
   _actionLabel?: string,
@@ -75,6 +104,34 @@ export function requireClientEdit(
   return requireClientTabEdit(admin, tab);
 }
 
-export function canDeleteClient(admin: Admin | null | undefined): boolean {
-  return hasPermission(admin, PERMISSIONS.CLIENT_DELETE);
+export function canDeleteClient(
+  admin: Admin | null | undefined,
+  assignment?: ClientAssignmentInfo | null,
+): boolean {
+  if (!admin) return false;
+  if (!hasPermission(admin, PERMISSIONS.CLIENT_DELETE)) return false;
+  if (assignment === undefined) return true;
+  return canMutateClientData(admin, assignment);
+}
+
+export function requireClientDelete(
+  admin: Admin | null | undefined,
+  assignment?: ClientAssignmentInfo | null,
+): boolean {
+  if (!admin) {
+    showRouteAccessDeniedToast();
+    return false;
+  }
+  if (admin.isSuperAdmin) return true;
+  if (!hasPermission(admin, PERMISSIONS.CLIENT_DELETE)) {
+    showRouteAccessDeniedToast();
+    return false;
+  }
+  if (assignment !== undefined && !canMutateClientData(admin, assignment)) {
+    showRouteAccessDeniedToast(
+      "Only assigned team members can delete this client.",
+    );
+    return false;
+  }
+  return true;
 }

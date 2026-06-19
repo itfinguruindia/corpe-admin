@@ -5,8 +5,7 @@ import { CompanyOverview } from "@/types/company";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField } from "@/components/ui";
 import { Chip, Spinner, Switch } from "@heroui/react";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 
 interface CompanyOverviewContentProps {
   appNo: string;
@@ -15,7 +14,7 @@ interface CompanyOverviewContentProps {
 export default function CompanyOverviewContent({
   appNo,
 }: CompanyOverviewContentProps) {
-  const { admin } = usePermissions();
+  const { requireEdit, canEdit } = useClientTabEdit("company");
   const [companyData, setCompanyData] = useState<CompanyOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [allDocsVerify, setAllDocsVerified] = useState(false);
@@ -84,7 +83,7 @@ export default function CompanyOverviewContent({
   }, [appNo]);
 
   const handleDocsToggle = async (newValue: boolean) => {
-    if (!requireClientTabEdit(admin, "company")) return;
+    if (!requireEdit()) return;
     try {
       await clientsApi.updateAllDocsVerified(appNo, newValue);
       setAllDocsVerified(newValue);
@@ -133,7 +132,11 @@ export default function CompanyOverviewContent({
           </div>
 
           {/* KYC Verified Toggle */}
-          <Switch isSelected={allDocsVerify} onChange={handleDocsToggle}>
+          <Switch
+            isSelected={allDocsVerify}
+            onChange={handleDocsToggle}
+            isDisabled={!canEdit}
+          >
             <Switch.Control>
               <Switch.Thumb />
             </Switch.Control>

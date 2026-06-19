@@ -15,6 +15,7 @@ export const PERMISSIONS = {
   CLIENT_EDIT: "client-edit",
   CLIENT_DELETE: "client-delete",
   CLIENT_EXPORT: "client-export",
+  CLIENT_ASSIGN: "client-assign",
 
   // Application (client sub-routes)
   APP_VIEW: "app-view",

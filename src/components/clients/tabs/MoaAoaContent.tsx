@@ -8,8 +8,7 @@ import { FileUploadComponent } from "@/components/upload";
 import Modal from "@/components/ui/Modal";
 import { clientsApi } from "@/lib/api/clients";
 import type { CompanyMiscDocType, MoaAoaDocType } from "@/lib/api/clients";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 import { getFileType } from "@/utils/helpers";
@@ -77,7 +76,7 @@ const INITIAL_SECTIONS: DocumentSection[] = [
 ];
 
 export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("moa");
   const [sections, setSections] = useState<DocumentSection[]>(INITIAL_SECTIONS);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshingKey, setRefreshingKey] = useState<string | null>(null);
@@ -236,7 +235,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
 
   const handleAdminUpload = async (section: DocumentSection, file: File) => {
     if (!file) return;
-    if (!requireClientTabEdit(admin, "moa")) return;
+    if (!requireEdit()) return;
 
     try {
       if (section.kind === "moa-aoa") {
@@ -306,7 +305,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
             title={`Upload ${section.label}`}
             subtitle="Upload from your computer, Google Drive, or existing documents."
             dropLabel="Drag and drop your file here"
-            onBeforeOpen={() => requireClientTabEdit(admin, "moa")}
+            onBeforeOpen={() => requireEdit()}
             onFileSelect={(file) => handleAdminUpload(section, file)}
             renderTrigger={(openPicker) => (
               <div title={`Upload ${section.label} (Admin)`}>

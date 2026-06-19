@@ -19,8 +19,7 @@ import { Switch } from "@/components/ui/Switch";
 import { clientsApi } from "@/lib/api/clients";
 import { getFileType } from "@/utils/helpers";
 import type { NameStatus } from "@/types/company";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 
 interface NameApplicationContentProps {
@@ -30,7 +29,7 @@ interface NameApplicationContentProps {
 export default function NameApplicationContent({
   appNo,
 }: NameApplicationContentProps) {
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("app");
 
   const STATUS_OPTIONS: NameStatus[] = [
     "Pending",
@@ -117,7 +116,7 @@ export default function NameApplicationContent({
   };
 
   const handleSaveMcaQueryText = async () => {
-    if (!requireClientTabEdit(admin, "app")) return;
+    if (!requireEdit()) return;
     try {
       setIsSavingMcaQuery(true);
       await clientsApi.updateMcaQueryText(appNo, mcaQueryText);
@@ -134,7 +133,7 @@ export default function NameApplicationContent({
   };
 
   const handleMcaQueryFileSelected = async (file: File) => {
-    if (!requireClientTabEdit(admin, "app")) return;
+    if (!requireEdit()) return;
     try {
       setIsUploadingMcaFile(true);
       await clientsApi.uploadMcaQueryFile(appNo, file);
@@ -151,7 +150,7 @@ export default function NameApplicationContent({
   };
 
   const handleDeleteMcaQueryFile = async (filePath: string) => {
-    if (!requireClientTabEdit(admin, "app")) return;
+    if (!requireEdit()) return;
     try {
       await clientsApi.deleteMcaQueryFile(appNo, filePath);
       toast.success("File removed");
@@ -224,7 +223,7 @@ export default function NameApplicationContent({
 
   const handleStatusChange = async (index: number, status: NameStatus) => {
     setStatusMap((prev) => ({ ...prev, [index]: status }));
-    if (!requireClientTabEdit(admin, "app")) return;
+    if (!requireEdit()) return;
     try {
       await clientsApi.updateCompanyStatus(appNo, index, status);
     } catch (error) {
@@ -238,7 +237,7 @@ export default function NameApplicationContent({
 
   const handleMcaApprovalChange = async (index: number, value: string) => {
     setMcaApprovalMap((prev) => ({ ...prev, [index]: value }));
-    if (!requireClientTabEdit(admin, "app")) return;
+    if (!requireEdit()) return;
     try {
       await clientsApi.updateCompanyMcaApproval(appNo, index, value);
       toast.success("MCA approval status updated");
@@ -250,7 +249,7 @@ export default function NameApplicationContent({
 
   const handleTradeConflictChange = async (index: number, value: string) => {
     setTradeConflictMap((prev) => ({ ...prev, [index]: value }));
-    if (!requireClientTabEdit(admin, "app")) return;
+    if (!requireEdit()) return;
     try {
       await clientsApi.updateCompanyTradeConflict(appNo, index, value);
       toast.success("Trademark status updated");
@@ -261,7 +260,7 @@ export default function NameApplicationContent({
   };
 
   const handleResubmitOriginalToggle = async (checked: boolean) => {
-    if (!requireClientTabEdit(admin, "app")) return;
+    if (!requireEdit()) return;
 
     setResubmitOriginal(checked);
     try {
@@ -276,7 +275,7 @@ export default function NameApplicationContent({
 
   const handleObjectClauseFileSelected = async (file: File) => {
     if (!file) return;
-    if (!requireClientTabEdit(admin, "app")) return;
+    if (!requireEdit()) return;
     try {
       await clientsApi.uploadObjectClauseDocument(appNo, file);
       toast.success("Object Clause uploaded. Client can now download it.");
@@ -892,7 +891,7 @@ export default function NameApplicationContent({
                   subtitle="Upload from your computer, Google Drive, or existing documents."
                   dropLabel="Drag and drop your file here"
                   disabled={!isTrademarkDone}
-                  onBeforeOpen={() => requireClientTabEdit(admin, "app")}
+                  onBeforeOpen={() => requireEdit()}
                   onFileSelect={handleObjectClauseFileSelected}
                   renderTrigger={(openPicker) => (
                     <div
@@ -1062,7 +1061,7 @@ export default function NameApplicationContent({
                       subtitle="Attach files received from MCA."
                       dropLabel="Drag and drop file here"
                       disabled={isUploadingMcaFile}
-                      onBeforeOpen={() => requireClientTabEdit(admin, "app")}
+                      onBeforeOpen={() => requireEdit()}
                       onFileSelect={handleMcaQueryFileSelected}
                       renderTrigger={(openPicker) => (
                         <Upload

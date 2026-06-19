@@ -9,8 +9,7 @@ import { clientsApi } from "@/lib/api/clients";
 import CustomSelect from "@/components/ui/CustomSelect";
 import Modal from "@/components/ui/Modal";
 import { RegistrationData } from "@/types/registrationDocuments";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { getFileType } from "@/utils/helpers";
 import { PanTanEmailDisclaimer } from "./PanTanEmailDisclaimer";
@@ -48,7 +47,7 @@ interface RegistrationDocumentsContentProps {
 export default function RegistrationDocumentsContent({
   appNo,
 }: RegistrationDocumentsContentProps) {
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("regDoc");
   const [data, setData] = useState<RegistrationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [cinInput, setCinInput] = useState("");
@@ -87,7 +86,7 @@ export default function RegistrationDocumentsContent({
   }, [appNo]);
 
   const handleCinSubmit = async () => {
-    if (!requireClientTabEdit(admin, "regDoc")) return;
+    if (!requireEdit()) return;
     if (!CIN_REGEX.test(cinInput)) {
       setCinError("Please enter a valid CIN (e.g. L12345AB1234DEF123456)");
       return;
@@ -108,7 +107,7 @@ export default function RegistrationDocumentsContent({
   };
 
   const handleStatusChange = async (status: string) => {
-    if (!requireClientTabEdit(admin, "regDoc")) return;
+    if (!requireEdit()) return;
     try {
       setCompanyStatus(status);
       await clientsApi.updateCinAndStatus(appNo, cinInput, status);
@@ -124,7 +123,7 @@ export default function RegistrationDocumentsContent({
   };
 
   const handleUploadClick = (docType: string) => {
-    if (!requireClientTabEdit(admin, "regDoc")) return;
+    if (!requireEdit()) return;
     if (!data?.cin) {
       toast.warning(
         "Please submit a valid CIN first to unlock document uploads.",

@@ -1,6 +1,7 @@
 import { PERMISSIONS, type PermissionId } from "./permissions";
 
 export interface RbacUser {
+  id?: string;
   isSuperAdmin?: boolean;
   permissions?: string[];
 }
