@@ -878,4 +878,48 @@ export const clientsApi = {
     );
     return response.data as Blob;
   },
+
+  listDocumentIssues: async (
+    applicationNo: string,
+    status?: "open" | "resolved",
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/document-issues`,
+      { params: status ? { status } : undefined },
+    );
+    return response.data?.data?.issues ?? response.data?.issues ?? [];
+  },
+
+  createDocumentIssue: async (
+    applicationNo: string,
+    payload: {
+      entityType: string;
+      entityId: string;
+      entityLabel?: string;
+      fieldKey: string;
+      documentLabel: string;
+      clientRoute: string;
+      comment: string;
+    },
+  ) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/document-issues`,
+      payload,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  resolveDocumentIssue: async (applicationNo: string, issueId: string) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/document-issues/${issueId}/resolve`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  deleteDocumentIssue: async (applicationNo: string, issueId: string) => {
+    const response = await axiosInstance.delete(
+      `/admin/clients/${applicationNo}/document-issues/${issueId}`,
+    );
+    return response.data?.data ?? response.data;
+  },
 };

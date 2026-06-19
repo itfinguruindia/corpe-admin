@@ -11,6 +11,7 @@ import type { CompanyMiscDocType, MoaAoaDocType } from "@/lib/api/clients";
 import { usePermissions } from "@/hooks/usePermissions";
 import { requireClientTabEdit } from "@/utils/clientPermissions";
 import { notifyApiError } from "@/utils/apiErrors";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 import { getFileType } from "@/utils/helpers";
 
 interface MoaAoaContentProps {
@@ -287,6 +288,18 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
               }`}
             />
           </div>
+          <DocumentIssueButton
+            applicationNo={appNo}
+            target={{
+              entityType: "company",
+              entityId: "company",
+              entityLabel: "Company Documents",
+              fieldKey: section.docType,
+              documentLabel: section.label,
+              clientRoute: "document-upload",
+            }}
+            className="inline-flex items-center text-primary hover:text-secondary"
+          />
           <FileUploadComponent
             context="clients"
             allowedFileTypes=".pdf,.doc,.docx"

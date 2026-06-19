@@ -13,6 +13,7 @@ import { getFileType } from "@/utils/helpers";
 import { usePermissions } from "@/hooks/usePermissions";
 import { requireClientTabEdit } from "@/utils/clientPermissions";
 import { notifyApiError } from "@/utils/apiErrors";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 
 export default function ShareholderDocumentsPage() {
   const { appNo, id } = useParams();
@@ -97,6 +98,7 @@ export default function ShareholderDocumentsPage() {
       const doc = docData[docType.key];
       return {
         id: `${docType.key}-${index}`,
+        fieldKey: docType.key,
         shareholderId: id as string,
         documentType: docType.label,
         status: doc ? doc.status || "uploaded" : "pending",
@@ -363,6 +365,18 @@ export default function ShareholderDocumentsPage() {
                             <Upload className="w-5 h-5" />
                           </button>
                         )}
+
+                        <DocumentIssueButton
+                          applicationNo={appNo as string}
+                          target={{
+                            entityType: "shareholder",
+                            entityId: id as string,
+                            entityLabel: `${shareholder.name} (Shareholder)`,
+                            fieldKey: document.fieldKey || "",
+                            documentLabel: document.documentType,
+                            clientRoute: "document-upload",
+                          }}
+                        />
                       </div>
                     </div>
                   ))}
@@ -378,6 +392,18 @@ export default function ShareholderDocumentsPage() {
                   INC-9 Shareholder
                 </h2>
                 <div className="flex items-center gap-3">
+                  <DocumentIssueButton
+                    applicationNo={appNo as string}
+                    target={{
+                      entityType: "shareholder",
+                      entityId: id as string,
+                      entityLabel: `${shareholder.name} (Shareholder)`,
+                      fieldKey: "inc9Shareholder",
+                      documentLabel: "INC-9 Shareholder",
+                      clientRoute: "document-upload",
+                    }}
+                    className="inline-flex items-center text-primary hover:text-secondary"
+                  />
                   <div title="Refresh status">
                     <RefreshCw
                       size={18}

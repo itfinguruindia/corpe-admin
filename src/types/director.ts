@@ -33,6 +33,7 @@ export interface Director {
   isBankSigningAuthority?: boolean;
   dinStatus?: string;
   isDinActivationFeePaid?: boolean;
+  isCommitted?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

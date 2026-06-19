@@ -131,3 +131,60 @@ export const marketingApi = {
     return response.data.data;
   },
 };
+
+export interface PendingRegistrationItem {
+  _id: string;
+  phone: string;
+  phoneCountryCode?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  companyType?: string;
+  companyName?: string;
+  registrationState?: string;
+  residentCountry?: string;
+  currentStep: number;
+  maxStepReached: number;
+  razorpayPopupOpenCount: number;
+  formSnapshot?: Record<string, unknown>;
+  lastActivityAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PendingRegistrationsResponse {
+  success: boolean;
+  data: PendingRegistrationItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export const pendingRegistrationApi = {
+  getAll: async (
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+    step?: number,
+  ): Promise<PendingRegistrationsResponse> => {
+    const response = await axiosInstance.get(
+      "/admin/marketing/pending-registrations",
+      {
+        params: {
+          page,
+          limit,
+          search: search || undefined,
+          step: step !== undefined ? step : undefined,
+        },
+      },
+    );
+    return response.data.data ?? response.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await axiosInstance.delete(
+      `/admin/marketing/pending-registrations/${id}`,
+    );
+  },
+};
