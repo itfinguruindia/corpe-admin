@@ -2,6 +2,8 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "@heroui/react";
+
 import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch, Chip } from "@/components/ui";
@@ -21,6 +23,14 @@ export default function DirectorDetailPage() {
   const [dscApplication, setDscApplication] = useState(false);
   const [dinStatus, setDinStatus] = useState<string>("Pending");
   const [isStage2Enabled, setIsStage2Enabled] = useState(false);
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
+
+  const isLocked = !!installmentInfo?.firstInstallmentDue;
 
   useEffect(() => {
     const loadData = async () => {
@@ -28,7 +38,7 @@ export default function DirectorDetailPage() {
         setIsLoading(true);
         // Use the same API as the all directors listing page
         const response = await clientsApi.getDirectorAndShareHolders(
-          appNo as string,
+          appNo as string, false,
         );
         if (
           response &&
@@ -83,7 +93,11 @@ export default function DirectorDetailPage() {
             setHasDIN(foundDirector.hasDIN);
             setKycVerified(foundDirector.kycVerified);
             setDscApplication(foundDirector.dscApplication);
-            setDinStatus(foundDirector.dinStatus || "Pending");
+            const effectiveDinStatus =
+              foundDirector.dinStatus === "Inactive" && foundDirector.isDinActivationFeePaid
+                ? "In Progress"
+                : foundDirector.dinStatus || "Pending";
+            setDinStatus(effectiveDinStatus);
           }
         } else {
           setAllDirectors([]);
@@ -98,6 +112,9 @@ export default function DirectorDetailPage() {
               : null;
             const isStage2 = activeStage?.stageId === "stage_2_documents_kyc";
             setIsStage2Enabled(isStage2);
+            if (trackerRes.installmentInfo) {
+              setInstallmentInfo(trackerRes.installmentInfo);
+            }
           } else {
             setIsStage2Enabled(false);
           }
@@ -134,7 +151,7 @@ export default function DirectorDetailPage() {
   };
 
   const handleDscToggle = async () => {
-    if (!isStage2Enabled || !director?.isCommitted) return;
+    if (!isStage2Enabled || !director?.isCommitted || isLocked) return;
     if (!requireClientTabEdit(admin, "director")) return;
     const newValue = !dscApplication;
     try {
@@ -299,7 +316,7 @@ export default function DirectorDetailPage() {
 
           {/* Director Information */}
           <div className="grid grid-cols-2 gap-x-8">
-            <InfoField label="Director Name" value={director.name} />
+            <InfoField label="Director Name" value={String(director.directorName)} />
             <InfoField label="Father name" value={director.fatherName} />
             <InfoField label="Email" value={director.email} />
             <InfoField label="Phone No." value={director.phoneNo} />
@@ -364,7 +381,15 @@ export default function DirectorDetailPage() {
                 DSC Application
               </span>
 
-              <Switch checked={dscApplication} onChange={handleDscToggle} disabled={!isStage2Enabled || !director.isCommitted} />
+              <div
+                onClick={() => {
+                  if (isLocked) {
+                    toast.danger("Action locked. Installment payment is due.");
+                  }
+                }}
+              >
+                <Switch checked={dscApplication} onChange={handleDscToggle} disabled={!isStage2Enabled || !director.isCommitted || isLocked} />
+              </div>
             </div>
           </div>
         </div>

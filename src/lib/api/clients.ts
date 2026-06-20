@@ -58,6 +58,14 @@ export const clientsApi = {
     return response.data.data;
   },
 
+  // Get lightweight payment status
+  getPaymentStatus: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/payment-status`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
   // Delete a client by application number
   deleteClient: async (applicationNo: string) => {
     const response = await axiosInstance.delete(
@@ -101,9 +109,10 @@ export const clientsApi = {
   },
 
   // Get directors and shareholders by application number
-  getDirectorAndShareHolders: async (applicationNo: string) => {
+  getDirectorAndShareHolders: async (applicationNo: string, includeDraft: boolean = true) => {
     const response = await axiosInstance.get(
       `/admin/clients/${applicationNo}/getDirectorAndShareHolders`,
+      { params: { includeDraft } },
     );
     return response.data;
   },

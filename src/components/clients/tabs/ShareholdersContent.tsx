@@ -22,7 +22,7 @@ export default function ShareholdersContent({
     const loadShareholders = async () => {
       try {
         setIsLoading(true);
-        const response = await clientsApi.getDirectorAndShareHolders(appNo);
+        const response = await clientsApi.getDirectorAndShareHolders(appNo, false);
         if (
           response &&
           response.data &&

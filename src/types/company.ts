@@ -39,7 +39,7 @@ export type CompanyStatus =
   | "Pending"
   | "Rejected"
   | "Under Review";
-export type PaymentStatus = "Approved" | "Pending" | "Failed";
+export type PaymentStatus = string;
 
 // API Response types for future integration
 export interface CompanyOverviewResponse {

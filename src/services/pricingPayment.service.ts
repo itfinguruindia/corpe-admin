@@ -31,6 +31,7 @@ export type PaymentStep = {
   status: "paid" | "pending" | "failed" | "due";
   orderId?: string;
   invoiceAvailable?: boolean;
+  isLocked?: boolean;
   paymentLinkSent?: boolean;
   paymentLinkSentAt?: string | null;
   breakdown?: {
