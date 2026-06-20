@@ -71,7 +71,7 @@ export default function RegistrationDocumentsContent({
     secondInstallmentPaid: boolean;
   } | null>(null);
 
-  const isLocked = !!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue);
+  const isLocked = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
 
   const loadData = async () => {
     try {

@@ -67,6 +67,7 @@ export default function PricingAndPaymentContent({
 
       return {
         step: index + 1,
+        stepNumber: s.stepNumber,
         installmentName: s.installmentName,
         amount: s.amount,
         triggerGate: s.triggerGate,
@@ -114,7 +115,11 @@ export default function PricingAndPaymentContent({
         return "yellow";
       case "Blocked":
         return "red";
+      case "Overdue":
+        return "red";
       default:
+        // "First Installment Due", "Second Installment Due", etc.
+        if (status.includes("Installment Due") || status.includes("Pending")) return "yellow";
         return "gray";
     }
   };
@@ -312,6 +317,17 @@ export default function PricingAndPaymentContent({
                                       ))}
                                     </div>
                                   )}
+                                  {(step.breakdown as any).paidDinDirectors?.length > 0 && (
+                                    <div className="flex flex-col gap-0.5 border-t border-gray-100 pt-1 mt-0.5 text-green-600">
+                                      <div className="text-[10px] font-medium text-green-700 mb-0.5">Previously Paid:</div>
+                                      {(step.breakdown as any).paidDinDirectors.map((dir: any, di: number) => (
+                                        <div key={di} className="flex justify-between gap-4 text-[10px]">
+                                          <span>{dir.name}:</span>
+                                          <span>✓ {formatCurrency((step.breakdown as any).dinRate || 0, pricingData.currency)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                   <div className="border-t border-gray-200 my-1"></div>
                                   <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
                                     <span>Total Activation Fee:</span>
@@ -319,6 +335,12 @@ export default function PricingAndPaymentContent({
                                       {formatCurrency((step.breakdown as any).dinTotal || 0, pricingData.currency)}
                                     </span>
                                   </div>
+                                  {typeof (step.breakdown as any).totalPaidSoFar === "number" && (step.breakdown as any).totalPaidSoFar > 0 && (
+                                    <div className="flex justify-between gap-4 text-green-700 text-[11px] font-medium mt-0.5">
+                                      <span>Total Paid So Far:</span>
+                                      <span>{formatCurrency((step.breakdown as any).totalPaidSoFar, pricingData.currency)}</span>
+                                    </div>
+                                  )}
                                 </>
                               )}
 
@@ -384,6 +406,12 @@ export default function PricingAndPaymentContent({
                                           {formatCurrency(step.breakdown.installmentTotal, pricingData.currency)}
                                         </span>
                                       </div>
+                                      {typeof (step.breakdown as any).totalPaidSoFar === "number" && (step.breakdown as any).totalPaidSoFar > 0 && (
+                                        <div className="flex justify-between gap-4 text-green-700 text-[11px] font-medium mt-0.5">
+                                          <span>Total Paid So Far:</span>
+                                          <span>{formatCurrency((step.breakdown as any).totalPaidSoFar, pricingData.currency)}</span>
+                                        </div>
+                                      )}
                                     </>
                                   )}
                                 </>
@@ -437,7 +465,7 @@ export default function PricingAndPaymentContent({
 
                                     const success = await pricingPaymentService.sendPaymentLink(
                                       appNo,
-                                      step.step
+                                      step.stepNumber
                                     );
 
                                     if (success) {

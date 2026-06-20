@@ -473,7 +473,7 @@ export default function DirectorDocumentsPage() {
     const { adminFile, clientFile } = files;
     const isRefreshingDoc =
       isRefreshing[docTypeKey as keyof typeof isRefreshing];
-    const isStage3Gated = !!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue);
+    const isStage3Gated = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
     const isLocked = isStage3Gated && ["dir2", "inc9Director", "noPanDeclaration", "miscellaneous1", "miscellaneous2", "miscellaneous3"].includes(docTypeKey);
 
     return (

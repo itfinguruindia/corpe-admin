@@ -91,7 +91,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
     secondInstallmentPaid: boolean;
   } | null>(null);
 
-  const isLocked = !!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue);
+  const isLocked = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
 
   const getFileName = (value: string) => {
     if (!value) return "";

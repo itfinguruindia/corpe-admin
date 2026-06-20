@@ -30,7 +30,7 @@ export default function DirectorDetailPage() {
     secondInstallmentPaid: boolean;
   } | null>(null);
 
-  const isLocked = !!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue);
+  const isLocked = !!installmentInfo?.firstInstallmentDue;
 
   useEffect(() => {
     const loadData = async () => {
@@ -93,7 +93,11 @@ export default function DirectorDetailPage() {
             setHasDIN(foundDirector.hasDIN);
             setKycVerified(foundDirector.kycVerified);
             setDscApplication(foundDirector.dscApplication);
-            setDinStatus(foundDirector.dinStatus || "Pending");
+            const effectiveDinStatus =
+              foundDirector.dinStatus === "Inactive" && foundDirector.isDinActivationFeePaid
+                ? "In Progress"
+                : foundDirector.dinStatus || "Pending";
+            setDinStatus(effectiveDinStatus);
           }
         } else {
           setAllDirectors([]);
@@ -312,7 +316,7 @@ export default function DirectorDetailPage() {
 
           {/* Director Information */}
           <div className="grid grid-cols-2 gap-x-8">
-            <InfoField label="Director Name" value={director.name} />
+            <InfoField label="Director Name" value={String(director.directorName)} />
             <InfoField label="Father name" value={director.fatherName} />
             <InfoField label="Email" value={director.email} />
             <InfoField label="Phone No." value={director.phoneNo} />

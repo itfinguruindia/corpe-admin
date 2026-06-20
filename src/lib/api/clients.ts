@@ -58,6 +58,14 @@ export const clientsApi = {
     return response.data.data;
   },
 
+  // Get lightweight payment status
+  getPaymentStatus: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/payment-status`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
   // Delete a client by application number
   deleteClient: async (applicationNo: string) => {
     const response = await axiosInstance.delete(

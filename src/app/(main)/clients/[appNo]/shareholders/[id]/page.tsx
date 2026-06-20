@@ -27,7 +27,7 @@ export default function ShareholderDetailPage() {
     secondInstallmentPaid: boolean;
   } | null>(null);
 
-  const isLocked = !!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue);
+  const isLocked = !!installmentInfo?.firstInstallmentDue;
 
   useEffect(() => {
     const loadData = async () => {

@@ -342,7 +342,7 @@ export default function UploadedDocumentsContent({
     onRefresh?: () => void,
     refreshing?: boolean,
   ) => {
-    const isLocked = !!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue);
+    const isLocked = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
 
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[180px]">
@@ -549,7 +549,7 @@ export default function UploadedDocumentsContent({
           </p>
         </div>
 
-        {!!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue) && (
+        {!!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid) && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold max-w-5xl">
             <span>⚠️ Stage locked. Outstanding installment payments are due for this client. Document actions are disabled.</span>
           </div>

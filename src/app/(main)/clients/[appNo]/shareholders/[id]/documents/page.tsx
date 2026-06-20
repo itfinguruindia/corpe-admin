@@ -42,7 +42,7 @@ export default function ShareholderDocumentsPage() {
     secondInstallmentPaid: boolean;
   } | null>(null);
 
-  const isLocked = !!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue);
+  const isLocked = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
 
   // Upload allowed for these doc types (admin can upload INC-9 Shareholder draft)
   const UPLOAD_ALLOWED_DOCS = [
