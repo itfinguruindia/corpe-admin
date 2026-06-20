@@ -35,6 +35,14 @@ export default function ShareholderDocumentsPage() {
     uploadedAt?: string;
   } | null>(null);
   const [isRefreshingInc9, setIsRefreshingInc9] = useState(false);
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
+
+  const isLocked = !!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue);
 
   // Upload allowed for these doc types (admin can upload INC-9 Shareholder draft)
   const UPLOAD_ALLOWED_DOCS = [
@@ -113,15 +121,19 @@ export default function ShareholderDocumentsPage() {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [shareholderData, documentsData, inc9Status] = await Promise.all([
+        const [shareholderData, documentsData, inc9Status, trackerResponse] = await Promise.all([
           clientsApi.getShareholderById(appNo as string, id as string),
           clientsApi.getShareholderDocuments(appNo as string, id as string),
           clientsApi.getInc9ShareholderDocStatus(appNo as string, id as string),
+          clientsApi.getTrackingStatus(appNo as string).catch(() => null),
         ]);
         setShareholder(shareholderData);
         setDocuments(transformDocumentsToArray(documentsData));
         setInc9AdminFile(inc9Status.adminFile || null);
         setInc9ClientFile(inc9Status.clientFile || null);
+        if (trackerResponse && trackerResponse.installmentInfo) {
+          setInstallmentInfo(trackerResponse.installmentInfo);
+        }
       } catch (err) {
         console.error("Error loading shareholder documents", err);
       } finally {
@@ -199,6 +211,11 @@ export default function ShareholderDocumentsPage() {
     if (!appNo || !id) return;
     if (!requireClientTabEdit(admin, "shareholder")) return;
 
+    if (isLocked) {
+      toast.danger("Action locked. Installment payment is due.");
+      return;
+    }
+
     const fileSource = source === "admin" ? "Admin Upload" : "Client Upload";
     if (!confirm(`Are you sure you want to delete the ${fileSource}?`)) {
       return;
@@ -231,6 +248,10 @@ export default function ShareholderDocumentsPage() {
   const handleUpload = (documentType: string) => {
     if (!requireClientTabEdit(admin, "shareholder")) return;
     if (documentType === "INC-9 Shareholder") {
+      if (isLocked) {
+        toast.danger("Action locked. Installment payment is due.");
+        return;
+      }
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".pdf,.doc,.docx";
@@ -308,6 +329,12 @@ export default function ShareholderDocumentsPage() {
             </span>
           )}
         </div>
+
+        {isLocked && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold">
+            <span>⚠️ Stage locked. Outstanding installment payments are due for this client. Document upload actions are disabled.</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-6">
           {/* Left: Regular Documents */}
@@ -411,11 +438,11 @@ export default function ShareholderDocumentsPage() {
                       className={`cursor-pointer text-secondary hover:text-primary ${isRefreshingInc9 ? "animate-spin" : ""}`}
                     />
                   </div>
-                  <div title="Upload INC-9 (Admin)">
+                  <div title={isLocked ? "Locked — installment due" : "Upload INC-9 (Admin)"}>
                     <Upload
                       size={20}
-                      onClick={() => handleUpload("INC-9 Shareholder")}
-                      className="cursor-pointer text-primary hover:text-secondary"
+                      onClick={isLocked ? undefined : () => handleUpload("INC-9 Shareholder")}
+                      className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-primary hover:text-secondary"}
                     />
                   </div>
                 </div>
@@ -444,11 +471,11 @@ export default function ShareholderDocumentsPage() {
                             className="cursor-pointer text-orange-600 hover:text-orange-700"
                           />
                         </div>
-                        <div title="Delete">
+                        <div title={isLocked ? "Locked — installment due" : "Delete"}>
                           <Trash2
                             size={16}
-                            onClick={() => handleInc9Delete("admin")}
-                            className="cursor-pointer text-red-600 hover:text-red-700"
+                            onClick={isLocked ? undefined : () => handleInc9Delete("admin")}
+                            className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-red-600 hover:text-red-700"}
                           />
                         </div>
                       </div>
@@ -490,11 +517,11 @@ export default function ShareholderDocumentsPage() {
                             className="cursor-pointer text-blue-600 hover:text-blue-700"
                           />
                         </div>
-                        <div title="Delete">
+                        <div title={isLocked ? "Locked — installment due" : "Delete"}>
                           <Trash2
                             size={16}
-                            onClick={() => handleInc9Delete("client")}
-                            className="cursor-pointer text-red-600 hover:text-red-700"
+                            onClick={isLocked ? undefined : () => handleInc9Delete("client")}
+                            className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-red-600 hover:text-red-700"}
                           />
                         </div>
                       </div>

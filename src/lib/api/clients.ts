@@ -101,9 +101,10 @@ export const clientsApi = {
   },
 
   // Get directors and shareholders by application number
-  getDirectorAndShareHolders: async (applicationNo: string) => {
+  getDirectorAndShareHolders: async (applicationNo: string, includeDraft: boolean = true) => {
     const response = await axiosInstance.get(
       `/admin/clients/${applicationNo}/getDirectorAndShareHolders`,
+      { params: { includeDraft } },
     );
     return response.data;
   },
