@@ -28,6 +28,7 @@ import {
   useOverlayState,
 } from "@heroui/react";
 import CustomSelect from "@/components/ui/CustomSelect";
+import RefreshButton from "@/components/ui/RefreshButton";
 import PermissionGate from "@/components/rbac/PermissionGate";
 import { PERMISSIONS } from "@/utils/permissions";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -248,7 +249,13 @@ export default function UserManagement({
             Manage system users and their access
           </p>
         </div>
-        <PermissionGate permissions={PERMISSIONS.USER_CREATE}>
+        <div className="flex items-center gap-2 shrink-0">
+          <RefreshButton
+            onClick={loadData}
+            isLoading={isLoading}
+            ariaLabel="Refresh users"
+          />
+          <PermissionGate permissions={PERMISSIONS.USER_CREATE}>
           <Button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
@@ -258,6 +265,7 @@ export default function UserManagement({
             Add New User
           </Button>
         </PermissionGate>
+        </div>
       </div>
 
       <Modal state={createModalState}>

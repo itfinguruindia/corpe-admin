@@ -454,3 +454,38 @@ button:hover {
   padding: 12px !important;
   box-shadow: none !important;
 }
+
+/* Dashboard hero */
+.dashboard-hero-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 20%, transparent 100%);
+}
+
+.dashboard-hero-glow {
+  background: radial-gradient(
+    ellipse 60% 80% at 100% 0%,
+    rgba(255, 106, 61, 0.22) 0%,
+    transparent 55%
+  );
+}
+
+@keyframes heroFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.dashboard-hero-float {
+  animation: heroFloat 5s ease-in-out infinite;
+}
+
+.dashboard-hero-float-delayed {
+  animation: heroFloat 5s ease-in-out 1.2s infinite;
+}

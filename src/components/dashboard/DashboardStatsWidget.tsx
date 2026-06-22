@@ -27,8 +27,8 @@ function StatCardSkeleton({ featured = false }: { featured?: boolean }) {
   return (
     <div
       className={clsx(
-        "card-accent-top rounded-2xl bg-white border border-gray-100 p-6 shadow-sm flex flex-col justify-between border-l-[3px] border-l-primary/30",
-        featured ? "min-h-[160px] lg:min-h-[172px]" : "min-h-[132px]",
+        "flex flex-col justify-between rounded-3xl border border-gray-100/80 bg-white p-5 shadow-sm ring-1 ring-primary/10",
+        featured ? "min-h-[148px] p-6 lg:min-h-[160px]" : "min-h-[120px]",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -47,6 +47,8 @@ export default function DashboardStatsWidget() {
   const [loading, setLoading] = useState(canViewDashboard);
 
   useEffect(() => {
+    let mounted = true;
+
     if (!canViewDashboard) {
       setLoading(false);
       return;
@@ -55,7 +57,7 @@ export default function DashboardStatsWidget() {
     adminApi
       .getDashboardData()
       .then((data) => {
-        if (!data) return;
+        if (!mounted || !data) return;
         setStats({
           totalApplication: data.totalApplication ?? 0,
           pendingApplication: data.pendingApplication ?? 0,
@@ -63,8 +65,16 @@ export default function DashboardStatsWidget() {
           rejectedOrResubmitted: data.rejectedOrResubmitted ?? 0,
         });
       })
-      .catch(() => setStats(null))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (mounted) setStats(null);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, [canViewDashboard]);
 
   const formatValue = (value: number | undefined) =>

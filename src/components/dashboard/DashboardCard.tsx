@@ -9,6 +9,7 @@ interface DashboardCardProps {
   children: React.ReactNode;
   className?: string;
   title?: string;
+  live?: boolean;
 }
 
 export function DashboardCard({
@@ -16,19 +17,28 @@ export function DashboardCard({
   children,
   className,
   title,
+  live,
 }: DashboardCardProps) {
   return (
     <div
       id={id}
       className={clsx(
-        "card-accent-top rounded-2xl bg-white border border-gray-100 p-6 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5",
+        "rounded-3xl border border-gray-100/80 bg-white p-6 shadow-sm ring-1 ring-black/[0.03]",
         className,
       )}
     >
       {title && (
-        <h3 className="mb-5 text-xs font-bold text-secondary uppercase tracking-widest">
-          {title}
-        </h3>
+        <div className="mb-5 flex items-center gap-2.5">
+          {live && (
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-50" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+            </span>
+          )}
+          <h3 className="text-sm font-bold tracking-tight text-secondary">
+            {title}
+          </h3>
+        </div>
       )}
       {children}
     </div>
@@ -37,37 +47,37 @@ export function DashboardCard({
 
 const accentStyles: Record<
   StatCardAccent,
-  { border: string; icon: string; value: string; bg: string }
+  { ring: string; icon: string; value: string; bg: string }
 > = {
   primary: {
-    border: "border-l-primary",
+    ring: "ring-primary/15",
     icon: "bg-primary/10 text-primary",
     value: "text-primary",
-    bg: "bg-gradient-to-br from-primary-50/80 via-white to-white",
+    bg: "from-primary/[0.06] via-white to-white",
   },
   secondary: {
-    border: "border-l-secondary",
+    ring: "ring-secondary/15",
     icon: "bg-secondary/10 text-secondary",
     value: "text-secondary",
-    bg: "bg-gradient-to-br from-secondary-50/80 via-white to-white",
+    bg: "from-secondary/[0.06] via-white to-white",
   },
   success: {
-    border: "border-l-emerald-500",
+    ring: "ring-emerald-500/15",
     icon: "bg-emerald-50 text-emerald-600",
     value: "text-emerald-600",
-    bg: "bg-gradient-to-br from-emerald-50/60 via-white to-white",
+    bg: "from-emerald-50/50 via-white to-white",
   },
   warning: {
-    border: "border-l-amber-500",
+    ring: "ring-amber-500/15",
     icon: "bg-amber-50 text-amber-600",
     value: "text-amber-600",
-    bg: "bg-gradient-to-br from-amber-50/60 via-white to-white",
+    bg: "from-amber-50/50 via-white to-white",
   },
   danger: {
-    border: "border-l-rose-500",
+    ring: "ring-rose-500/15",
     icon: "bg-rose-50 text-rose-600",
     value: "text-rose-600",
-    bg: "bg-gradient-to-br from-rose-50/60 via-white to-white",
+    bg: "from-rose-50/50 via-white to-white",
   },
 };
 
@@ -93,20 +103,20 @@ export function StatCard({
   const styles = accentStyles[accent];
 
   return (
-    <DashboardCard
+    <div
       className={clsx(
-        "flex flex-col h-full justify-between border-l-[3px]",
-        styles.border,
+        "flex h-full flex-col justify-between rounded-3xl border border-gray-100/80 bg-gradient-to-br p-5 shadow-sm ring-1",
+        styles.ring,
         styles.bg,
-        featured ? "min-h-[160px] lg:min-h-[172px]" : "min-h-[132px]",
+        featured ? "min-h-[148px] p-6 lg:min-h-[160px]" : "min-h-[120px]",
         className,
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <span
           className={clsx(
-            "font-bold text-secondary/70 tracking-wide uppercase leading-snug",
-            featured ? "text-xs" : "text-[10px] sm:text-xs",
+            "font-semibold uppercase leading-snug tracking-wide text-gray-500",
+            featured ? "text-[11px]" : "text-[10px] sm:text-[11px]",
           )}
         >
           {label}
@@ -114,9 +124,9 @@ export function StatCard({
         {Icon && (
           <span
             className={clsx(
-              "shrink-0 flex items-center justify-center rounded-xl",
+              "flex shrink-0 items-center justify-center rounded-xl",
               styles.icon,
-              featured ? "h-11 w-11" : "h-9 w-9",
+              featured ? "h-10 w-10" : "h-9 w-9",
             )}
           >
             <Icon className={featured ? "h-5 w-5" : "h-4 w-4"} strokeWidth={2.25} />
@@ -124,23 +134,23 @@ export function StatCard({
         )}
       </div>
 
-      <div className="flex items-end gap-3 mt-4">
+      <div className="mt-4 flex items-end gap-3">
         <span
           className={clsx(
-            "font-extrabold tracking-tighter",
+            "font-extrabold tracking-tight",
             styles.value,
-            featured ? "text-4xl sm:text-5xl lg:text-6xl" : "text-3xl sm:text-4xl",
+            featured ? "text-4xl sm:text-5xl" : "text-3xl sm:text-4xl",
           )}
         >
           {value}
         </span>
         {subValue ? (
-          <span className="mb-1 text-xs font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full border border-green-100 flex items-center gap-1">
+          <span className="mb-1 flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600">
             {subValue}
           </span>
         ) : null}
       </div>
-    </DashboardCard>
+    </div>
   );
 }
 
@@ -158,12 +168,7 @@ export function ContentCard({
   className,
 }: ContentCardProps) {
   return (
-    <DashboardCard id={id} className={clsx("h-full min-h-[140px]", className)}>
-      {title && (
-        <h3 className="mb-3 text-xs font-bold text-secondary uppercase tracking-widest">
-          {title}
-        </h3>
-      )}
+    <DashboardCard id={id} title={title} className={clsx("h-full", className)}>
       {children}
     </DashboardCard>
   );
@@ -177,13 +182,12 @@ interface tableCardProps {
 }
 export function TableCard({ id, title, children, className }: tableCardProps) {
   return (
-    <DashboardCard id={id} className={clsx("relative h-full", className)}>
-      {title && (
-        <h3 className="mb-4 text-xs font-bold text-secondary flex items-center gap-2 uppercase tracking-widest">
-          <span className="h-2 w-2 rounded-full bg-primary animate-pulse-glow inline-block" />
-          {title}
-        </h3>
-      )}
+    <DashboardCard
+      id={id}
+      title={title}
+      live
+      className={clsx("relative h-full", className)}
+    >
       {children}
     </DashboardCard>
   );
@@ -196,12 +200,7 @@ interface ChartCardProps {
 }
 export function ChartCard({ id, title, children, className }: ChartCardProps) {
   return (
-    <DashboardCard id={id} className={clsx("h-full min-h-[300px]", className)}>
-      {title && (
-        <h3 className="mb-4 text-xs font-bold text-secondary uppercase tracking-widest">
-          {title}
-        </h3>
-      )}
+    <DashboardCard id={id} title={title} className={clsx("h-full", className)}>
       {children}
     </DashboardCard>
   );

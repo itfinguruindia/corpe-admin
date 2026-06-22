@@ -7,6 +7,7 @@ import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import CustomModal from "@/components/ui/Modal";
 import CustomSelect from "@/components/ui/CustomSelect";
 import ExportDropdown from "@/components/ui/ExportDropdown";
+import RefreshButton from "@/components/ui/RefreshButton";
 import { Input, Label, TextField } from "@heroui/react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
@@ -265,6 +266,12 @@ export default function FeedbacksPage() {
               />
             </div>
 
+            <RefreshButton
+              onClick={fetchFeedbacks}
+              isLoading={isLoading}
+              ariaLabel="Refresh feedbacks"
+            />
+
             <ExportDropdown
               title="Export Feedbacks"
               isExporting={isExporting}
@@ -277,7 +284,7 @@ export default function FeedbacksPage() {
         </div>
       </div>
     );
-  }, [search, rating, total]);
+  }, [search, rating, total, isLoading, fetchFeedbacks]);
 
   return (
     <div>
