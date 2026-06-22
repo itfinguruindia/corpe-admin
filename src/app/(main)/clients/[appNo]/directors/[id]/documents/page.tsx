@@ -68,6 +68,12 @@ export default function DirectorDocumentsPage() {
   const [director, setDirector] = useState<Director | null>(null);
   const [documents, setDocuments] = useState<DirectorDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<DirectorDocument | null>(null);
@@ -286,13 +292,18 @@ export default function DirectorDocumentsPage() {
       try {
         setIsLoading(true);
 
-        const [directorData, documentsData] = await Promise.all([
+        const [directorData, documentsData, trackerResponse] = await Promise.all([
           clientsApi.getDirectorById(appNo as string, id as string),
           clientsApi.getDirectorDocuments(appNo as string, id as string),
+          clientsApi.getTrackingStatus(appNo as string).catch(() => null),
         ]);
 
         setDirector(directorData);
         setDocuments(transformDocumentsToArray(documentsData));
+
+        if (trackerResponse && trackerResponse.installmentInfo) {
+          setInstallmentInfo(trackerResponse.installmentInfo);
+        }
 
         // Load dual-source document statuses
         await loadAllDualSourceDocs(
@@ -462,6 +473,8 @@ export default function DirectorDocumentsPage() {
     const { adminFile, clientFile } = files;
     const isRefreshingDoc =
       isRefreshing[docTypeKey as keyof typeof isRefreshing];
+    const isStage3Gated = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
+    const isLocked = isStage3Gated && ["dir2", "inc9Director", "noPanDeclaration", "miscellaneous1", "miscellaneous2", "miscellaneous3"].includes(docTypeKey);
 
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
@@ -489,11 +502,11 @@ export default function DirectorDocumentsPage() {
                 className={`cursor-pointer text-secondary hover:text-primary ${isRefreshingDoc ? "animate-spin" : ""}`}
               />
             </div>
-            <div title={`Upload ${documentType} (Admin)`}>
+            <div title={isLocked ? "Locked — installment due" : `Upload ${documentType} (Admin)`}>
               <Upload
                 size={20}
-                onClick={() => handleUpload(documentType)}
-                className="cursor-pointer text-primary hover:text-secondary"
+                onClick={isLocked ? undefined : () => handleUpload(documentType)}
+                className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-primary hover:text-secondary"}
               />
             </div>
           </div>
@@ -531,13 +544,13 @@ export default function DirectorDocumentsPage() {
                       className="cursor-pointer text-orange-600 hover:text-orange-700"
                     />
                   </div>
-                  <div title="Delete">
+                  <div title={isLocked ? "Locked — installment due" : "Delete"}>
                     <Trash2
                       size={16}
-                      onClick={() =>
+                      onClick={isLocked ? undefined : () =>
                         handleDocDelete(documentType, docTypeKey, "admin")
                       }
-                      className="cursor-pointer text-red-600 hover:text-red-700"
+                      className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-red-600 hover:text-red-700"}
                     />
                   </div>
                 </div>
@@ -586,13 +599,13 @@ export default function DirectorDocumentsPage() {
                       className="cursor-pointer text-blue-600 hover:text-blue-700"
                     />
                   </div>
-                  <div title="Delete">
+                  <div title={isLocked ? "Locked — installment due" : "Delete"}>
                     <Trash2
                       size={16}
-                      onClick={() =>
+                      onClick={isLocked ? undefined : () =>
                         handleDocDelete(documentType, docTypeKey, "client")
                       }
-                      className="cursor-pointer text-red-600 hover:text-red-700"
+                      className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-red-600 hover:text-red-700"}
                     />
                   </div>
                 </div>
@@ -659,6 +672,12 @@ export default function DirectorDocumentsPage() {
             </span>
           )}
         </div>
+
+        {!!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue) && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold">
+            <span>⚠️ Stage locked. Outstanding installment payments are due for this client. Document upload actions are disabled.</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-6">
           {/* Left: Regular Documents */}

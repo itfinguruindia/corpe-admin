@@ -5,6 +5,7 @@ export type StepStatus = "Paid" | "Pending" | "Overdue" | "Processing";
 
 export interface PaymentStep {
   step: number;
+  stepNumber: number;
   installmentName: string;
   amount: number;
   triggerGate: string;

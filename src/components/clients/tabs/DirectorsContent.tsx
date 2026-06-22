@@ -20,7 +20,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
     const loadDirectors = async () => {
       try {
         setIsLoading(true);
-        const response = await clientsApi.getDirectorAndShareHolders(appNo);
+        const response = await clientsApi.getDirectorAndShareHolders(appNo, false);
         if (
           response &&
           response.data &&

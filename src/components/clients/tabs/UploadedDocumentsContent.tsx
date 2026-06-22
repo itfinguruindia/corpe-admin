@@ -44,6 +44,12 @@ export default function UploadedDocumentsContent({
   }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
 
   // Preview Modal States
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -55,9 +61,10 @@ export default function UploadedDocumentsContent({
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [response, overviewResponse] = await Promise.all([
-          clientsApi.getDirectorAndShareHolders(appNo),
+        const [response, overviewResponse, trackerResponse] = await Promise.all([
+          clientsApi.getDirectorAndShareHolders(appNo, false),
           clientsApi.getCompanyOverview(appNo),
+          clientsApi.getTrackingStatus(appNo).catch(() => null),
         ]);
 
         if (response && response.data) {
@@ -91,6 +98,10 @@ export default function UploadedDocumentsContent({
             proofOfOfficeAddressAdminDraft:
               registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
           });
+        }
+
+        if (trackerResponse && trackerResponse.installmentInfo) {
+          setInstallmentInfo(trackerResponse.installmentInfo);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -331,6 +342,8 @@ export default function UploadedDocumentsContent({
     onRefresh?: () => void,
     refreshing?: boolean,
   ) => {
+    const isLocked = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
+
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[180px]">
         <div>
@@ -368,21 +381,31 @@ export default function UploadedDocumentsContent({
                 </span>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() =>
+                    onClick={isLocked ? undefined : () =>
                       handleDocUpload(docTypeAdmin, "Admin Template")
                     }
-                    title="Upload template"
-                    className="p-1.5 text-gray-500 hover:text-primary hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
+                    disabled={isLocked}
+                    title={isLocked ? "Locked — installment due" : "Upload template"}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      isLocked
+                        ? "text-gray-300 cursor-not-allowed"
+                        : "text-gray-500 hover:text-primary hover:bg-orange-50 cursor-pointer"
+                    }`}
                   >
                     <Upload className="w-4 h-4" />
                   </button>
                   {adminFile && (
                     <button
-                      onClick={() =>
+                      onClick={isLocked ? undefined : () =>
                         handleDocDelete(docTypeAdmin, "Admin Template")
                       }
-                      title="Delete template"
-                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      disabled={isLocked}
+                      title={isLocked ? "Locked — installment due" : "Delete template"}
+                      className={`p-1.5 rounded-lg transition-colors ${
+                        isLocked
+                          ? "text-gray-300 cursor-not-allowed"
+                          : "text-red-500 hover:bg-red-50 cursor-pointer"
+                      }`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -443,11 +466,16 @@ export default function UploadedDocumentsContent({
                 <div className="flex items-center gap-2">
                   {clientFile && (
                     <button
-                      onClick={() =>
+                      onClick={isLocked ? undefined : () =>
                         handleDocDelete(docTypeClient, "Client Signed Copy")
                       }
-                      title="Delete client copy"
-                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      disabled={isLocked}
+                      title={isLocked ? "Locked — installment due" : "Delete client copy"}
+                      className={`p-1.5 rounded-lg transition-colors ${
+                        isLocked
+                          ? "text-gray-300 cursor-not-allowed"
+                          : "text-red-500 hover:bg-red-50 cursor-pointer"
+                      }`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -520,6 +548,12 @@ export default function UploadedDocumentsContent({
             registered office proofs.
           </p>
         </div>
+
+        {!!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid) && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold max-w-5xl">
+            <span>⚠️ Stage locked. Outstanding installment payments are due for this client. Document actions are disabled.</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
           {/* Directors Section */}

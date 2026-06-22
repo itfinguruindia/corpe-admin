@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "@heroui/react";
 import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
@@ -19,13 +20,21 @@ export default function ShareholderDetailPage() {
   const [kycVerified, setKycVerified] = useState(false);
   const [dscApplication, setDscApplication] = useState(false);
   const [isStage2Enabled, setIsStage2Enabled] = useState(false);
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
+
+  const isLocked = !!installmentInfo?.firstInstallmentDue;
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
         const response = await clientsApi.getDirectorAndShareHolders(
-          appNo as string,
+          appNo as string, false,
         );
         if (
           response &&
@@ -110,6 +119,9 @@ export default function ShareholderDetailPage() {
               : null;
             const isStage2 = activeStage?.stageId === "stage_2_documents_kyc";
             setIsStage2Enabled(isStage2);
+            if (trackerRes.installmentInfo) {
+              setInstallmentInfo(trackerRes.installmentInfo);
+            }
           } else {
             setIsStage2Enabled(false);
           }
@@ -146,7 +158,7 @@ export default function ShareholderDetailPage() {
   };
 
   const handleDscToggle = async () => {
-    if (!isStage2Enabled) return;
+    if (!isStage2Enabled || isLocked) return;
     if (!requireClientTabEdit(admin, "shareholder")) return;
     const newValue = !dscApplication;
     try {
@@ -329,11 +341,19 @@ export default function ShareholderDetailPage() {
                 DSC Application
               </span>
 
-              <Switch 
-                checked={dscApplication} 
-                onChange={handleDscToggle} 
-                disabled={!isStage2Enabled || shareholder.isAlsoDirector}
-              />
+              <div
+                onClick={() => {
+                  if (isLocked) {
+                    toast.danger("Action locked. Installment payment is due.");
+                  }
+                }}
+              >
+                <Switch 
+                  checked={dscApplication} 
+                  onChange={handleDscToggle} 
+                  disabled={!isStage2Enabled || shareholder.isAlsoDirector || isLocked}
+                />
+              </div>
             </div>
           </div>
         </div>

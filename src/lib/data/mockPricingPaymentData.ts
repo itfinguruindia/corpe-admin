@@ -23,6 +23,7 @@ const mockPricingPaymentData: Record<string, PricingPayment> = {
     paymentSteps: [
       {
         step: 1,
+        stepNumber: 1,
         installmentName: "Signin fee",
         amount: 999,
         triggerGate: "Account Created",
@@ -35,6 +36,7 @@ const mockPricingPaymentData: Record<string, PricingPayment> = {
       },
       {
         step: 2,
+        stepNumber: 4,
         installmentName: "Processing Fees",
         amount: 4600.07,
         triggerGate: "Docs verified",
@@ -47,6 +49,7 @@ const mockPricingPaymentData: Record<string, PricingPayment> = {
       },
       {
         step: 3,
+        stepNumber: 6,
         installmentName: "Filing Fee",
         amount: 4600.07,
         triggerGate: "Pre ROC filing",
@@ -82,6 +85,7 @@ const mockPricingPaymentData: Record<string, PricingPayment> = {
     paymentSteps: [
       {
         step: 1,
+        stepNumber: 1,
         installmentName: "Signin fee",
         amount: 999,
         triggerGate: "Account Created",
@@ -94,6 +98,7 @@ const mockPricingPaymentData: Record<string, PricingPayment> = {
       },
       {
         step: 2,
+        stepNumber: 4,
         installmentName: "Full Payment/One go",
         amount: 119001,
         triggerGate: "Docs verified",
@@ -129,6 +134,7 @@ const mockPricingPaymentData: Record<string, PricingPayment> = {
     paymentSteps: [
       {
         step: 1,
+        stepNumber: 1,
         installmentName: "Signin fee",
         amount: 999,
         triggerGate: "Account Created",
@@ -141,6 +147,7 @@ const mockPricingPaymentData: Record<string, PricingPayment> = {
       },
       {
         step: 2,
+        stepNumber: 4,
         installmentName: "Processing Fees",
         amount: 49001,
         triggerGate: "Docs verified",
@@ -153,6 +160,7 @@ const mockPricingPaymentData: Record<string, PricingPayment> = {
       },
       {
         step: 3,
+        stepNumber: 6,
         installmentName: "Filing Fee",
         amount: 59169.49,
         triggerGate: "Pre ROC filing",
@@ -188,6 +196,7 @@ const mockPricingPaymentData: Record<string, PricingPayment> = {
     paymentSteps: [
       {
         step: 1,
+        stepNumber: 1,
         installmentName: "Signin fee",
         amount: 999,
         triggerGate: "Account Created",
@@ -200,6 +209,7 @@ const mockPricingPaymentData: Record<string, PricingPayment> = {
       },
       {
         step: 2,
+        stepNumber: 4,
         installmentName: "Full Payment/One go",
         amount: 179001,
         triggerGate: "Docs verified",

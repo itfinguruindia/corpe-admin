@@ -1,7 +1,12 @@
 "use client";
 
 import React, { Suspense } from "react";
-import { useParams, useRouter, useSearchParams, usePathname } from "next/navigation";
+import {
+  useParams,
+  useRouter,
+  useSearchParams,
+  usePathname,
+} from "next/navigation";
 import { Tabs, Spinner } from "@heroui/react";
 
 import CompanyOverviewContent from "@/components/clients/tabs/CompanyOverviewContent";
@@ -17,16 +22,44 @@ import CommentsContent from "@/components/clients/tabs/CommentsContent";
 import { safeRouterReplace } from "@/utils/navigation";
 
 const TABS = [
-  { key: "company-overview", label: "Company Overview" },
-  { key: "application", label: "Name Application" },
-  { key: "comments", label: "Comments" },
-  { key: "tracking-status", label: "Tracking Status" },
-  { key: "directors", label: "Directors" },
-  { key: "shareholders", label: "Shareholders" },
-  { key: "uploaded-documents", label: "Uploaded Documents" },
-  { key: "moa-aoa", label: "MOA & AOA" },
-  { key: "registration-documents", label: "Registration Documents" },
-  { key: "pricing-and-payment", label: "Pricing & Payment" },
+  {
+    key: "company-overview",
+    label: "Company Overview",
+    component: CompanyOverviewContent,
+  },
+  {
+    key: "tracking-status",
+    label: "Tracking Status",
+    component: TrackingStatusContent,
+  },
+  {
+    key: "application",
+    label: "Name Application",
+    component: NameApplicationContent,
+  },
+  { key: "directors", label: "Directors", component: DirectorsContent },
+  {
+    key: "shareholders",
+    label: "Shareholders",
+    component: ShareholdersContent,
+  },
+  {
+    key: "uploaded-documents",
+    label: "Uploaded Documents",
+    component: UploadedDocumentsContent,
+  },
+  { key: "moa-aoa", label: "MOA & AOA", component: MoaAoaContent },
+  {
+    key: "registration-documents",
+    label: "Registration Documents",
+    component: RegistrationDocumentsContent,
+  },
+  { key: "comments", label: "Comments", component: CommentsContent },
+  {
+    key: "pricing-and-payment",
+    label: "Pricing & Payment",
+    component: PricingAndPaymentContent,
+  },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -79,57 +112,23 @@ function ClientDetailsTabs() {
         aria-label="Client sections"
         selectedKey={activeTab}
         onSelectionChange={handleTabChange}
-        variant="secondary"
         orientation="horizontal"
-        className="w-full pb-4 sm:pb-6"
       >
-        <Tabs.ListContainer className="pb-2">
-          <Tabs.List className="gap-2">
-            {TABS.map((t) => (
-              <Tabs.Tab
-                key={t.key}
-                id={t.key}
-                className="h-auto rounded-full border bg-white px-5 py-2.5 text-sm font-medium whitespace-nowrap text-secondary border-gray-200 transition-colors hover:border-primary hover:text-primary data-[selected=true]:border-primary data-[selected=true]:text-primary data-[selected=true]:font-semibold"
-              >
-                <span>{t.label}</span>
-                <Tabs.Indicator className="hidden" />
+        <Tabs.ListContainer>
+          <Tabs.List className="overflow-x-auto bg-white shadow *:text-sm *:data-[selected=true]:text-white">
+            {TABS.map((t, idx) => (
+              <Tabs.Tab key={t.key} id={t.key} className="w-max">
+                {idx > 0 && <Tabs.Separator />}
+                <span className="w-max">{t.label}</span>
+                <Tabs.Indicator className="bg-primary" />
               </Tabs.Tab>
             ))}
           </Tabs.List>
         </Tabs.ListContainer>
 
-        {TABS.map((t) => (
-          <Tabs.Panel key={t.key} id={t.key} className="pb-6">
-            {activeTab === t.key && t.key === "company-overview" && (
-              <CompanyOverviewContent appNo={appNoStr} />
-            )}
-            {activeTab === t.key && t.key === "directors" && (
-              <DirectorsContent appNo={appNoStr} />
-            )}
-            {activeTab === t.key && t.key === "moa-aoa" && (
-              <MoaAoaContent appNo={appNoStr} />
-            )}
-            {activeTab === t.key && t.key === "tracking-status" && (
-              <TrackingStatusContent appNo={appNoStr} />
-            )}
-            {activeTab === t.key && t.key === "application" && (
-              <NameApplicationContent appNo={appNoStr} />
-            )}
-            {activeTab === t.key && t.key === "comments" && (
-              <CommentsContent appNo={appNoStr} />
-            )}
-            {activeTab === t.key && t.key === "shareholders" && (
-              <ShareholdersContent appNo={appNoStr} />
-            )}
-            {activeTab === t.key && t.key === "uploaded-documents" && (
-              <UploadedDocumentsContent appNo={appNoStr} />
-            )}
-            {activeTab === t.key && t.key === "registration-documents" && (
-              <RegistrationDocumentsContent appNo={appNoStr} />
-            )}
-            {activeTab === t.key && t.key === "pricing-and-payment" && (
-              <PricingAndPaymentContent appNo={appNoStr} />
-            )}
+        {TABS.map((tab) => (
+          <Tabs.Panel key={tab.key} id={tab.key}>
+            {tab.component && <tab.component appNo={appNoStr} />}
           </Tabs.Panel>
         ))}
       </Tabs>
