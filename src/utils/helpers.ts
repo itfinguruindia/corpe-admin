@@ -35,7 +35,7 @@ export function formatCurrency(amount: number, currency: string = "INR"): string
   if (currency === "USD") {
     return `$ ${new Intl.NumberFormat("en-US").format(amount)}`;
   }
-  return `₹ ${new Intl.NumberFormat("en-IN").format(amount)}`;
+  return `\u20B9 ${new Intl.NumberFormat("en-IN").format(amount)}`;
 }
 
 export const getFileType = (url: string) => {

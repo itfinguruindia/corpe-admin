@@ -20,14 +20,16 @@ import useSwal from "@/utils/useSwal";
 import {
   complianceApi,
   COMPLIANCE_CATEGORY_OPTIONS,
+  COMPLIANCE_COMPANY_TYPE_OPTIONS,
   categoryToSelectId,
+  companyTypeLabel,
   normalizeComplianceCategory,
   type ComplianceCategory,
+  type ComplianceCompanyType,
   type ComplianceEntry,
   type ComplianceInput,
   type CompliancePenalty,
 } from "@/lib/api/compliance";
-
 const MONTH_NAMES = [
   "January",
   "February",
@@ -121,6 +123,7 @@ export default function ComplianceCalendarPage() {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterDay, setFilterDay] = useState("");
   const [category, setCategory] = useState("");
+  const [companyTypeFilter, setCompanyTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<ComplianceEntry | null>(null);
@@ -134,6 +137,7 @@ export default function ComplianceCalendarPage() {
     filterMonth,
     filterDay,
     category,
+    companyTypeFilter,
     statusFilter,
   });
   filtersRef.current = {
@@ -141,6 +145,7 @@ export default function ComplianceCalendarPage() {
     filterMonth,
     filterDay,
     category,
+    companyTypeFilter,
     statusFilter,
   };
 
@@ -158,6 +163,7 @@ export default function ComplianceCalendarPage() {
         filterMonth: month,
         filterDay: day,
         category: cat,
+        companyTypeFilter: companyType,
         statusFilter: status,
       } = filtersRef.current;
 
@@ -169,6 +175,8 @@ export default function ComplianceCalendarPage() {
           month: month ? Number(month) : undefined,
           day: day ? Number(day) : undefined,
           category: cat ? normalizeComplianceCategory(cat) : undefined,
+          companyType: (companyType as ComplianceCompanyType) || undefined,
+          companyTypeScope: companyType ? "exact" : undefined,
           status: (status as "done" | "pending") || undefined,
         },
         { signal: controller.signal },
@@ -200,7 +208,7 @@ export default function ComplianceCalendarPage() {
       clearTimeout(timer);
       abortRef.current?.abort();
     };
-  }, [search, filterMonth, filterDay, category, statusFilter, fetchEntries]);
+  }, [search, filterMonth, filterDay, category, companyTypeFilter, statusFilter, fetchEntries]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -294,6 +302,7 @@ export default function ComplianceCalendarPage() {
         day: entry.day,
         month: entry.month,
         category: entry.category,
+        companyType: entry.companyType,
         formName: entry.formName,
         description: entry.description,
         period: entry.period,
@@ -330,6 +339,15 @@ export default function ComplianceCalendarPage() {
             className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${getCategoryColor(row.category)}`}
           >
             {row.category}
+          </span>
+        ),
+      },
+      {
+        id: "companyType",
+        label: "Company Type",
+        render: (row) => (
+          <span className="block text-sm text-gray-800 whitespace-nowrap">
+            {companyTypeLabel(row.companyType)}
           </span>
         ),
       },
@@ -499,6 +517,18 @@ export default function ComplianceCalendarPage() {
                 setFilterMonth(month);
                 setFilterDay(day);
               }}
+            />
+          </div>
+
+          <div className="h-[38px] w-full lg:w-auto min-w-[160px]">
+            <CustomSelect
+              ariaLabel="Filter by company type"
+              value={companyTypeFilter}
+              options={[
+                { id: "", label: "All Companies" },
+                ...COMPLIANCE_COMPANY_TYPE_OPTIONS.filter((c) => c.id !== "all"),
+              ]}
+              onChange={setCompanyTypeFilter}
             />
           </div>
 

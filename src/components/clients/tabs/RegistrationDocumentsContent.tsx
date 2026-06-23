@@ -63,17 +63,34 @@ export default function RegistrationDocumentsContent({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState("");
   const [previewFileName, setPreviewFileName] = useState("");
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
+
+  const isLocked = !!(
+    installmentInfo?.firstInstallmentDue ||
+    !installmentInfo?.secondInstallmentPaid
+  );
 
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const result = await clientsApi.getRegistrationData(appNo);
+      const [result, trackerResponse] = await Promise.all([
+        clientsApi.getRegistrationData(appNo),
+        clientsApi.getTrackingStatus(appNo).catch(() => null),
+      ]);
       setData(result);
       if (result?.cin) {
         setCinInput(result.cin);
         setIsCinEditable(false);
       }
       if (result?.companyStatus) setCompanyStatus(result.companyStatus);
+      if (trackerResponse && trackerResponse.installmentInfo) {
+        setInstallmentInfo(trackerResponse.installmentInfo);
+      }
     } catch (error) {
       console.error("Failed to load registration data:", error);
     } finally {
@@ -86,7 +103,11 @@ export default function RegistrationDocumentsContent({
   }, [appNo]);
 
   const handleCinSubmit = async () => {
-    if (!requireEdit()) return;
+    if (!requireClientTabEdit(admin, "regDoc")) return;
+    if (isLocked) {
+      toast.danger("Action locked. Installment payment is due.");
+      return;
+    }
     if (!CIN_REGEX.test(cinInput)) {
       setCinError("Please enter a valid CIN (e.g. L12345AB1234DEF123456)");
       return;
@@ -107,7 +128,11 @@ export default function RegistrationDocumentsContent({
   };
 
   const handleStatusChange = async (status: string) => {
-    if (!requireEdit()) return;
+    if (!requireClientTabEdit(admin, "regDoc")) return;
+    if (isLocked) {
+      toast.danger("Action locked. Installment payment is due.");
+      return;
+    }
     try {
       setCompanyStatus(status);
       await clientsApi.updateCinAndStatus(appNo, cinInput, status);
@@ -123,7 +148,11 @@ export default function RegistrationDocumentsContent({
   };
 
   const handleUploadClick = (docType: string) => {
-    if (!requireEdit()) return;
+    if (!requireClientTabEdit(admin, "regDoc")) return;
+    if (docType === "COI" && isLocked) {
+      toast.danger("Action locked. Installment payment is due.");
+      return;
+    }
     if (!data?.cin) {
       toast.warning(
         "Please submit a valid CIN first to unlock document uploads.",
@@ -140,6 +169,10 @@ export default function RegistrationDocumentsContent({
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !activeUploadDocType) return;
+    if (activeUploadDocType === "COI" && isLocked) {
+      toast.danger("Action locked. Installment payment is due.");
+      return;
+    }
 
     const file = files[0];
     try {
@@ -166,7 +199,10 @@ export default function RegistrationDocumentsContent({
 
   const handleDownload = async (docType: string, fileName: string) => {
     try {
-      const blob = await clientsApi.downloadRegistrationDocument(appNo, docType);
+      const blob = await clientsApi.downloadRegistrationDocument(
+        appNo,
+        docType,
+      );
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -183,7 +219,10 @@ export default function RegistrationDocumentsContent({
 
   const handlePreview = async (docType: string, fileName: string) => {
     try {
-      const blob = await clientsApi.downloadRegistrationDocument(appNo, docType);
+      const blob = await clientsApi.downloadRegistrationDocument(
+        appNo,
+        docType,
+      );
       const url = URL.createObjectURL(blob);
       setPreviewUrl(url);
       setPreviewFileName(fileName);
@@ -242,15 +281,28 @@ export default function RegistrationDocumentsContent({
           </div>
         </div>
 
+        {isLocked && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold max-w-5xl">
+            <span>
+              ⚠️ Stage locked. Outstanding installment payments are due for this
+              client. Registration actions are disabled.
+            </span>
+          </div>
+        )}
+
         {/* Company Status */}
         <div className="mb-8 max-w-sm">
           <label className="mb-2 block text-sm font-semibold text-secondary">
             Company Status
           </label>
           <div
-            className={!data?.cin ? "cursor-not-allowed" : undefined}
+            className={
+              !data?.cin || isLocked ? "cursor-not-allowed" : undefined
+            }
             onClick={() => {
-              if (!data?.cin) {
+              if (isLocked) {
+                toast.danger("Action locked. Installment payment is due.");
+              } else if (!data?.cin) {
                 toast.warning(
                   "Please submit a valid CIN first to unlock company status updates.",
                 );
@@ -262,7 +314,7 @@ export default function RegistrationDocumentsContent({
               value={companyStatus}
               onChange={handleStatusChange}
               options={COMPANY_STATUS_OPTIONS}
-              isDisabled={!data?.cin}
+              isDisabled={!data?.cin || isLocked}
               className="w-full min-w-[220px]"
               renderValue={(val) => (
                 <span className="text-sm font-medium text-gray-900">
@@ -286,28 +338,47 @@ export default function RegistrationDocumentsContent({
             <div className="flex items-center gap-4 flex-1 max-w-xl">
               <input
                 type="text"
-                disabled={!isCinEditable}
+                disabled={!isCinEditable || isLocked}
                 value={cinInput}
                 onChange={(e) => {
                   setCinInput(e.target.value.trim());
                   setCinError("");
                 }}
                 className="disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#F46A45] focus:outline-none focus:ring-2 focus:ring-[#F46A45]/20 scheme-light"
-                placeholder="Enter 21 digit CIN"
+                placeholder={
+                  isLocked ? "Locked — installment due" : "Enter 21 digit CIN"
+                }
               />
               <button
-                onClick={handleCinSubmit}
-                className="bg-[#F46A45] text-white px-6 py-2 rounded-lg font-medium hover:bg-[#d55a39] transition-colors shadow-sm"
+                onClick={isLocked ? undefined : handleCinSubmit}
+                disabled={isLocked}
+                className={`px-6 py-2 rounded-lg font-medium transition-colors shadow-sm ${
+                  isLocked
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-[#F46A45] text-white hover:bg-[#d55a39]"
+                }`}
+                title={isLocked ? "Locked — installment due" : "Submit"}
               >
                 Submit
               </button>
               {/* Edit Icon for CIN */}
-              <button onClick={() => setIsCinEditable(!isCinEditable)} className="p-2 text-primary hover:bg-orange-50 rounded-lg transition-colors border border-[#F46A45] aspect-square flex items-center justify-center w-10 h-10">
+              <button
+                onClick={
+                  isLocked ? undefined : () => setIsCinEditable(!isCinEditable)
+                }
+                disabled={isLocked}
+                className={`p-2 rounded-lg transition-colors border aspect-square flex items-center justify-center w-10 h-10 ${
+                  isLocked
+                    ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                    : "text-primary border-[#F46A45] hover:bg-orange-50 cursor-pointer"
+                }`}
+                title={isLocked ? "Locked — installment due" : "Edit CIN"}
+              >
                 <Edit size={18} />
               </button>
             </div>
           </div>
-           {cinError && (
+          {cinError && (
             <p className="ml-20 mt-1 text-xs font-medium text-red-600">
               {cinError}
             </p>
@@ -320,83 +391,102 @@ export default function RegistrationDocumentsContent({
             const isEmailDeliveryDoc = doc.name === "PAN" || doc.name === "TAN";
 
             return (
-            <div
-              key={doc.id}
-              className="flex items-center justify-between py-6 border-b border-gray-200 last:border-0 hover:bg-gray-50/50 transition-colors"
-            >
-              <div className="flex flex-col flex-1 min-w-0 pr-6">
-                <span className="text-lg font-bold text-black">{doc.name}</span>
-                {isEmailDeliveryDoc ? (
-                  <PanTanEmailDisclaimer
-                    officeEmail={data.officeEmail}
-                    variant="admin"
-                  />
-                ) : (
-                  (doc as { fileName?: string }).fileName && (
-                    <span className="text-sm text-gray-500 font-normal mt-1">
-                      {(doc as { fileName?: string }).fileName}
-                    </span>
-                  )
+              <div
+                key={doc.id}
+                className="flex items-center justify-between py-6 border-b border-gray-200 last:border-0 hover:bg-gray-50/50 transition-colors"
+              >
+                <div className="flex flex-col flex-1 min-w-0 pr-6">
+                  <span className="text-lg font-bold text-black">
+                    {doc.name}
+                  </span>
+                  {isEmailDeliveryDoc ? (
+                    <PanTanEmailDisclaimer
+                      officeEmail={data.officeEmail}
+                      variant="admin"
+                    />
+                  ) : (
+                    (doc as { fileName?: string }).fileName && (
+                      <span className="text-sm text-gray-500 font-normal mt-1">
+                        {(doc as { fileName?: string }).fileName}
+                      </span>
+                    )
+                  )}
+                </div>
+
+                {!isEmailDeliveryDoc && (
+                  <div className="flex items-center gap-6 shrink-0">
+                    {/* View */}
+                    <button
+                      onClick={() =>
+                        handlePreview(
+                          doc.name,
+                          (doc as { fileName?: string }).fileName ?? "",
+                        )
+                      }
+                      className="text-primary hover:text-[#d55a39] transition-colors p-1"
+                      title="View"
+                      disabled={doc.status === "pending"}
+                      style={{ opacity: doc.status === "pending" ? 0.3 : 1 }}
+                    >
+                      <Eye size={24} />
+                    </button>
+                    {/* Download */}
+                    <button
+                      onClick={() =>
+                        handleDownload(
+                          doc.name,
+                          (doc as { fileName?: string }).fileName ?? "",
+                        )
+                      }
+                      className="text-primary hover:text-[#d55a39] transition-colors p-1"
+                      title="Download"
+                      disabled={doc.status === "pending"}
+                      style={{ opacity: doc.status === "pending" ? 0.3 : 1 }}
+                    >
+                      <Download size={24} />
+                    </button>
+                    {/* Edit / Upload */}
+                    <button
+                      onClick={
+                        doc.name === "COI" && isLocked
+                          ? undefined
+                          : () => handleUploadClick(doc.name)
+                      }
+                      className={`transition-colors p-1 ${
+                        doc.name === "COI" && isLocked
+                          ? "text-gray-300 cursor-not-allowed"
+                          : "text-primary hover:text-[#d55a39] cursor-pointer"
+                      }`}
+                      title={
+                        doc.name === "COI" && isLocked
+                          ? "Locked — installment due"
+                          : "Upload"
+                      }
+                      disabled={!data?.cin || (doc.name === "COI" && isLocked)}
+                      style={{
+                        opacity:
+                          !data?.cin || (doc.name === "COI" && isLocked)
+                            ? 0.3
+                            : 1,
+                      }}
+                    >
+                      <Upload size={24} />
+                    </button>
+                    <DocumentIssueButton
+                      applicationNo={appNo}
+                      target={{
+                        entityType: "registration",
+                        entityId: "registration",
+                        entityLabel: "Registration Documents",
+                        fieldKey: REGISTRATION_FIELD_KEYS[doc.name] || doc.name,
+                        documentLabel: doc.name,
+                        clientRoute: "registration-documents",
+                      }}
+                      className="inline-flex items-center text-primary hover:text-[#d55a39] p-1"
+                    />
+                  </div>
                 )}
               </div>
-
-              {!isEmailDeliveryDoc && (
-              <div className="flex items-center gap-6 shrink-0">
-                {/* View */}
-                <button
-                  onClick={() =>
-                    handlePreview(
-                      doc.name,
-                      (doc as { fileName?: string }).fileName ?? "",
-                    )
-                  }
-                  className="text-primary hover:text-[#d55a39] transition-colors p-1"
-                  title="View"
-                  disabled={doc.status === "pending"}
-                  style={{ opacity: doc.status === "pending" ? 0.3 : 1 }}
-                >
-                  <Eye size={24} />
-                </button>
-                {/* Download */}
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      doc.name,
-                      (doc as { fileName?: string }).fileName ?? "",
-                    )
-                  }
-                  className="text-primary hover:text-[#d55a39] transition-colors p-1"
-                  title="Download"
-                  disabled={doc.status === "pending"}
-                  style={{ opacity: doc.status === "pending" ? 0.3 : 1 }}
-                >
-                  <Download size={24} />
-                </button>
-                {/* Edit / Upload */}
-                <button
-                  onClick={() => handleUploadClick(doc.name)}
-                  className="text-primary hover:text-[#d55a39] transition-colors p-1"
-                  title="Upload"
-                  disabled={!data?.cin}
-                  style={{ opacity: !data?.cin ? 0.3 : 1 }}
-                >
-                  <Upload size={24} />
-                </button>
-                <DocumentIssueButton
-                  applicationNo={appNo}
-                  target={{
-                    entityType: "registration",
-                    entityId: "registration",
-                    entityLabel: "Registration Documents",
-                    fieldKey: REGISTRATION_FIELD_KEYS[doc.name] || doc.name,
-                    documentLabel: doc.name,
-                    clientRoute: "registration-documents",
-                  }}
-                  className="inline-flex items-center text-primary hover:text-[#d55a39] p-1"
-                />
-              </div>
-              )}
-            </div>
             );
           })}
         </div>

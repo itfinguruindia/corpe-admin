@@ -27,6 +27,13 @@ export default function CompanyOverviewContent({
         if (response && response.data) {
           // Map API response to CompanyOverview type
           const apiData = response.data;
+          // Fetch real payment status
+          let paymentStatus = "Pending";
+          try {
+            const psRes = await clientsApi.getPaymentStatus(appNo);
+            paymentStatus = psRes?.status ?? "Pending";
+          } catch { /* keep default */ }
+
           const mapped: CompanyOverview = {
             id: apiData._id,
             applicationNo: appNo,
@@ -47,7 +54,7 @@ export default function CompanyOverviewContent({
               apiData.corporateStructure?.registeredOffice?.locality || "-",
             branchOffice: "-", // Dummy
             status: apiData.companyStatus,
-            paymentStatus: "Pending", // Dummy
+            paymentStatus,
             planChosen: "-", // Dummy
             contactNo: apiData.client?.phoneNumber || "-",
             contactEmail: apiData.client?.email || "-",

@@ -83,6 +83,17 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState("");
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
+
+  const isLocked = !!(
+    installmentInfo?.firstInstallmentDue ||
+    !installmentInfo?.secondInstallmentPaid
+  );
 
   const getFileName = (value: string) => {
     if (!value) return "";
@@ -127,7 +138,13 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        await loadAllSections();
+        const [_, trackerRes] = await Promise.all([
+          loadAllSections(),
+          clientsApi.getTrackingStatus(appNo).catch(() => null),
+        ]);
+        if (trackerRes && trackerRes.installmentInfo) {
+          setInstallmentInfo(trackerRes.installmentInfo);
+        }
       } catch (error) {
         console.error("Error fetching MOA & AOA:", error);
         setSections(INITIAL_SECTIONS);
@@ -137,7 +154,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
     };
 
     loadData();
-  }, [loadAllSections]);
+  }, [loadAllSections, appNo]);
 
   const refreshSection = async (sectionKey: string) => {
     const section = sections.find((s) => s.key === sectionKey);
@@ -235,7 +252,13 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
 
   const handleAdminUpload = async (section: DocumentSection, file: File) => {
     if (!file) return;
-    if (!requireEdit()) return;
+    if (!requireClientTabEdit(admin, "moa")) return;
+    if (isLocked) {
+      toast("Action locked. Installment payment is due.", {
+        variant: "danger",
+      });
+      return;
+    }
 
     try {
       if (section.kind === "moa-aoa") {
@@ -305,14 +328,32 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
             title={`Upload ${section.label}`}
             subtitle="Upload from your computer, Google Drive, or existing documents."
             dropLabel="Drag and drop your file here"
-            onBeforeOpen={() => requireEdit()}
+            onBeforeOpen={() => {
+              if (isLocked) {
+                toast("Action locked. Installment payment is due.", {
+                  variant: "danger",
+                });
+                return false;
+              }
+              return requireClientTabEdit(admin, "moa");
+            }}
             onFileSelect={(file) => handleAdminUpload(section, file)}
             renderTrigger={(openPicker) => (
-              <div title={`Upload ${section.label} (Admin)`}>
+              <div
+                title={
+                  isLocked
+                    ? "Locked — installment due"
+                    : `Upload ${section.label} (Admin)`
+                }
+              >
                 <Upload
                   size={20}
-                  onClick={openPicker}
-                  className="cursor-pointer text-primary hover:text-secondary"
+                  onClick={isLocked ? undefined : openPicker}
+                  className={
+                    isLocked
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "cursor-pointer text-primary hover:text-secondary"
+                  }
                 />
               </div>
             )}
@@ -417,6 +458,15 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
             MOA & AOA
           </div>
         </div>
+
+        {isLocked && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold">
+            <span>
+              ⚠️ Stage locked. Outstanding installment payments are due for this
+              client. Document upload actions are disabled.
+            </span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {sections.map((section) => renderUploadCard(section))}

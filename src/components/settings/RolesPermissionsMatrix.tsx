@@ -13,6 +13,7 @@ import { PERMISSIONS } from "@/utils/permissions";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Check, X, Plus, Edit2, Trash2, Users, Shield } from "lucide-react";
 import { Button, toast } from "@heroui/react";
+import RefreshButton from "@/components/ui/RefreshButton";
 
 interface RolesPermissionsMatrixProps {
   onCreateRole?: () => void;
@@ -125,7 +126,13 @@ export default function RolesPermissionsMatrix({
             Manage roles and their associated permissions
           </p>
         </div>
-        <PermissionGate permissions={PERMISSIONS.ROLE_CREATE}>
+        <div className="flex items-center gap-2 shrink-0">
+          <RefreshButton
+            onClick={loadData}
+            isLoading={isLoading}
+            ariaLabel="Refresh roles"
+          />
+          <PermissionGate permissions={PERMISSIONS.ROLE_CREATE}>
           <Button
             type="button"
             onClick={onCreateRole}
@@ -135,6 +142,7 @@ export default function RolesPermissionsMatrix({
             Create New Role
           </Button>
         </PermissionGate>
+        </div>
       </div>
 
       {/* Stats Cards */}

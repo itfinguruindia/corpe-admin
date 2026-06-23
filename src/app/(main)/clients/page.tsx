@@ -15,6 +15,7 @@ import ActiveFilters from "@/components/ui/FilterDropdown/ActiveFilters";
 import { SearchSelectOption } from "@/components/ui/SearchSelect";
 import type { SortDescriptor } from "@heroui/react";
 import ExportDropdown from "@/components/ui/ExportDropdown";
+import RefreshButton from "@/components/ui/RefreshButton";
 import ClientsTable, {
   Client,
   ITEMS_PER_PAGE,
@@ -335,6 +336,11 @@ export default function ClientsPage() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              <RefreshButton
+                onClick={() => fetchClients(currentPage)}
+                isLoading={loading}
+                ariaLabel="Refresh clients"
+              />
               <div className="relative group/export">
                 <ExportDropdown
                   title="Export Clients"

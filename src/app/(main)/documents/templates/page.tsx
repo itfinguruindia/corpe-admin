@@ -28,6 +28,7 @@ import {
   requireDocView,
 } from "@/utils/documentPermissions";
 import { notifyApiError } from "@/utils/apiErrors";
+import RefreshButton from "@/components/ui/RefreshButton";
 
 const SKELETON_COUNT = 8;
 
@@ -49,6 +50,7 @@ const TemplatesPage = () => {
     isSubmitting,
     loadError,
     loadForbidden,
+    refresh,
     importTemplate,
     removeTemplate,
     getBlob,
@@ -198,6 +200,11 @@ const TemplatesPage = () => {
               />
             </TextField>
           </div>
+          <RefreshButton
+            onClick={() => void refresh()}
+            isLoading={isLoading}
+            ariaLabel="Refresh templates"
+          />
           <button
             type="button"
             onClick={openImport}

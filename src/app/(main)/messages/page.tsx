@@ -123,6 +123,10 @@ export default function MessagesPage() {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             onNewChat={() => setShowNewChatModal(true)}
+            onRefresh={() => {
+              setIsLoading(true);
+              void fetchRooms();
+            }}
             isLoading={isLoading}
           />
         </div>

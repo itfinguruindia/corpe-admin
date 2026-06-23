@@ -8,6 +8,7 @@ export type ComplianceCategory =
   | "ROC"
   | "MSME"
   | "Advance Tax";
+export type ComplianceCompanyType = "all" | "pvt" | "opc" | "public" | "msme";
 export type ComplianceStatus = "done" | "pending";
 
 export interface CompliancePenalty {
@@ -23,6 +24,7 @@ export interface ComplianceEntry {
   day: number;
   month: number;
   category: ComplianceCategory;
+  companyType: ComplianceCompanyType;
   formName: string;
   description: string;
   period: string;
@@ -45,6 +47,7 @@ export interface ComplianceInput {
   day: number;
   month: number;
   category: ComplianceCategory;
+  companyType?: ComplianceCompanyType;
   formName: string;
   description?: string;
   period: string;
@@ -75,6 +78,17 @@ export const COMPLIANCE_CATEGORY_OPTIONS: {
   { id: "advance-tax", label: "Advance Tax" },
 ];
 
+export const COMPLIANCE_COMPANY_TYPE_OPTIONS: {
+  id: ComplianceCompanyType;
+  label: string;
+}[] = [
+  { id: "all", label: "All Companies" },
+  { id: "pvt", label: "Private Limited" },
+  { id: "opc", label: "One Person Company" },
+  { id: "public", label: "Public Limited" },
+  { id: "msme", label: "MSME / Small Co" },
+];
+
 const LEGACY_CATEGORY_MAP: Record<string, ComplianceCategory> = {
   IT: "Income Tax",
   TDS: "TDS / TCS",
@@ -103,10 +117,31 @@ export function selectIdToCategory(selectId: string): ComplianceCategory {
   return match?.label ?? "GST";
 }
 
+export function normalizeComplianceCompanyType(
+  value: string | undefined | null,
+): ComplianceCompanyType {
+  if (!value) return "all";
+  const trimmed = value.trim();
+  const byId = COMPLIANCE_COMPANY_TYPE_OPTIONS.find((o) => o.id === trimmed);
+  if (byId) return byId.id;
+  const byLabel = COMPLIANCE_COMPANY_TYPE_OPTIONS.find(
+    (o) => o.label.toLowerCase() === trimmed.toLowerCase(),
+  );
+  return byLabel?.id ?? "all";
+}
+
+export function companyTypeLabel(companyType: ComplianceCompanyType): string {
+  return (
+    COMPLIANCE_COMPANY_TYPE_OPTIONS.find((o) => o.id === companyType)?.label ??
+    "All Companies"
+  );
+}
+
 function normalizeEntry(raw: ComplianceEntry & { _id?: string }): ComplianceEntry {
   return {
     ...raw,
     id: raw.id ?? raw._id ?? "",
+    companyType: normalizeComplianceCompanyType(raw.companyType),
     penalty: raw.penalty ?? {
       title: "",
       rate: "",
@@ -124,6 +159,8 @@ export const complianceApi = {
       limit?: number;
       search?: string;
       category?: ComplianceCategory;
+      companyType?: ComplianceCompanyType;
+      companyTypeScope?: "exact" | "applicable";
       status?: ComplianceStatus;
       month?: number;
       day?: number;
