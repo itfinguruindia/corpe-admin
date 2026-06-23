@@ -9,6 +9,7 @@ import {
   Spinner,
   TextField,
 } from "@heroui/react";
+import RefreshButton from "@/components/ui/RefreshButton";
 
 interface ChatRoom {
   _id: string;
@@ -35,6 +36,7 @@ interface ChatRoomListProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onNewChat: () => void;
+  onRefresh?: () => void;
   isLoading: boolean;
 }
 
@@ -66,6 +68,7 @@ export default function ChatRoomList({
   searchQuery,
   onSearchChange,
   onNewChat,
+  onRefresh,
   isLoading,
 }: ChatRoomListProps) {
   return (
@@ -74,13 +77,22 @@ export default function ChatRoomList({
       <div className="border-b border-gray-100 px-4 py-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-gray-800">Conversations</h2>
-          <Button
+          <div className="flex items-center gap-2">
+            {onRefresh && (
+              <RefreshButton
+                onClick={onRefresh}
+                isLoading={isLoading}
+                ariaLabel="Refresh conversations"
+              />
+            )}
+            <Button
             type="button"
             onClick={onNewChat}
             className="rounded-lg bg-[#FF6A3D] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#e55a2f] active:scale-95 h-auto min-h-0"
           >
             + New Chat
           </Button>
+          </div>
         </div>
 
         {/* Search */}

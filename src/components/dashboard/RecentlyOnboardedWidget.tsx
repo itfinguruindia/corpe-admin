@@ -45,6 +45,8 @@ export default function RecentlyOnboardedWidget() {
   const [loading, setLoading] = useState(canViewClients);
 
   useEffect(() => {
+    let mounted = true;
+
     if (!canViewClients) {
       setLoading(false);
       return;
@@ -53,6 +55,7 @@ export default function RecentlyOnboardedWidget() {
     clientsApi
       .getAllClients(1, 4)
       .then((data) => {
+        if (!mounted) return;
         const mapped = (data.clients || []).map((c: any) => ({
           appNo: c.appNo || c.applicationNo || "",
           entity: c.entity || "—",
@@ -61,8 +64,16 @@ export default function RecentlyOnboardedWidget() {
         }));
         setClients(mapped);
       })
-      .catch(() => setClients([]))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (mounted) setClients([]);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, [canViewClients]);
 
   if (loading) {
