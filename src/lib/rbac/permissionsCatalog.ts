@@ -488,18 +488,6 @@ const rawPermissions: Permission[] = [
     action: "export",
     description: "Export system activity logs",
   },
-  {
-    id: "audit-view",
-    module: "Audit Logs",
-    action: "view",
-    description: "View audit logs (legacy)",
-  },
-  {
-    id: "audit-export",
-    module: "Audit Logs",
-    action: "export",
-    description: "Export audit logs (legacy)",
-  },
 
   // Reports
   {

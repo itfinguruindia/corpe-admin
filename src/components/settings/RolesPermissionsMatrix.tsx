@@ -80,7 +80,7 @@ export default function RolesPermissionsMatrix({
 
   const handleDeleteRole = async (role: Role) => {
     if (role.isSystemRole) {
-      toast.success("System roles cannot be deleted!");
+      toast.danger("System roles cannot be deleted!");
       return;
     }
     if (
@@ -249,7 +249,7 @@ export default function RolesPermissionsMatrix({
                 )}
               </div>
               <div className="flex gap-1">
-                {canEditRoles() && (
+                {canEditRoles() && !role.isSystemRole && (
                   <span title="Edit Role" className="inline-flex">
                     <Button
                       type="button"

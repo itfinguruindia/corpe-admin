@@ -106,17 +106,16 @@ export function requireClientEdit(
 
 export function canDeleteClient(
   admin: Admin | null | undefined,
-  assignment?: ClientAssignmentInfo | null,
+  _assignment?: ClientAssignmentInfo | null,
 ): boolean {
   if (!admin) return false;
-  if (!hasPermission(admin, PERMISSIONS.CLIENT_DELETE)) return false;
-  if (assignment === undefined) return true;
-  return canMutateClientData(admin, assignment);
+  if (admin.isSuperAdmin) return true;
+  return hasPermission(admin, PERMISSIONS.CLIENT_DELETE);
 }
 
 export function requireClientDelete(
   admin: Admin | null | undefined,
-  assignment?: ClientAssignmentInfo | null,
+  _assignment?: ClientAssignmentInfo | null,
 ): boolean {
   if (!admin) {
     showRouteAccessDeniedToast();
@@ -125,12 +124,6 @@ export function requireClientDelete(
   if (admin.isSuperAdmin) return true;
   if (!hasPermission(admin, PERMISSIONS.CLIENT_DELETE)) {
     showRouteAccessDeniedToast();
-    return false;
-  }
-  if (assignment !== undefined && !canMutateClientData(admin, assignment)) {
-    showRouteAccessDeniedToast(
-      "Only assigned team members can delete this client.",
-    );
     return false;
   }
   return true;

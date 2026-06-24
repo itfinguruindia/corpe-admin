@@ -53,16 +53,13 @@ function canManageClientAssignment(
 }
 
 function canDeleteClientRow(
-  row: Client,
-  currentAdminId: string | null | undefined,
+  _row: Client,
+  _currentAdminId: string | null | undefined,
   isSuperAdmin: boolean,
   canDeleteClients: boolean,
 ): boolean {
   if (isSuperAdmin) return true;
-  if (!canDeleteClients || !currentAdminId) return false;
-  return (
-    row.assigneeId === currentAdminId || row.assignerId === currentAdminId
-  );
+  return canDeleteClients;
 }
 
 export default function ClientsTable({
