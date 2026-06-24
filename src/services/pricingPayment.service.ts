@@ -77,6 +77,12 @@ export const pricingPaymentService = {
 
   async sendPaymentLink(applicationNo: string, stageNumber: number): Promise<boolean> {
     try {
+      if (stageNumber === 7) {
+        const response = await axiosInstance.post<{ success: boolean }>(
+          `/admin/clients/${applicationNo}/name-extension/send-payment-link`
+        );
+        return response.data.success;
+      }
       const response = await axiosInstance.post<{ success: boolean }>(
         `/admin/clients/${applicationNo}/payment-link/send`,
         { stageNumber }

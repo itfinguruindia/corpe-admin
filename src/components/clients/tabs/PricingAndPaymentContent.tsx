@@ -61,7 +61,7 @@ export default function PricingAndPaymentContent({
       let actionText = "-";
       if (s.status === "paid") {
         actionText = "Payment Received";
-      } else if ([4, 6].includes(s.stepNumber)) {
+      } else if ([4, 6, 7].includes(s.stepNumber)) {
         actionText = s.paymentLinkSent ? "Resend Payment Link" : "Send Payment Link";
       }
 

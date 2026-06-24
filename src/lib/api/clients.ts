@@ -931,4 +931,25 @@ export const clientsApi = {
     );
     return response.data?.data ?? response.data;
   },
+
+  getNameExtensionStatus: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/name-extension/status`
+    );
+    return response.data;
+  },
+
+  sendNameExtensionPaymentLink: async (applicationNo: string) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/name-extension/send-payment-link`
+    );
+    return response.data;
+  },
+
+  requestNameExtensionRestart: async (applicationNo: string) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/name-extension/request-restart`
+    );
+    return response.data;
+  },
 };
