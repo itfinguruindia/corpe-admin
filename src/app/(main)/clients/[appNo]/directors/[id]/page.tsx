@@ -157,7 +157,7 @@ export default function DirectorDetailPage() {
 
   const handleDscToggle = async () => {
     if (!isStage2Enabled || !director?.isCommitted || isLocked) return;
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!requireEdit()) return;
     const newValue = !dscApplication;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
@@ -317,7 +317,7 @@ export default function DirectorDetailPage() {
                     isDisabled={
                       !isStage2Enabled ||
                       !director.isCommitted ||
-                      !requireClientTabEdit(admin, "director")
+                      !canEdit
                     }
                   />
                 </div>

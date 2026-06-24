@@ -103,7 +103,7 @@ export default function RegistrationDocumentsContent({
   }, [appNo]);
 
   const handleCinSubmit = async () => {
-    if (!requireClientTabEdit(admin, "regDoc")) return;
+    if (!requireEdit()) return;
     if (isLocked) {
       toast.danger("Action locked. Installment payment is due.");
       return;
@@ -128,7 +128,7 @@ export default function RegistrationDocumentsContent({
   };
 
   const handleStatusChange = async (status: string) => {
-    if (!requireClientTabEdit(admin, "regDoc")) return;
+    if (!requireEdit()) return;
     if (isLocked) {
       toast.danger("Action locked. Installment payment is due.");
       return;
@@ -148,7 +148,7 @@ export default function RegistrationDocumentsContent({
   };
 
   const handleUploadClick = (docType: string) => {
-    if (!requireClientTabEdit(admin, "regDoc")) return;
+    if (!requireEdit()) return;
     if (docType === "COI" && isLocked) {
       toast.danger("Action locked. Installment payment is due.");
       return;

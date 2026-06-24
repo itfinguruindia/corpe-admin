@@ -168,7 +168,7 @@ export default function ShareholderDetailPage() {
 
   const handleDscToggle = async () => {
     if (!isStage2Enabled || isLocked) return;
-    if (!requireClientTabEdit(admin, "shareholder")) return;
+    if (!requireEdit()) return;
     const newValue = !dscApplication;
     try {
       await clientsApi.updateShareholderStatus(appNo as string, id as string, {

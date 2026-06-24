@@ -252,7 +252,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
 
   const handleAdminUpload = async (section: DocumentSection, file: File) => {
     if (!file) return;
-    if (!requireClientTabEdit(admin, "moa")) return;
+    if (!requireEdit()) return;
     if (isLocked) {
       toast("Action locked. Installment payment is due.", {
         variant: "danger",
@@ -335,7 +335,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
                 });
                 return false;
               }
-              return requireClientTabEdit(admin, "moa");
+              return requireEdit();
             }}
             onFileSelect={(file) => handleAdminUpload(section, file)}
             renderTrigger={(openPicker) => (
