@@ -45,6 +45,9 @@ export default function CompanyOverviewContent({
             pincode:
               apiData.corporateStructure?.registeredOffice?.pincode || "-",
             state: apiData.corporateStructure?.registeredOffice?.state || "-",
+            policeStationJurisdiction:
+              apiData.corporateStructure?.registeredOffice
+                ?.policeStationJurisdiction || "-",
             entityType: apiData.companyType || "-",
             cinLlpin: "-", // Dummy
             isIncorporated: false, // Dummy
@@ -159,6 +162,10 @@ export default function CompanyOverviewContent({
           <InfoField label="District" value={companyData.district} />
           <InfoField label="Pincode" value={companyData.pincode} />
           <InfoField label="State" value={companyData.state} />
+          <InfoField
+            label="Jurisdiction of Police station"
+            value={companyData.policeStationJurisdiction}
+          />
           <InfoField label="Entity Type" value={companyData.entityType} />
 
           <InfoField label="Industry" value={companyData.industry} />
