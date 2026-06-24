@@ -10,14 +10,13 @@ import { ShareholderDocument } from "@/types/shareholderDocuments";
 import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 
 export default function ShareholderDocumentsPage() {
   const { appNo, id } = useParams();
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("shareholder");
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
   const [documents, setDocuments] = useState<ShareholderDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -209,7 +208,7 @@ export default function ShareholderDocumentsPage() {
 
   const handleInc9Delete = async (source: "admin" | "client") => {
     if (!appNo || !id) return;
-    if (!requireClientTabEdit(admin, "shareholder")) return;
+    if (!requireEdit()) return;
 
     if (isLocked) {
       toast.danger("Action locked. Installment payment is due.");
@@ -246,7 +245,7 @@ export default function ShareholderDocumentsPage() {
   };
 
   const handleUpload = (documentType: string) => {
-    if (!requireClientTabEdit(admin, "shareholder")) return;
+    if (!requireEdit()) return;
     if (documentType === "INC-9 Shareholder") {
       if (isLocked) {
         toast.danger("Action locked. Installment payment is due.");

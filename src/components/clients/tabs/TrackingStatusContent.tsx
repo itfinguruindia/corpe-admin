@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 
 import CustomSelect from "@/components/ui/CustomSelect";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 
 // Types matching updated backend application tracker
 interface TrackerNote {
@@ -115,6 +116,7 @@ export default function TrackingStatusContent({
   appNo,
 }: TrackingStatusContentProps) {
   const router = useRouter();
+  const { requireEdit, canEdit } = useClientTabEdit("track");
 
   const [tracker, setTracker] = useState<TrackerData | null>(null);
   const [companyOverview, setCompanyOverview] = useState<any | null>(null);
@@ -220,6 +222,7 @@ export default function TrackingStatusContent({
   };
 
   const handleInitializeTracker = async () => {
+    if (!requireEdit()) return;
     if (!companyOverview || !companyOverview._id) {
       alert("Cannot initialize tracker: Organization not loaded.");
       return;
@@ -242,6 +245,7 @@ export default function TrackingStatusContent({
     stepId: string,
     newStatus: string,
   ) => {
+    if (!requireEdit()) return;
     if (!tracker) return;
     try {
       await clientsApi.updateStepStatus(
@@ -262,6 +266,7 @@ export default function TrackingStatusContent({
   };
 
   const handleAddNote = async () => {
+    if (!requireEdit()) return;
     if (!tracker || !selectedStepId || !noteText.trim()) return;
     try {
       setIsSavingNote(true);

@@ -5,7 +5,7 @@ import { Role, Permission, PermissionModule } from "@/types/roles";
 import {
   allPermissions,
   getPermissionsByModule,
-} from "@/lib/data/mockRolesData";
+} from "@/lib/rbac/permissionsCatalog";
 import { roleApi } from "@/lib/api";
 import { Chip } from "@/components/ui";
 import PermissionGate from "@/components/rbac/PermissionGate";
@@ -47,7 +47,7 @@ export default function RolesPermissionsMatrix({
       // Fetch roles from API
       const fetchedRoles = await roleApi.getAllRoles();
 
-      // Use static permissions from mockRolesData
+      // Permission catalog (synced with backend ALL_PERMISSION_IDS)
       const allPerms = allPermissions;
       const permsByModule = getPermissionsByModule();
 
@@ -80,7 +80,7 @@ export default function RolesPermissionsMatrix({
 
   const handleDeleteRole = async (role: Role) => {
     if (role.isSystemRole) {
-      toast.success("System roles cannot be deleted!");
+      toast.danger("System roles cannot be deleted!");
       return;
     }
     if (
@@ -249,7 +249,7 @@ export default function RolesPermissionsMatrix({
                 )}
               </div>
               <div className="flex gap-1">
-                {canEditRoles() && (
+                {canEditRoles() && !role.isSystemRole && (
                   <span title="Edit Role" className="inline-flex">
                     <Button
                       type="button"

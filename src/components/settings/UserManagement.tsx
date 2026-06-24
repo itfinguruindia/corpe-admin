@@ -32,6 +32,7 @@ import RefreshButton from "@/components/ui/RefreshButton";
 import PermissionGate from "@/components/rbac/PermissionGate";
 import { PERMISSIONS } from "@/utils/permissions";
 import { usePermissions } from "@/hooks/usePermissions";
+import useSwal from "@/utils/useSwal";
 
 interface UserManagementProps {
   onEditUser?: (userId: string) => void;
@@ -43,6 +44,7 @@ export default function UserManagement({
   onDeleteUser,
 }: UserManagementProps) {
   const { canEditUsers, hasPermission } = usePermissions();
+  const swal = useSwal();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [allRoles, setAllRoles] = useState<Role[]>([]);
@@ -190,20 +192,49 @@ export default function UserManagement({
     }
   };
 
-  const handleDeleteUser = (user: User) => {
+  const handleDeleteUser = async (user: User) => {
     if (user.isSuperAdmin) {
       toast.danger("Super Admin cannot be deleted!");
       return;
     }
-    if (
-      window.confirm(
-        `Are you sure you want to delete user "${user.name}"? This action cannot be undone.`,
-      )
-    ) {
-      const userId = user._id || user.id || "";
+
+    const userId = user._id || user.id || "";
+    if (!userId) return;
+
+    const result = await swal({
+      title: "Are you sure?",
+      text: `Delete user "${user.name}"? This action cannot be undone.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#F46A45",
+      cancelButtonColor: "#3D63A4",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await adminApi.deleteAdmin(userId);
       onDeleteUser?.(userId);
-      // TODO: Implement actual delete API call
-      console.log(`Deleting user: ${userId}`);
+      await swal({
+        title: "Deleted!",
+        text: "User has been deleted successfully.",
+        icon: "success",
+        confirmButtonColor: "#3D63A4",
+      });
+      await loadData();
+    } catch (error: unknown) {
+      console.error("Error deleting user:", error);
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to delete user. Please try again.";
+      await swal({
+        title: "Error!",
+        text: message,
+        icon: "error",
+        confirmButtonColor: "#F46A45",
+      });
     }
   };
 

@@ -4,6 +4,15 @@ import path from "node:path";
 const rbacDir = path.join(__dirname, "src/lib/rbac");
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/marketing/:path*",
+        destination: "/crm/:path*",
+        permanent: true,
+      },
+    ];
+  },
   turbopack: {
     resolveAlias: {
       "@rbac": rbacDir,

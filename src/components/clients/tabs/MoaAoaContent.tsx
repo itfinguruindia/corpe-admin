@@ -8,8 +8,7 @@ import { FileUploadComponent } from "@/components/upload";
 import Modal from "@/components/ui/Modal";
 import { clientsApi } from "@/lib/api/clients";
 import type { CompanyMiscDocType, MoaAoaDocType } from "@/lib/api/clients";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 import { getFileType } from "@/utils/helpers";
@@ -77,7 +76,7 @@ const INITIAL_SECTIONS: DocumentSection[] = [
 ];
 
 export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("moa");
   const [sections, setSections] = useState<DocumentSection[]>(INITIAL_SECTIONS);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshingKey, setRefreshingKey] = useState<string | null>(null);
@@ -91,7 +90,10 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
     secondInstallmentPaid: boolean;
   } | null>(null);
 
-  const isLocked = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
+  const isLocked = !!(
+    installmentInfo?.firstInstallmentDue ||
+    !installmentInfo?.secondInstallmentPaid
+  );
 
   const getFileName = (value: string) => {
     if (!value) return "";
@@ -250,9 +252,11 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
 
   const handleAdminUpload = async (section: DocumentSection, file: File) => {
     if (!file) return;
-    if (!requireClientTabEdit(admin, "moa")) return;
+    if (!requireEdit()) return;
     if (isLocked) {
-      toast("Action locked. Installment payment is due.", { variant: "danger" });
+      toast("Action locked. Installment payment is due.", {
+        variant: "danger",
+      });
       return;
     }
 
@@ -326,18 +330,30 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
             dropLabel="Drag and drop your file here"
             onBeforeOpen={() => {
               if (isLocked) {
-                toast("Action locked. Installment payment is due.", { variant: "danger" });
+                toast("Action locked. Installment payment is due.", {
+                  variant: "danger",
+                });
                 return false;
               }
-              return requireClientTabEdit(admin, "moa");
+              return requireEdit();
             }}
             onFileSelect={(file) => handleAdminUpload(section, file)}
             renderTrigger={(openPicker) => (
-              <div title={isLocked ? "Locked — installment due" : `Upload ${section.label} (Admin)`}>
+              <div
+                title={
+                  isLocked
+                    ? "Locked — installment due"
+                    : `Upload ${section.label} (Admin)`
+                }
+              >
                 <Upload
                   size={20}
                   onClick={isLocked ? undefined : openPicker}
-                  className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-primary hover:text-secondary"}
+                  className={
+                    isLocked
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "cursor-pointer text-primary hover:text-secondary"
+                  }
                 />
               </div>
             )}
@@ -445,7 +461,10 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
 
         {isLocked && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold">
-            <span>⚠️ Stage locked. Outstanding installment payments are due for this client. Document upload actions are disabled.</span>
+            <span>
+              ⚠️ Stage locked. Outstanding installment payments are due for this
+              client. Document upload actions are disabled.
+            </span>
           </div>
         )}
 
