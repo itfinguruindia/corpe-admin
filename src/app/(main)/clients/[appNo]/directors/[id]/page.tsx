@@ -8,13 +8,12 @@ import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch, Chip } from "@/components/ui";
 import CustomSelect from "@/components/ui/CustomSelect";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 
 export default function DirectorDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
-  const { admin } = usePermissions();
+  const { requireEdit, canEdit } = useClientTabEdit("director");
   const [director, setDirector] = useState<Director | null>(null);
   const [allDirectors, setAllDirectors] = useState<Director[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +37,8 @@ export default function DirectorDetailPage() {
         setIsLoading(true);
         // Use the same API as the all directors listing page
         const response = await clientsApi.getDirectorAndShareHolders(
-          appNo as string, false,
+          appNo as string,
+          false,
         );
         if (
           response &&
@@ -94,7 +94,8 @@ export default function DirectorDetailPage() {
             setKycVerified(foundDirector.kycVerified);
             setDscApplication(foundDirector.dscApplication);
             const effectiveDinStatus =
-              foundDirector.dinStatus === "Inactive" && foundDirector.isDinActivationFeePaid
+              foundDirector.dinStatus === "Inactive" &&
+              foundDirector.isDinActivationFeePaid
                 ? "In Progress"
                 : foundDirector.dinStatus || "Pending";
             setDinStatus(effectiveDinStatus);
@@ -105,11 +106,15 @@ export default function DirectorDetailPage() {
         }
 
         try {
-          const trackerRes = await clientsApi.getTrackingStatus(appNo as string);
+          const trackerRes = await clientsApi.getTrackingStatus(
+            appNo as string,
+          );
           if (trackerRes) {
-            const activeStage = trackerRes.stages && typeof trackerRes.currentStageIndex === 'number'
-              ? trackerRes.stages[trackerRes.currentStageIndex]
-              : null;
+            const activeStage =
+              trackerRes.stages &&
+              typeof trackerRes.currentStageIndex === "number"
+                ? trackerRes.stages[trackerRes.currentStageIndex]
+                : null;
             const isStage2 = activeStage?.stageId === "stage_2_documents_kyc";
             setIsStage2Enabled(isStage2);
             if (trackerRes.installmentInfo) {
@@ -138,7 +143,7 @@ export default function DirectorDetailPage() {
 
   const handleKycToggle = async () => {
     if (!isStage2Enabled || !director?.isCommitted) return;
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!requireEdit()) return;
     const newValue = !kycVerified;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
@@ -152,7 +157,7 @@ export default function DirectorDetailPage() {
 
   const handleDscToggle = async () => {
     if (!isStage2Enabled || !director?.isCommitted || isLocked) return;
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!requireEdit()) return;
     const newValue = !dscApplication;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
@@ -166,7 +171,7 @@ export default function DirectorDetailPage() {
 
   const handleDinStatusChange = async (newValue: string) => {
     if (!isStage2Enabled || !director?.isCommitted) return;
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!requireEdit()) return;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
         dinStatus: newValue,
@@ -296,7 +301,9 @@ export default function DirectorDetailPage() {
               />
               {hasDIN && (
                 <div className="flex flex-col gap-1 min-w-[150px]">
-                  <span className="text-[12px] font-semibold text-gray-500">DIN Status</span>
+                  <span className="text-[12px] font-semibold text-gray-500">
+                    DIN Status
+                  </span>
                   <CustomSelect
                     ariaLabel="DIN Status"
                     value={dinStatus}
@@ -307,7 +314,11 @@ export default function DirectorDetailPage() {
                       { id: "Inactive", label: "Inactive" },
                       { id: "In Progress", label: "In Progress" },
                     ]}
-                    isDisabled={!isStage2Enabled || !director.isCommitted || !requireClientTabEdit(admin, "director")}
+                    isDisabled={
+                      !isStage2Enabled ||
+                      !director.isCommitted ||
+                      !canEdit
+                    }
                   />
                 </div>
               )}
@@ -316,7 +327,10 @@ export default function DirectorDetailPage() {
 
           {/* Director Information */}
           <div className="grid grid-cols-2 gap-x-8">
-            <InfoField label="Director Name" value={String(director.directorName)} />
+            <InfoField
+              label="Director Name"
+              value={String(director.directorName)}
+            />
             <InfoField label="Father name" value={director.fatherName} />
             <InfoField label="Email" value={director.email} />
             <InfoField label="Phone No." value={director.phoneNo} />
@@ -372,7 +386,11 @@ export default function DirectorDetailPage() {
                 KYC Verified
               </span>
 
-              <Switch checked={kycVerified} onChange={handleKycToggle} disabled={!isStage2Enabled || !director.isCommitted} />
+              <Switch
+                checked={kycVerified}
+                onChange={handleKycToggle}
+                disabled={!isStage2Enabled || !director.isCommitted}
+              />
             </div>
 
             {/* DSC Application */}
@@ -388,7 +406,13 @@ export default function DirectorDetailPage() {
                   }
                 }}
               >
-                <Switch checked={dscApplication} onChange={handleDscToggle} disabled={!isStage2Enabled || !director.isCommitted || isLocked} />
+                <Switch
+                  checked={dscApplication}
+                  onChange={handleDscToggle}
+                  disabled={
+                    !isStage2Enabled || !director.isCommitted || isLocked
+                  }
+                />
               </div>
             </div>
           </div>

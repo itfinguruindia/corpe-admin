@@ -6,13 +6,12 @@ import { toast } from "@heroui/react";
 import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 
 export default function ShareholderDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("shareholder");
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
   const [allShareholders, setAllShareholders] = useState<Shareholder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,7 +33,8 @@ export default function ShareholderDetailPage() {
       try {
         setIsLoading(true);
         const response = await clientsApi.getDirectorAndShareHolders(
-          appNo as string, false,
+          appNo as string,
+          false,
         );
         if (
           response &&
@@ -45,22 +45,27 @@ export default function ShareholderDetailPage() {
           const isSamePerson = (sh: any, dir: any) => {
             const shPan = sh.panNumber?.toLowerCase()?.trim();
             const dirPan = dir.panNumber?.toLowerCase()?.trim();
-            if (shPan && dirPan && shPan !== "-" && dirPan !== "-") return shPan === dirPan;
-            
+            if (shPan && dirPan && shPan !== "-" && dirPan !== "-")
+              return shPan === dirPan;
+
             const shEmail = sh.email?.toLowerCase()?.trim();
             const dirEmail = dir.email?.toLowerCase()?.trim();
-            if (shEmail && dirEmail && shEmail !== "-" && dirEmail !== "-") return shEmail === dirEmail;
-            
+            if (shEmail && dirEmail && shEmail !== "-" && dirEmail !== "-")
+              return shEmail === dirEmail;
+
             const shName = sh.name?.toLowerCase()?.trim();
             const dirName = dir.name?.toLowerCase()?.trim();
-            if (shName && dirName && shName !== "-" && dirName !== "-") return shName === dirName;
-            
+            if (shName && dirName && shName !== "-" && dirName !== "-")
+              return shName === dirName;
+
             return false;
           };
 
           const mappedShareholders = response.data.shareholders.map(
             (s: any, idx: number) => {
-              const isAlsoDirector = directors.some((d: any) => isSamePerson(s, d));
+              const isAlsoDirector = directors.some((d: any) =>
+                isSamePerson(s, d),
+              );
               return {
                 id: s.shareholderId || `${idx}`,
                 applicationNo: appNo as string,
@@ -112,11 +117,15 @@ export default function ShareholderDetailPage() {
         }
 
         try {
-          const trackerRes = await clientsApi.getTrackingStatus(appNo as string);
+          const trackerRes = await clientsApi.getTrackingStatus(
+            appNo as string,
+          );
           if (trackerRes) {
-            const activeStage = trackerRes.stages && typeof trackerRes.currentStageIndex === 'number'
-              ? trackerRes.stages[trackerRes.currentStageIndex]
-              : null;
+            const activeStage =
+              trackerRes.stages &&
+              typeof trackerRes.currentStageIndex === "number"
+                ? trackerRes.stages[trackerRes.currentStageIndex]
+                : null;
             const isStage2 = activeStage?.stageId === "stage_2_documents_kyc";
             setIsStage2Enabled(isStage2);
             if (trackerRes.installmentInfo) {
@@ -145,7 +154,7 @@ export default function ShareholderDetailPage() {
 
   const handleKycToggle = async () => {
     if (!isStage2Enabled) return;
-    if (!requireClientTabEdit(admin, "shareholder")) return;
+    if (!requireEdit()) return;
     const newValue = !kycVerified;
     try {
       await clientsApi.updateShareholderStatus(appNo as string, id as string, {
@@ -159,7 +168,7 @@ export default function ShareholderDetailPage() {
 
   const handleDscToggle = async () => {
     if (!isStage2Enabled || isLocked) return;
-    if (!requireClientTabEdit(admin, "shareholder")) return;
+    if (!requireEdit()) return;
     const newValue = !dscApplication;
     try {
       await clientsApi.updateShareholderStatus(appNo as string, id as string, {
@@ -328,9 +337,9 @@ export default function ShareholderDetailPage() {
                 KYC Verified
               </span>
 
-              <Switch 
-                checked={kycVerified} 
-                onChange={handleKycToggle} 
+              <Switch
+                checked={kycVerified}
+                onChange={handleKycToggle}
                 disabled={!isStage2Enabled || shareholder.isAlsoDirector}
               />
             </div>
@@ -348,10 +357,12 @@ export default function ShareholderDetailPage() {
                   }
                 }}
               >
-                <Switch 
-                  checked={dscApplication} 
-                  onChange={handleDscToggle} 
-                  disabled={!isStage2Enabled || shareholder.isAlsoDirector || isLocked}
+                <Switch
+                  checked={dscApplication}
+                  onChange={handleDscToggle}
+                  disabled={
+                    !isStage2Enabled || shareholder.isAlsoDirector || isLocked
+                  }
                 />
               </div>
             </div>

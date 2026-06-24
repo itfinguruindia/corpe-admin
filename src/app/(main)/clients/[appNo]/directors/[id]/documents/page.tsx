@@ -10,8 +10,7 @@ import { DirectorDocument } from "@/types/directorDocuments";
 import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 
@@ -63,7 +62,7 @@ type DualSourceState = {
 
 export default function DirectorDocumentsPage() {
   const { appNo, id } = useParams();
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("director");
 
   const [director, setDirector] = useState<Director | null>(null);
   const [documents, setDocuments] = useState<DirectorDocument[]>([]);
@@ -401,7 +400,7 @@ export default function DirectorDocumentsPage() {
     source: "admin" | "client",
   ) => {
     if (!appNo || !id) return;
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!requireEdit()) return;
 
     const fileSource = source === "admin" ? "Admin Upload" : "Client Upload";
     if (!confirm(`Are you sure you want to delete the ${fileSource}?`)) {
@@ -429,7 +428,7 @@ export default function DirectorDocumentsPage() {
   };
 
   const handleUpload = (documentType: string) => {
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!requireEdit()) return;
     const docTypeKey = getDocTypeKey(documentType);
     if (!docTypeKey) return;
 

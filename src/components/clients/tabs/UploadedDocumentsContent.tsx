@@ -18,8 +18,7 @@ import { clientsApi } from "@/lib/api/clients";
 import TabCard from "@/components/dashboard/TabCard";
 import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 
 interface UploadedDocumentsContentProps {
@@ -30,7 +29,7 @@ export default function UploadedDocumentsContent({
   appNo,
 }: UploadedDocumentsContentProps) {
   const router = useRouter();
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("company");
   const [directors, setDirectors] = useState<
     { id: string; directorNumber: number }[]
   >([]);
@@ -162,7 +161,7 @@ export default function UploadedDocumentsContent({
   };
 
   const handleDocUpload = (docType: string, label: string) => {
-    if (!requireClientTabEdit(admin, "company")) return;
+    if (!requireEdit()) return;
 
     const input = document.createElement("input");
     input.type = "file";
@@ -196,7 +195,7 @@ export default function UploadedDocumentsContent({
   };
 
   const handleDocDelete = async (docType: string, label: string) => {
-    if (!requireClientTabEdit(admin, "company")) return;
+    if (!requireEdit()) return;
 
     if (!confirm(`Are you sure you want to delete the ${label}?`)) {
       return;
@@ -342,7 +341,12 @@ export default function UploadedDocumentsContent({
     onRefresh?: () => void,
     refreshing?: boolean,
   ) => {
-    const isLocked = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
+    // Admin must be able to upload the template in all conditions so the
+    // client can download and upload signed copy.
+    const lockAdminTemplate = false;
+    const lockClientSignedCopy = !!(
+      installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid
+    );
 
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[180px]">
@@ -381,13 +385,13 @@ export default function UploadedDocumentsContent({
                 </span>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={isLocked ? undefined : () =>
+                    onClick={lockAdminTemplate ? undefined : () =>
                       handleDocUpload(docTypeAdmin, "Admin Template")
                     }
-                    disabled={isLocked}
-                    title={isLocked ? "Locked — installment due" : "Upload template"}
+                    disabled={lockAdminTemplate}
+                    title={lockAdminTemplate ? "Locked" : "Upload template"}
                     className={`p-1.5 rounded-lg transition-colors ${
-                      isLocked
+                      lockAdminTemplate
                         ? "text-gray-300 cursor-not-allowed"
                         : "text-gray-500 hover:text-primary hover:bg-orange-50 cursor-pointer"
                     }`}
@@ -396,13 +400,13 @@ export default function UploadedDocumentsContent({
                   </button>
                   {adminFile && (
                     <button
-                      onClick={isLocked ? undefined : () =>
+                      onClick={lockAdminTemplate ? undefined : () =>
                         handleDocDelete(docTypeAdmin, "Admin Template")
                       }
-                      disabled={isLocked}
-                      title={isLocked ? "Locked — installment due" : "Delete template"}
+                      disabled={lockAdminTemplate}
+                      title={lockAdminTemplate ? "Locked" : "Delete template"}
                       className={`p-1.5 rounded-lg transition-colors ${
-                        isLocked
+                        lockAdminTemplate
                           ? "text-gray-300 cursor-not-allowed"
                           : "text-red-500 hover:bg-red-50 cursor-pointer"
                       }`}
@@ -466,13 +470,17 @@ export default function UploadedDocumentsContent({
                 <div className="flex items-center gap-2">
                   {clientFile && (
                     <button
-                      onClick={isLocked ? undefined : () =>
+                      onClick={lockClientSignedCopy ? undefined : () =>
                         handleDocDelete(docTypeClient, "Client Signed Copy")
                       }
-                      disabled={isLocked}
-                      title={isLocked ? "Locked — installment due" : "Delete client copy"}
+                      disabled={lockClientSignedCopy}
+                      title={
+                        lockClientSignedCopy
+                          ? "Locked — installment due"
+                          : "Delete client copy"
+                      }
                       className={`p-1.5 rounded-lg transition-colors ${
-                        isLocked
+                        lockClientSignedCopy
                           ? "text-gray-300 cursor-not-allowed"
                           : "text-red-500 hover:bg-red-50 cursor-pointer"
                       }`}

@@ -7,10 +7,13 @@ import { Button } from "@heroui/react";
 import { AlertTriangle, CalendarDays, FileText } from "lucide-react";
 import {
   COMPLIANCE_CATEGORY_OPTIONS,
+  COMPLIANCE_COMPANY_TYPE_OPTIONS,
   categoryToSelectId,
   normalizeComplianceCategory,
+  normalizeComplianceCompanyType,
   selectIdToCategory,
   type ComplianceCategory,
+  type ComplianceCompanyType,
   type ComplianceEntry,
   type ComplianceInput,
   type CompliancePenalty,
@@ -40,6 +43,7 @@ export interface ComplianceFormState {
   day: string;
   month: string;
   category: ComplianceCategory;
+  companyType: ComplianceCompanyType;
   formName: string;
   description: string;
   period: string;
@@ -50,6 +54,7 @@ export const emptyComplianceForm = (): ComplianceFormState => ({
   day: "",
   month: "1",
   category: "GST",
+  companyType: "all",
   formName: "",
   description: "",
   period: "",
@@ -67,6 +72,7 @@ export function entryToForm(entry: ComplianceEntry): ComplianceFormState {
     day: String(entry.day),
     month: String(entry.month),
     category: normalizeComplianceCategory(entry.category),
+    companyType: normalizeComplianceCompanyType(entry.companyType),
     formName: entry.formName,
     description: entry.description,
     period: entry.period,
@@ -82,6 +88,7 @@ function formToInput(
     day: Number(form.day),
     month: Number(form.month),
     category: form.category,
+    companyType: form.companyType,
     formName: form.formName.trim(),
     description: form.description.trim(),
     period: form.period.trim(),
@@ -231,6 +238,19 @@ export default function ComplianceFormModal({
               options={COMPLIANCE_CATEGORY_OPTIONS}
               onChange={(v) =>
                 updateField("category", selectIdToCategory(v))
+              }
+            />
+
+            <CustomSelect
+              ariaLabel="Company type"
+              label="Company Type"
+              value={form.companyType}
+              options={COMPLIANCE_COMPANY_TYPE_OPTIONS}
+              onChange={(v) =>
+                updateField(
+                  "companyType",
+                  normalizeComplianceCompanyType(v),
+                )
               }
             />
 

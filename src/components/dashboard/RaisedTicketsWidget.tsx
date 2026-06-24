@@ -54,15 +54,27 @@ export default function RaisedTicketsWidget() {
   const [loading, setLoading] = useState(canViewTickets);
 
   useEffect(() => {
+    let mounted = true;
+
     if (!canViewTickets) {
       setLoading(false);
       return;
     }
 
     TicketApi.getAllTickets(1, 3)
-      .then((res) => setTickets(res.tickets))
-      .catch(() => setTickets([]))
-      .finally(() => setLoading(false));
+      .then((res) => {
+        if (mounted) setTickets(res.tickets);
+      })
+      .catch(() => {
+        if (mounted) setTickets([]);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, [canViewTickets]);
 
   if (loading) {

@@ -8,21 +8,12 @@ export default function UserManagementPage() {
   const router = useRouter();
 
   const handleEditUser = (userId: string) => {
-    // Navigate to user detail page
     router.push(`/settings/users/${userId}`);
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    // TODO: Implement delete user API call
-    console.log("Delete user:", userId);
   };
 
   return (
     <div className="min-h-screen">
-      <UserManagement
-        onEditUser={handleEditUser}
-        onDeleteUser={handleDeleteUser}
-      />
+      <UserManagement onEditUser={handleEditUser} />
     </div>
   );
 }

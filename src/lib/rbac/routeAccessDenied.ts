@@ -5,9 +5,9 @@ import {
 } from "@/lib/rbac/routePermissions";
 
 /** Toast for in-page actions (no navigation). */
-export function showRouteAccessDeniedToast(): void {
+export function showRouteAccessDeniedToast(message = ROUTE_ACCESS_DENIED_MESSAGE): void {
   queueMicrotask(() => {
-    toast.danger(ROUTE_ACCESS_DENIED_MESSAGE);
+    toast.danger(message);
   });
 }
 

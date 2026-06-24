@@ -5,7 +5,7 @@ import { PermissionModule, Role } from "@/types/roles";
 import {
   allPermissions,
   getPermissionsByModule,
-} from "@/lib/data/mockRolesData";
+} from "@/lib/rbac/permissionsCatalog";
 import { Check, X, ChevronDown, ChevronUp, Shield } from "lucide-react";
 import { Button, Input, Label, TextField } from "@heroui/react";
 

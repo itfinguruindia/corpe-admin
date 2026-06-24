@@ -27,18 +27,18 @@ export const navigationIndex: SearchItem[] = [
   },
   {
     id: "leads",
-    title: "Marketing Leads",
-    category: "Marketing",
-    path: "/marketing/leads",
-    keywords: ["marketing", "leads", "potential clients", "new sales"],
-    description: "View and manage marketing leads.",
+    title: "CRM Leads",
+    category: "CRM",
+    path: "/crm/leads",
+    keywords: ["crm", "marketing", "leads", "potential clients", "new sales"],
+    description: "View and manage CRM leads.",
   },
   {
     id: "newsletter",
     title: "Newsletter",
-    category: "Marketing",
-    path: "/marketing/newsletter",
-    keywords: ["email", "campaign", "marketing", "newsletter"],
+    category: "CRM",
+    path: "/crm/newsletter",
+    keywords: ["email", "campaign", "crm", "newsletter"],
     description: "Manage newsletter subscriptions and campaigns.",
   },
   {
@@ -160,20 +160,20 @@ export const navigationIndex: SearchItem[] = [
     description: "The main client management table.",
   },
 
-  // Sections on Marketing
+  // Sections on CRM
   {
     id: "leads-table",
-    title: "Marketing Leads Table",
+    title: "CRM Leads Table",
     category: "Section",
-    path: "/marketing/leads#leads-table",
+    path: "/crm/leads#leads-table",
     keywords: ["leads-list", "sales-leads"],
-    description: "Detailed table of marketing leads.",
+    description: "Detailed table of CRM leads.",
   },
   {
     id: "subscribers-table",
     title: "Newsletter Subscribers",
     category: "Section",
-    path: "/marketing/newsletter#subscribers-table",
+    path: "/crm/newsletter#subscribers-table",
     keywords: ["emails", "subs", "list"],
     description: "Manage newsletter subscription list.",
   },

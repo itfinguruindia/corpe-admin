@@ -23,7 +23,13 @@ export type PermissionModule =
   | "Audit Logs"
   | "Reports";
 
-export type PermissionAction = "view" | "create" | "edit" | "delete" | "export";
+export type PermissionAction =
+  | "view"
+  | "create"
+  | "edit"
+  | "delete"
+  | "export"
+  | "assign";
 
 export interface Permission {
   id: string;

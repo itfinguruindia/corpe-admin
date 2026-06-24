@@ -10,7 +10,7 @@ const PATH_MODULE_MAP: Array<{ pattern: RegExp; module: string; label: string }>
     { pattern: /^\/dashboard/, module: "Dashboard", label: "Dashboard" },
     { pattern: /^\/clients/, module: "Clients", label: "Clients" },
     { pattern: /^\/feedbacks/, module: "Feedbacks", label: "Feedbacks" },
-    { pattern: /^\/marketing/, module: "Marketing", label: "Marketing" },
+    { pattern: /^\/crm/, module: "CRM", label: "CRM" },
     { pattern: /^\/documents/, module: "Documents", label: "Documents" },
     { pattern: /^\/communication/, module: "Communication", label: "Communication" },
     { pattern: /^\/tickets/, module: "Tickets", label: "Raised Tickets" },
