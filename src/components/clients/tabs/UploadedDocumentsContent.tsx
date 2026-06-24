@@ -341,7 +341,12 @@ export default function UploadedDocumentsContent({
     onRefresh?: () => void,
     refreshing?: boolean,
   ) => {
-    const isLocked = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
+    // Admin must be able to upload the template in all conditions so the
+    // client can download and upload signed copy.
+    const lockAdminTemplate = false;
+    const lockClientSignedCopy = !!(
+      installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid
+    );
 
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[180px]">
@@ -380,13 +385,13 @@ export default function UploadedDocumentsContent({
                 </span>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={isLocked ? undefined : () =>
+                    onClick={lockAdminTemplate ? undefined : () =>
                       handleDocUpload(docTypeAdmin, "Admin Template")
                     }
-                    disabled={isLocked}
-                    title={isLocked ? "Locked — installment due" : "Upload template"}
+                    disabled={lockAdminTemplate}
+                    title={lockAdminTemplate ? "Locked" : "Upload template"}
                     className={`p-1.5 rounded-lg transition-colors ${
-                      isLocked
+                      lockAdminTemplate
                         ? "text-gray-300 cursor-not-allowed"
                         : "text-gray-500 hover:text-primary hover:bg-orange-50 cursor-pointer"
                     }`}
@@ -395,13 +400,13 @@ export default function UploadedDocumentsContent({
                   </button>
                   {adminFile && (
                     <button
-                      onClick={isLocked ? undefined : () =>
+                      onClick={lockAdminTemplate ? undefined : () =>
                         handleDocDelete(docTypeAdmin, "Admin Template")
                       }
-                      disabled={isLocked}
-                      title={isLocked ? "Locked — installment due" : "Delete template"}
+                      disabled={lockAdminTemplate}
+                      title={lockAdminTemplate ? "Locked" : "Delete template"}
                       className={`p-1.5 rounded-lg transition-colors ${
-                        isLocked
+                        lockAdminTemplate
                           ? "text-gray-300 cursor-not-allowed"
                           : "text-red-500 hover:bg-red-50 cursor-pointer"
                       }`}
@@ -465,13 +470,17 @@ export default function UploadedDocumentsContent({
                 <div className="flex items-center gap-2">
                   {clientFile && (
                     <button
-                      onClick={isLocked ? undefined : () =>
+                      onClick={lockClientSignedCopy ? undefined : () =>
                         handleDocDelete(docTypeClient, "Client Signed Copy")
                       }
-                      disabled={isLocked}
-                      title={isLocked ? "Locked — installment due" : "Delete client copy"}
+                      disabled={lockClientSignedCopy}
+                      title={
+                        lockClientSignedCopy
+                          ? "Locked — installment due"
+                          : "Delete client copy"
+                      }
                       className={`p-1.5 rounded-lg transition-colors ${
-                        isLocked
+                        lockClientSignedCopy
                           ? "text-gray-300 cursor-not-allowed"
                           : "text-red-500 hover:bg-red-50 cursor-pointer"
                       }`}
