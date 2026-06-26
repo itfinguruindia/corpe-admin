@@ -143,16 +143,19 @@ export default function TrackingStatusContent({
 
   useEffect(() => {
     if (appNo) {
-      clientsApi.getNameExtensionStatus(appNo).then((res) => {
-        if (res?.data) setExtensionStatus(res.data);
-      }).catch(() => {});
+      clientsApi
+        .getNameExtensionStatus(appNo)
+        .then((res) => {
+          if (res?.data) setExtensionStatus(res.data);
+        })
+        .catch(() => {});
     }
   }, [appNo]);
 
   useEffect(() => {
     const currentAttemptNum = extensionStatus?.currentAttempt || 1;
     const attempt = extensionStatus?.attempts?.find(
-      (a: any) => a.attemptNumber === currentAttemptNum
+      (a: any) => a.attemptNumber === currentAttemptNum,
     );
 
     if (!attempt || !attempt.countdownStartDate) {
@@ -176,11 +179,15 @@ export default function TrackingStatusContent({
         setExtTimeLeft("00d : 00h : 00m : 00s");
       } else {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const hours = Math.floor(
+          (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+        );
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        const pad = (n: number) => String(n).padStart(2, '0');
-        setExtTimeLeft(`${pad(days)}d : ${pad(hours)}h : ${pad(minutes)}m : ${pad(seconds)}s`);
+        const pad = (n: number) => String(n).padStart(2, "0");
+        setExtTimeLeft(
+          `${pad(days)}d : ${pad(hours)}h : ${pad(minutes)}m : ${pad(seconds)}s`,
+        );
       }
     };
 
@@ -351,7 +358,9 @@ export default function TrackingStatusContent({
       if (res && res.data) {
         setExtensionStatus(res.data);
       }
-      alert("Restart requested successfully. Client has been notified and rejection flow initialized.");
+      alert(
+        "Restart requested successfully. Client has been notified and rejection flow initialized.",
+      );
     } catch (err: any) {
       console.error("Failed to request restart:", err);
       alert(err.response?.data?.message || "Failed to request restart.");
@@ -668,97 +677,135 @@ export default function TrackingStatusContent({
         )}
 
         {/* Name Extension Status Banner */}
-        {extensionStatus && extensionStatus.overallStatus !== 'inactive' && extensionStatus.overallStatus !== 'done' && (
-          <div className={`rounded-xl p-4 flex items-center gap-3 shadow-sm border ${
-            extensionStatus.overallStatus === 'restart_required' || extensionStatus.overallStatus === 'expired'
-              ? 'bg-red-50 border-red-300'
-              : extensionStatus.overallStatus === 'paid' || extensionStatus.overallStatus === 'in_progress'
-                ? 'bg-blue-50 border-blue-300'
-                : 'bg-amber-50 border-amber-300'
-          }`}>
-            <AlertCircle className={`w-5 h-5 shrink-0 self-start mt-1 ${
-              extensionStatus.overallStatus === 'restart_required' || extensionStatus.overallStatus === 'expired'
-                ? 'text-red-600'
-                : extensionStatus.overallStatus === 'paid' || extensionStatus.overallStatus === 'in_progress'
-                  ? 'text-blue-600'
-                  : 'text-amber-600'
-            }`} />
-            {extensionStatus.overallStatus === 'restart_required' ? (
-              <div className="flex-1 flex flex-col md:flex-row items-start justify-between gap-4">
-                <div className="space-y-3">
-                  <p className="text-sm font-bold text-red-900 uppercase tracking-wide">
-                    Application Restart Required
-                  </p>
-                  <p className="text-xs text-red-700 leading-relaxed font-medium max-w-2xl">
-                    Both name extension payments were missed and SPICe+ Part B was not filed within 20 days — the current MCA name reservation has lapsed.
-                  </p>
-                  <div className="flex flex-wrap gap-4 text-xs font-semibold uppercase tracking-wider text-red-900 bg-red-100/50 rounded-lg p-3 w-fit">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
-                      Ext 1 — Missed
-                    </span>
-                    <span className="text-red-300">|</span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
-                      Ext 2 — Missed
-                    </span>
-                    <span className="text-red-300">|</span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
-                      SPICe B — Not Filed
-                    </span>
+        {extensionStatus &&
+          extensionStatus.overallStatus !== "inactive" &&
+          extensionStatus.overallStatus !== "done" && (
+            <div
+              className={`rounded-xl p-4 flex items-center gap-3 shadow-sm border ${
+                extensionStatus.overallStatus === "restart_required" ||
+                extensionStatus.overallStatus === "expired"
+                  ? "bg-red-50 border-red-300"
+                  : extensionStatus.overallStatus === "paid" ||
+                      extensionStatus.overallStatus === "in_progress"
+                    ? "bg-blue-50 border-blue-300"
+                    : "bg-amber-50 border-amber-300"
+              }`}
+            >
+              <AlertCircle
+                className={`w-5 h-5 shrink-0 self-start mt-1 ${
+                  extensionStatus.overallStatus === "restart_required" ||
+                  extensionStatus.overallStatus === "expired"
+                    ? "text-red-600"
+                    : extensionStatus.overallStatus === "paid" ||
+                        extensionStatus.overallStatus === "in_progress"
+                      ? "text-blue-600"
+                      : "text-amber-600"
+                }`}
+              />
+              {extensionStatus.overallStatus === "restart_required" ? (
+                <div className="flex-1 flex flex-col md:flex-row items-start justify-between gap-4">
+                  <div className="space-y-3">
+                    <p className="text-sm font-bold text-red-900 uppercase tracking-wide">
+                      Application Restart Required
+                    </p>
+                    <p className="text-xs text-red-700 leading-relaxed font-medium max-w-2xl">
+                      Both name extension payments were missed and SPICe+ Part B
+                      was not filed within 20 days — the current MCA name
+                      reservation has lapsed.
+                    </p>
+                    <div className="flex flex-wrap gap-4 text-xs font-semibold uppercase tracking-wider text-red-900 bg-red-100/50 rounded-lg p-3 w-fit">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+                        Ext 1 — Missed
+                      </span>
+                      <span className="text-red-300">|</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+                        Ext 2 — Missed
+                      </span>
+                      <span className="text-red-300">|</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+                        SPICe B — Not Filed
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex md:flex-col lg:flex-row gap-3 w-full md:w-auto shrink-0">
+                    <button
+                      onClick={handleRequestRestart}
+                      disabled={isRequestingRestart}
+                      className="flex-1 md:flex-initial text-center bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition-colors cursor-pointer border-none disabled:opacity-50"
+                    >
+                      {isRequestingRestart
+                        ? "Requesting..."
+                        : "Request Restart from Client"}
+                    </button>
+                    <button
+                      onClick={() =>
+                        setExtensionStatus((prev: any) =>
+                          prev
+                            ? { ...prev, overallStatus: "expired" as const }
+                            : prev,
+                        )
+                      }
+                      className="flex-1 md:flex-initial text-center bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+                    >
+                      Dismiss for now
+                    </button>
                   </div>
                 </div>
-                <div className="flex md:flex-col lg:flex-row gap-3 w-full md:w-auto shrink-0">
-                  <button
-                    onClick={handleRequestRestart}
-                    disabled={isRequestingRestart}
-                    className="flex-1 md:flex-initial text-center bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition-colors cursor-pointer border-none disabled:opacity-50"
+              ) : (
+                <div className="flex-1">
+                  <p
+                    className={`text-sm font-bold ${
+                      extensionStatus.overallStatus === "expired"
+                        ? "text-red-900"
+                        : extensionStatus.overallStatus === "paid" ||
+                            extensionStatus.overallStatus === "in_progress"
+                          ? "text-blue-900"
+                          : "text-amber-900"
+                    }`}
                   >
-                    {isRequestingRestart ? "Requesting..." : "Request Restart from Client"}
-                  </button>
-                  <button
-                    onClick={() => setExtensionStatus((prev: any) => prev ? { ...prev, overallStatus: 'expired' as const } : prev)}
-                    className="flex-1 md:flex-initial text-center bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+                    {extensionStatus.overallStatus === "monitoring" &&
+                      "Name Hold Monitoring — SPICe+ Part B pending"}
+                    {extensionStatus.overallStatus === "countdown" &&
+                      `Name Hold Expiring — Attempt ${extensionStatus.currentAttempt}`}
+                    {extensionStatus.overallStatus === "pay_now" &&
+                      `Payment Required — Name Extension Attempt ${extensionStatus.currentAttempt}`}
+                    {extensionStatus.overallStatus === "paid" &&
+                      "Name Extension — Payment Received"}
+                    {extensionStatus.overallStatus === "in_progress" &&
+                      "Name Extension — MCA Processing"}
+                    {extensionStatus.overallStatus === "expired" &&
+                      "Name Extension Expired"}
+                  </p>
+                  <p
+                    className={`text-xs mt-0.5 ${
+                      extensionStatus.overallStatus === "expired"
+                        ? "text-red-700"
+                        : extensionStatus.overallStatus === "paid" ||
+                            extensionStatus.overallStatus === "in_progress"
+                          ? "text-blue-700"
+                          : "text-amber-700"
+                    }`}
                   >
-                    Dismiss for now
-                  </button>
+                    {extensionStatus.overallStatus === "monitoring" &&
+                      "Monitoring 20-day window. Name extension will activate at 5 days remaining."}
+                    {extensionStatus.overallStatus === "countdown" &&
+                      `Attempt ${extensionStatus.currentAttempt} — ${extensionStatus.currentAttempt === 1 ? "₹1,000" : "₹2,000"} fee required before expiry.`}
+                    {extensionStatus.overallStatus === "pay_now" &&
+                      `Client can pay now. Send payment link or wait for auto-enable.`}
+                    {extensionStatus.overallStatus === "paid" &&
+                      "Payment confirmed. Admin can mark the extension step as Done after MCA processing."}
+                    {extensionStatus.overallStatus === "in_progress" &&
+                      "Admin is working on MCA portal to extend the name hold."}
+                    {extensionStatus.overallStatus === "expired" &&
+                      "Extension window lapsed. Contact client to discuss next steps."}
+                  </p>
                 </div>
-              </div>
-            ) : (
-              <div className="flex-1">
-                <p className={`text-sm font-bold ${
-                  extensionStatus.overallStatus === 'expired'
-                    ? 'text-red-900'
-                    : extensionStatus.overallStatus === 'paid' || extensionStatus.overallStatus === 'in_progress'
-                      ? 'text-blue-900'
-                      : 'text-amber-900'
-                }`}>
-                  {extensionStatus.overallStatus === 'monitoring' && 'Name Hold Monitoring — SPICe+ Part B pending'}
-                  {extensionStatus.overallStatus === 'countdown' && `Name Hold Expiring — Attempt ${extensionStatus.currentAttempt}`}
-                  {extensionStatus.overallStatus === 'pay_now' && `Payment Required — Name Extension Attempt ${extensionStatus.currentAttempt}`}
-                  {extensionStatus.overallStatus === 'paid' && 'Name Extension — Payment Received'}
-                  {extensionStatus.overallStatus === 'in_progress' && 'Name Extension — MCA Processing'}
-                  {extensionStatus.overallStatus === 'expired' && 'Name Extension Expired'}
-                </p>
-                <p className={`text-xs mt-0.5 ${
-                  extensionStatus.overallStatus === 'expired'
-                    ? 'text-red-700'
-                    : extensionStatus.overallStatus === 'paid' || extensionStatus.overallStatus === 'in_progress'
-                      ? 'text-blue-700'
-                      : 'text-amber-700'
-                }`}>
-                  {extensionStatus.overallStatus === 'monitoring' && 'Monitoring 20-day window. Name extension will activate at 5 days remaining.'}
-                  {extensionStatus.overallStatus === 'countdown' && `Attempt ${extensionStatus.currentAttempt} — ${extensionStatus.currentAttempt === 1 ? '₹1,000' : '₹2,000'} fee required before expiry.`}
-                  {extensionStatus.overallStatus === 'pay_now' && `Client can pay now. Send payment link or wait for auto-enable.`}
-                  {extensionStatus.overallStatus === 'paid' && 'Payment confirmed. Admin can mark the extension step as Done after MCA processing.'}
-                  {extensionStatus.overallStatus === 'in_progress' && 'Admin is working on MCA portal to extend the name hold.'}
-                  {extensionStatus.overallStatus === 'expired' && 'Extension window lapsed. Contact client to discuss next steps.'}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4 items-start">
@@ -957,14 +1004,17 @@ export default function TrackingStatusContent({
 
                           {/* Steps Checklist */}
                           <div className="divide-y divide-slate-100">
-                              {section.steps
-                                .filter((step) => !step.isHidden)
-                                .map((step) => {
-                                  const isUrgent =
-                                    step.status === "Action Needed";
-                                  const extCurrentAttNum = extensionStatus?.currentAttempt || 1;
-                                  const extActiveAtt = extensionStatus?.attempts?.find(
-                                    (a: any) => a.attemptNumber === extCurrentAttNum,
+                            {section.steps
+                              .filter((step) => !step.isHidden)
+                              .map((step) => {
+                                const isUrgent =
+                                  step.status === "Action Needed";
+                                const extCurrentAttNum =
+                                  extensionStatus?.currentAttempt || 1;
+                                const extActiveAtt =
+                                  extensionStatus?.attempts?.find(
+                                    (a: any) =>
+                                      a.attemptNumber === extCurrentAttNum,
                                   );
 
                                 return (
@@ -1043,26 +1093,46 @@ export default function TrackingStatusContent({
                                         {(step as any).extensionMetadata && (
                                           <div className="mt-2 flex flex-col gap-2">
                                             {/* Status-based card */}
-                                            {extActiveAtt?.status === 'paid' || extActiveAtt?.status === 'in_progress' ? (
+                                            {extActiveAtt?.status === "paid" ||
+                                            extActiveAtt?.status ===
+                                              "in_progress" ? (
                                               <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 shadow-sm">
                                                 <div className="flex items-center gap-2">
                                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                                                   <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
-                                                    Name Extension — Payment Received
+                                                    Name Extension — Payment
+                                                    Received
                                                   </span>
                                                 </div>
                                                 <p className="text-[10px] text-emerald-700 mt-1 font-medium">
-                                                  Payment confirmed for attempt {extActiveAtt.attemptNumber}. {extActiveAtt.status === 'in_progress' ? 'Admin is working on MCA portal.' : 'Awaiting admin action on MCA portal.'}
+                                                  Payment confirmed for attempt{" "}
+                                                  {extActiveAtt.attemptNumber}.{" "}
+                                                  {extActiveAtt.status ===
+                                                  "in_progress"
+                                                    ? "Admin is working on MCA portal."
+                                                    : "Awaiting admin action on MCA portal."}
                                                 </p>
                                               </div>
-                                            ) : extActiveAtt?.status === 'done' ? (
+                                            ) : extActiveAtt?.status ===
+                                              "done" ? (
                                               <div className="flex items-center gap-2 text-[10px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 shadow-sm">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                                                <span>Name reservation extended — {extActiveAtt.attemptNumber === 1 ? '1st' : '2nd'} attempt ✓</span>
+                                                <span>
+                                                  Name reservation extended —{" "}
+                                                  {extActiveAtt.attemptNumber ===
+                                                  1
+                                                    ? "1st"
+                                                    : "2nd"}{" "}
+                                                  attempt ✓
+                                                </span>
                                               </div>
-                                            ) : extActiveAtt?.status === 'expired' ? (
+                                            ) : extActiveAtt?.status ===
+                                              "expired" ? (
                                               <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 shadow-sm">
-                                                <span className="text-[10px] font-bold text-red-800">Name extension expired — restart required</span>
+                                                <span className="text-[10px] font-bold text-red-800">
+                                                  Name extension expired —
+                                                  restart required
+                                                </span>
                                               </div>
                                             ) : extTimeLeft ? (
                                               <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 shadow-sm">
@@ -1075,29 +1145,42 @@ export default function TrackingStatusContent({
                                                   </span>
                                                 </div>
                                                 <p className="text-[10px] text-gray-500 mt-1">
-                                                  Payment must be completed before expiry to prevent name loss.
+                                                  Payment must be completed
+                                                  before expiry to prevent name
+                                                  loss.
                                                 </p>
                                               </div>
                                             ) : null}
                                             {/* Attempt history chips */}
                                             <div className="flex flex-wrap gap-2">
-                                              {((step as any).extensionMetadata.attempts || []).map((att: any, attIdx: number) => (
-                                                <span
-                                                  key={attIdx}
-                                                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono border ${
-                                                    att.status === 'done'
-                                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                                      : att.status === 'paid' || att.status === 'in_progress'
-                                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                                        : att.status === 'expired'
-                                                          ? 'bg-red-50 text-red-700 border-red-200'
-                                                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                                                  }`}
-                                                >
-                                                  Ext {att.attemptNumber}: {att.status}
-                                                </span>
-                                              ))}
-                                              {(step as any).extensionMetadata.spiceBSubmitted && (
+                                              {(
+                                                (step as any).extensionMetadata
+                                                  .attempts || []
+                                              ).map(
+                                                (att: any, attIdx: number) => (
+                                                  <span
+                                                    key={attIdx}
+                                                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono border ${
+                                                      att.status === "done"
+                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                        : att.status ===
+                                                              "paid" ||
+                                                            att.status ===
+                                                              "in_progress"
+                                                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                                                          : att.status ===
+                                                              "expired"
+                                                            ? "bg-red-50 text-red-700 border-red-200"
+                                                            : "bg-amber-50 text-amber-700 border-amber-200"
+                                                    }`}
+                                                  >
+                                                    Ext {att.attemptNumber}:{" "}
+                                                    {att.status}
+                                                  </span>
+                                                ),
+                                              )}
+                                              {(step as any).extensionMetadata
+                                                .spiceBSubmitted && (
                                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded font-mono bg-green-50 text-green-700 border border-green-200">
                                                   SPICe+ B ✓
                                                 </span>
@@ -1173,27 +1256,56 @@ export default function TrackingStatusContent({
                                           ariaLabel={`Status for ${step.title}`}
                                           options={statusOptions.filter(
                                             (opt) => {
-                                              if (step.title === "Name reservation letter received") {
-                                                return opt.id === "In Progress" || opt.id === "Done" || opt.id === "Pending" || opt.id === "Rejected";
+                                              if (
+                                                step.title ===
+                                                "Name reservation letter received"
+                                              ) {
+                                                return (
+                                                  opt.id === "In Progress" ||
+                                                  opt.id === "Done" ||
+                                                  opt.id === "Pending" ||
+                                                  opt.id === "Rejected"
+                                                );
                                               }
 
-                                              if (step.title.startsWith("Name reservation extension") || step.title.startsWith("Name reservation extended")) {
-                                                return opt.id === "Done" || opt.id === "In Progress" || opt.id === "Pending" || opt.id === "Action Needed";
+                                              if (
+                                                step.title.startsWith(
+                                                  "Name reservation extension",
+                                                ) ||
+                                                step.title.startsWith(
+                                                  "Name reservation extended",
+                                                )
+                                              ) {
+                                                return (
+                                                  opt.id === "Done" ||
+                                                  opt.id === "In Progress" ||
+                                                  opt.id === "Pending" ||
+                                                  opt.id === "Action Needed"
+                                                );
                                               }
 
                                               if (step.ownerType === "client") {
-                                                return opt.id === "Pending" || opt.id === "Done" || opt.id === "Action Needed";
+                                                return (
+                                                  opt.id === "Pending" ||
+                                                  opt.id === "Done" ||
+                                                  opt.id === "Action Needed"
+                                                );
                                               }
 
                                               if (opt.id === "Not Available") {
                                                 return (
-                                                  step.title === "MCA portal availability check" ||
-                                                  step.title === "Trademark Check"
+                                                  step.title ===
+                                                    "Name availability check" ||
+                                                  step.title ===
+                                                    "Trademark Check"
                                                 );
                                               }
 
                                               if (opt.id === "Action Needed") {
-                                                return step.title === "ROC reviewed the name application";
+                                                return (
+                                                  step.title ===
+                                                  "ROC reviewed the name application"
+                                                );
                                               }
 
                                               return true;
