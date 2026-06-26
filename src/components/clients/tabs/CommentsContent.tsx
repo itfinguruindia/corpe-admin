@@ -13,6 +13,8 @@ import {
 } from "@/constants/globalCommentAreas";
 import { getFileType } from "@/utils/helpers";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { getCommentAreaDisplayLabel } from "@/utils/companyTypeLabels";
 
 interface CommentsContentProps {
   appNo: string;
@@ -37,6 +39,7 @@ const formatCommentDate = (value: string) =>
 
 export default function CommentsContent({ appNo }: CommentsContentProps) {
   const { requireEdit } = useClientTabEdit("comments");
+  const { companyType } = useClientCompanyLabels();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [comments, setComments] = useState<GlobalCommentItem[]>([]);
@@ -167,7 +170,7 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
           >
             {GLOBAL_COMMENT_AREAS.map((area) => (
               <option key={area} value={area}>
-                {area}
+                {getCommentAreaDisplayLabel(area, companyType)}
               </option>
             ))}
           </select>
@@ -276,7 +279,7 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
             <option value="all">All Areas</option>
             {GLOBAL_COMMENT_AREAS.map((area) => (
               <option key={area} value={area}>
-                {area}
+                {getCommentAreaDisplayLabel(area, companyType)}
               </option>
             ))}
           </select>
@@ -301,7 +304,7 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
                         "bg-slate-100 text-slate-700"
                       }`}
                     >
-                      {comment.area}
+                      {getCommentAreaDisplayLabel(comment.area, companyType)}
                     </span>
                     <span className="text-xs text-slate-500">
                       {formatCommentDate(comment.createdAt)}

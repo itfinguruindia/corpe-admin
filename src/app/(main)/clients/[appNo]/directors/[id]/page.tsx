@@ -9,10 +9,12 @@ import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch, Chip } from "@/components/ui";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 
 export default function DirectorDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
+  const { labels } = useClientCompanyLabels();
   const { requireEdit, canEdit } = useClientTabEdit("director");
   const [director, setDirector] = useState<Director | null>(null);
   const [allDirectors, setAllDirectors] = useState<Director[]>([]);
@@ -205,7 +207,7 @@ export default function DirectorDetailPage() {
   if (!director) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Director not found</div>
+        <div className="text-xl text-gray-600">{labels.directorNotFound}</div>
       </div>
     );
   }
@@ -228,7 +230,7 @@ export default function DirectorDetailPage() {
                   : "bg-white text-secondary hover:shadow-md"
               }`}
             >
-              Director {dir.directorNumber}
+              {labels.directorWithNumber(dir.directorNumber)}
             </button>
           ))}
         </div>
@@ -238,7 +240,7 @@ export default function DirectorDetailPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-semibold text-secondary">
-                Director {director.directorNumber}
+                {labels.directorWithNumber(director.directorNumber)}
               </h2>
               {director.isBankSigningAuthority && (
                 <Chip label="Bank Signing Authority" variant="blue" />
@@ -249,7 +251,7 @@ export default function DirectorDetailPage() {
                 onClick={() => router.push(`/clients/${appNo}/directors`)}
                 className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-md font-medium transition-colors"
               >
-                View more Directors
+                {labels.viewMoreDirectors}
               </button>
               <button
                 onClick={() =>
@@ -268,7 +270,7 @@ export default function DirectorDetailPage() {
           <div className="w-full grid grid-cols-2 justify-between border-b border-[#F9A826]">
             <div className="flex items-center gap-3 pb-4">
               <span className="text-sm font-semibold text-gray-900">
-                Do you have DIN?
+                {labels.doYouHaveDin}
               </span>
               <div className="flex bg-gray-200 rounded-md overflow-hidden">
                 <button
@@ -295,17 +297,17 @@ export default function DirectorDetailPage() {
             </div>
             <div className="pl-4 flex items-center justify-between gap-4">
               <InfoField
-                label="DIN"
+                label={labels.din}
                 value={director?.din || "N/A"}
                 border={false}
               />
               {hasDIN && (
                 <div className="flex flex-col gap-1 min-w-[150px]">
                   <span className="text-[12px] font-semibold text-gray-500">
-                    DIN Status
+                    {labels.dinStatus}
                   </span>
                   <CustomSelect
-                    ariaLabel="DIN Status"
+                    ariaLabel={labels.dinStatus}
                     value={dinStatus}
                     onChange={handleDinStatusChange}
                     options={[
@@ -328,7 +330,7 @@ export default function DirectorDetailPage() {
           {/* Director Information */}
           <div className="grid grid-cols-2 gap-x-8">
             <InfoField
-              label="Director Name"
+              label={labels.directorName}
               value={String(director.directorName)}
             />
             <InfoField label="Father name" value={director.fatherName} />

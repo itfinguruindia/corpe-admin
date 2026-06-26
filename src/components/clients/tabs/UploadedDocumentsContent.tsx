@@ -20,6 +20,7 @@ import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 
 interface UploadedDocumentsContentProps {
   appNo: string;
@@ -29,6 +30,7 @@ export default function UploadedDocumentsContent({
   appNo,
 }: UploadedDocumentsContentProps) {
   const router = useRouter();
+  const { labels } = useClientCompanyLabels();
   const { requireEdit } = useClientTabEdit("company");
   const [directors, setDirectors] = useState<
     { id: string; directorNumber: number }[]
@@ -552,8 +554,7 @@ export default function UploadedDocumentsContent({
       <div className="max-w-7xl mx-auto">
         <div className="mb-10">
           <p className="text-gray-500 mt-2 text-lg">
-            Manage and view uploaded documents for directors, shareholders, and
-            registered office proofs.
+            {labels.uploadedDocsDescription}
           </p>
         </div>
 
@@ -570,7 +571,7 @@ export default function UploadedDocumentsContent({
               <div className="bg-primary/10 p-2 rounded-lg">
                 <UserCheck className="text-primary w-6 h-6" />
               </div>
-              <h2 className="text-2xl font-bold text-secondary">Directors</h2>
+              <h2 className="text-2xl font-bold text-secondary">{labels.directors}</h2>
               <span className="bg-gray-200 text-gray-700 px-3 py-0.5 rounded-full text-sm font-medium ml-auto">
                 {directors.length}
               </span>
@@ -581,14 +582,14 @@ export default function UploadedDocumentsContent({
                 {directors.map((director) => (
                   <TabCard
                     key={director.id}
-                    label={`Director ${director.directorNumber}`}
+                    label={labels.directorWithNumber(director.directorNumber)}
                     onClick={() => handleDirectorClick(director)}
                     className="text-left hover:border-primary/50 transition-all shadow-sm hover:shadow-md"
                   />
                 ))}
               </div>
             ) : (
-              <EmptyState message="No directors listed for this application." />
+              <EmptyState message={labels.noDirectorsListed} />
             )}
           </section>
 
@@ -599,7 +600,7 @@ export default function UploadedDocumentsContent({
                 <Users className="text-blue-600 w-6 h-6" />
               </div>
               <h2 className="text-2xl font-bold text-secondary">
-                Shareholders
+                {labels.shareholders}
               </h2>
               <span className="bg-gray-200 text-gray-700 px-3 py-0.5 rounded-full text-sm font-medium ml-auto">
                 {shareholders.length}
@@ -611,14 +612,14 @@ export default function UploadedDocumentsContent({
                 {shareholders.map((shareholder) => (
                   <TabCard
                     key={shareholder.id}
-                    label={`Shareholder ${shareholder.shareholderNumber}`}
+                    label={labels.shareholderWithNumber(shareholder.shareholderNumber)}
                     onClick={() => handleShareholderClick(shareholder)}
                     className="text-left hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
                   />
                 ))}
               </div>
             ) : (
-              <EmptyState message="No shareholders listed for this application." />
+              <EmptyState message={labels.noShareholdersListed} />
             )}
           </section>
         </div>

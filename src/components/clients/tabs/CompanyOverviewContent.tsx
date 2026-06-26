@@ -6,6 +6,8 @@ import { clientsApi } from "@/lib/api/clients";
 import { InfoField } from "@/components/ui";
 import { Chip, Spinner, Switch } from "@heroui/react";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { isLlpCompanyType } from "@/utils/companyTypeLabels";
 
 interface CompanyOverviewContentProps {
   appNo: string;
@@ -15,7 +17,11 @@ export default function CompanyOverviewContent({
   appNo,
 }: CompanyOverviewContentProps) {
   const { requireEdit, canEdit } = useClientTabEdit("company");
+  const { labels } = useClientCompanyLabels();
   const [companyData, setCompanyData] = useState<CompanyOverview | null>(null);
+  const [resolvedCompanyType, setResolvedCompanyType] = useState<string | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [allDocsVerify, setAllDocsVerified] = useState(false);
 
@@ -33,6 +39,10 @@ export default function CompanyOverviewContent({
             const psRes = await clientsApi.getPaymentStatus(appNo);
             paymentStatus = psRes?.status ?? "Pending";
           } catch { /* keep default */ }
+
+          const isLlp = isLlpCompanyType(apiData.companyType);
+          const capitalDetails =
+            apiData.corporateStructure?.capitalDetails || {};
 
           const mapped: CompanyOverview = {
             id: apiData._id,
@@ -66,16 +76,18 @@ export default function CompanyOverviewContent({
             officeEmail:
               apiData.corporateStructure?.registeredOffice?.officeEmail || "-",
             clientName: `${apiData.client?.firstName || "-"} ${apiData.client?.lastName || "-"}`,
-            capitalDetails:
-              apiData.corporateStructure?.capitalDetails?.authorizedCapital ||
-              0,
-            paidUpCapital:
-              apiData.corporateStructure?.capitalDetails?.paidUpCapital || 0,
+            capitalDetails: isLlp
+              ? capitalDetails.obligationOfContribution || 0
+              : capitalDetails.authorizedCapital || 0,
+            paidUpCapital: isLlp
+              ? 0
+              : capitalDetails.paidUpCapital || 0,
             planChoose: "Basic", // Dummy
             packageType: "Full payment", // Dummy
             createdAt: undefined,
             updatedAt: undefined,
           };
+          setResolvedCompanyType(apiData.companyType ?? null);
           setCompanyData(mapped);
           setAllDocsVerified(mapped.allDocsVerify);
         } else {
@@ -166,7 +178,12 @@ export default function CompanyOverviewContent({
             label="Jurisdiction of Police station"
             value={companyData.policeStationJurisdiction}
           />
-          <InfoField label="Entity Type" value={companyData.entityType} />
+          <InfoField
+            label="Entity Type"
+            value={labels.formatEntityType(
+              resolvedCompanyType || companyData.entityType,
+            )}
+          />
 
           <InfoField label="Industry" value={companyData.industry} />
 
@@ -192,20 +209,21 @@ export default function CompanyOverviewContent({
           />
           <InfoField label="Client Name" value={companyData.clientName} />
           <InfoField
-            label="Capital Details"
+            label={labels.capitalDetailsLabel}
             value={formatCurrency(companyData.capitalDetails)}
             sublabel="(Recommendation - Minimum 1 Lakh INR)"
             sublabelColor="text-red-500"
           />
+          {labels.showPaidUpCapital && (
+            <InfoField
+              label={labels.paidUpCapitalLabel}
+              value={formatCurrency(companyData.paidUpCapital)}
+              sublabel="(Recommendation - Minimum 1 Lakh INR)"
+              sublabelColor="text-red-500"
+            />
+          )}
           <InfoField
-            label="Paid up Capital"
-            value={formatCurrency(companyData.paidUpCapital)}
-            sublabel="(Recommendation - Minimum 1 Lakh INR)"
-            sublabelColor="text-red-500"
-          />
-          {/* start here */}
-          <InfoField
-            label="CIN / LLPIN"
+            label={labels.cinLlpinLabel}
             value={companyData.isIncorporated ? companyData.cinLlpin : "-"}
             sublabel={
               !companyData.isIncorporated

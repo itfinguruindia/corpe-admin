@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { Card, Spinner } from "@heroui/react";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 
 interface ShareholdersContentProps {
   appNo: string;
@@ -14,6 +15,7 @@ export default function ShareholdersContent({
   appNo,
 }: ShareholdersContentProps) {
   const router = useRouter();
+  const { labels } = useClientCompanyLabels();
   const [shareholders, setShareholders] = useState<Shareholder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeShareholder, setActiveShareholder] = useState<number>(1);
@@ -125,7 +127,7 @@ export default function ShareholdersContent({
                   : "bg-white text-secondary hover:shadow-md"
               }`}
             >
-              Shareholder {shareholder.shareholderNumber}
+              {labels.shareholderWithNumber(shareholder.shareholderNumber)}
             </button>
           ))}
         </div>
@@ -133,7 +135,7 @@ export default function ShareholdersContent({
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-secondary">
-              Shareholders {shareholders.length}
+              {labels.totalShareholders(shareholders.length)}
             </h2>
           </div>
 
@@ -148,11 +150,11 @@ export default function ShareholdersContent({
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-gray-900">
-                        Shareholder {shareholder.shareholderNumber}
+                        {labels.shareholderWithNumber(shareholder.shareholderNumber)}
                       </h3>
                       {(shareholder as any).isAlsoDirector && (
                         <span className="text-[10px] bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded border border-blue-200">
-                          Also a director
+                          {labels.alsoADirector}
                         </span>
                       )}
                     </div>
@@ -165,7 +167,7 @@ export default function ShareholdersContent({
                   </div>
                   <div className="text-right">
                     <div className="text-sm text-gray-600">
-                      Shareholding: {shareholder.shareholdingPercentage}%
+                      {labels.shareholdingLabel}: {shareholder.shareholdingPercentage}%
                     </div>
                   </div>
                 </div>

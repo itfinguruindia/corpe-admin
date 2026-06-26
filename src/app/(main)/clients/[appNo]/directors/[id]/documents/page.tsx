@@ -13,6 +13,7 @@ import { getFileType } from "@/utils/helpers";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 
 /* =======================
    CONFIG / RULES
@@ -63,6 +64,7 @@ type DualSourceState = {
 export default function DirectorDocumentsPage() {
   const { appNo, id } = useParams();
   const { requireEdit } = useClientTabEdit("director");
+  const { labels } = useClientCompanyLabels();
 
   const [director, setDirector] = useState<Director | null>(null);
   const [documents, setDocuments] = useState<DirectorDocument[]>([]);
@@ -148,7 +150,7 @@ export default function DirectorDocumentsPage() {
       { key: "presentAddressProof", label: "Present Address Proof" },
       { key: "photo", label: "Photo" },
       { key: "signature", label: "Signature" },
-      { key: "consentToAct", label: "Consent to Act" },
+      { key: "consentToAct", label: labels.consentToAct },
       { key: "dir2", label: "DIR-2" },
       { key: "inc9Director", label: "INC-9" },
       { key: "noPanDeclaration", label: "No PAN Declaration" },
@@ -487,7 +489,7 @@ export default function DirectorDocumentsPage() {
               target={{
                 entityType: "director",
                 entityId: id as string,
-                entityLabel: `${director?.name || "Director"} (Director)`,
+                entityLabel: `${director?.name || labels.director} ${labels.entityDirector}`,
                 fieldKey: docTypeKey,
                 documentLabel: documentType,
                 clientRoute: "document-upload",
@@ -650,7 +652,7 @@ export default function DirectorDocumentsPage() {
   if (!director) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Director not found</div>
+        <div className="text-xl text-gray-600">{labels.directorNotFound}</div>
       </div>
     );
   }
@@ -746,7 +748,7 @@ export default function DirectorDocumentsPage() {
                           target={{
                             entityType: "director",
                             entityId: id as string,
-                            entityLabel: `${director.name} (Director)`,
+                            entityLabel: `${director.name} ${labels.entityDirector}`,
                             fieldKey: document.fieldKey || "",
                             documentLabel: document.documentType,
                             clientRoute: "document-upload",
