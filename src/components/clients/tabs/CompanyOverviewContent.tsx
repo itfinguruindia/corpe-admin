@@ -19,6 +19,7 @@ export default function CompanyOverviewContent({
   const [isLoading, setIsLoading] = useState(true);
   const [allDocsVerify, setAllDocsVerified] = useState(false);
 
+
   useEffect(() => {
     const loadCompanyData = async () => {
       try {
@@ -128,7 +129,7 @@ export default function CompanyOverviewContent({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 space-y-6">
       <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-sm p-8">
         {/* Header */}
         <div className="flex items-start justify-between mb-6 border-b pb-6">
