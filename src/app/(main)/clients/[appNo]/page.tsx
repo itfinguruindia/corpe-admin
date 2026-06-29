@@ -20,6 +20,7 @@ import RegistrationDocumentsContent from "@/components/clients/tabs/Registration
 import PricingAndPaymentContent from "@/components/clients/tabs/PricingAndPaymentContent";
 import CommentsContent from "@/components/clients/tabs/CommentsContent";
 import { safeRouterReplace } from "@/utils/navigation";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 
 const TABS = [
   {
@@ -70,11 +71,22 @@ function isTabKey(value: string): value is TabKey {
   return (TAB_KEYS as readonly string[]).includes(value);
 }
 
+function getTabLabel(
+  key: TabKey,
+  defaultLabel: string,
+  labels: ReturnType<typeof useClientCompanyLabels>["labels"],
+) {
+  if (key === "directors") return labels.directorsTab;
+  if (key === "shareholders") return labels.shareholdersTab;
+  return defaultLabel;
+}
+
 function ClientDetailsTabs() {
   const { appNo } = useParams();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { labels } = useClientCompanyLabels();
   const appNoStr = appNo ? String(appNo) : "";
 
   const tabFromUrl = searchParams.get("tab") ?? "";
@@ -119,7 +131,7 @@ function ClientDetailsTabs() {
             {TABS.map((t, idx) => (
               <Tabs.Tab key={t.key} id={t.key} className="w-max">
                 {idx > 0 && <Tabs.Separator />}
-                <span className="w-max">{t.label}</span>
+                <span className="w-max">{getTabLabel(t.key, t.label, labels)}</span>
                 <Tabs.Indicator className="bg-primary" />
               </Tabs.Tab>
             ))}

@@ -13,9 +13,11 @@ import { getFileType } from "@/utils/helpers";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 
 export default function ShareholderDocumentsPage() {
   const { appNo, id } = useParams();
+  const { labels } = useClientCompanyLabels();
   const { requireEdit } = useClientTabEdit("shareholder");
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
   const [documents, setDocuments] = useState<ShareholderDocument[]>([]);
@@ -311,7 +313,7 @@ export default function ShareholderDocumentsPage() {
   if (!shareholder) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Shareholder not found</div>
+        <div className="text-xl text-gray-600">{labels.shareholderNotFound}</div>
       </div>
     );
   }
@@ -397,7 +399,7 @@ export default function ShareholderDocumentsPage() {
                           target={{
                             entityType: "shareholder",
                             entityId: id as string,
-                            entityLabel: `${shareholder.name} (Shareholder)`,
+                            entityLabel: `${shareholder.name} ${labels.entityShareholder}`,
                             fieldKey: document.fieldKey || "",
                             documentLabel: document.documentType,
                             clientRoute: "document-upload",
@@ -423,7 +425,7 @@ export default function ShareholderDocumentsPage() {
                     target={{
                       entityType: "shareholder",
                       entityId: id as string,
-                      entityLabel: `${shareholder.name} (Shareholder)`,
+                      entityLabel: `${shareholder.name} ${labels.entityShareholder}`,
                       fieldKey: "inc9Shareholder",
                       documentLabel: "INC-9 Shareholder",
                       clientRoute: "document-upload",

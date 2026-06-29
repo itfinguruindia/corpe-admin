@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { ClientAssignmentProvider } from "@/contexts/ClientAssignmentContext";
+import { ClientCompanyTypeProvider } from "@/contexts/ClientCompanyTypeContext";
 import ClientViewOnlyBanner from "@/components/clients/ClientViewOnlyBanner";
 
 export default function ClientAppLayout({
@@ -18,12 +19,14 @@ export default function ClientAppLayout({
 
   return (
     <ClientAssignmentProvider appNo={appNo}>
-      <div className="w-full">
-        <div className="px-4 pt-4 sm:px-5 sm:pt-5">
-          <ClientViewOnlyBanner />
+      <ClientCompanyTypeProvider appNo={appNo}>
+        <div className="w-full">
+          <div className="px-4 pt-4 sm:px-5 sm:pt-5">
+            <ClientViewOnlyBanner />
+          </div>
+          {children}
         </div>
-        {children}
-      </div>
+      </ClientCompanyTypeProvider>
     </ClientAssignmentProvider>
   );
 }

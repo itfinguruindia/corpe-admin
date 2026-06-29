@@ -7,10 +7,12 @@ import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 
 export default function ShareholderDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
+  const { labels } = useClientCompanyLabels();
   const { requireEdit } = useClientTabEdit("shareholder");
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
   const [allShareholders, setAllShareholders] = useState<Shareholder[]>([]);
@@ -203,7 +205,7 @@ export default function ShareholderDetailPage() {
   if (!shareholder) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Shareholder not found</div>
+        <div className="text-xl text-gray-600">{labels.shareholderNotFound}</div>
       </div>
     );
   }
@@ -226,7 +228,7 @@ export default function ShareholderDetailPage() {
                   : "bg-white text-secondary hover:shadow-md"
               }`}
             >
-              Shareholder {sh.shareholderNumber}
+              {labels.shareholderWithNumber(sh.shareholderNumber)}
             </button>
           ))}
         </div>
@@ -236,11 +238,11 @@ export default function ShareholderDetailPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-semibold text-secondary">
-                Shareholder
+                {labels.shareholder}
               </h2>
               {shareholder.isAlsoDirector && (
                 <span className="text-xs bg-blue-50 text-blue-600 font-semibold px-2.5 py-1 rounded border border-blue-200 animate-pulse">
-                  Also a director
+                  {labels.alsoADirector}
                 </span>
               )}
             </div>
@@ -249,7 +251,7 @@ export default function ShareholderDetailPage() {
                 onClick={() => router.push(`/clients/${appNo}/shareholders`)}
                 className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-md font-medium transition-colors"
               >
-                View more Shareholders
+                {labels.viewMoreShareholders}
               </button>
               <button
                 onClick={() =>
@@ -267,17 +269,17 @@ export default function ShareholderDetailPage() {
           {/* Shareholders Count */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-900">
-              Shareholders {allShareholders.length}
+              {labels.totalShareholders(allShareholders.length)}
             </h3>
           </div>
 
           {/* Shareholder Information */}
           <div className="space-y-0">
             {shareholder.din && (
-              <InfoField label="DIN" value={shareholder.din} />
+              <InfoField label={labels.din} value={shareholder.din} />
             )}
             <InfoField
-              label="Shareholder Name"
+              label={labels.shareholderName}
               value={shareholder.shareholderName}
             />
             <InfoField label="Father name" value={shareholder.fatherName} />
