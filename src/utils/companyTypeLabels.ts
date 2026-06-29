@@ -37,6 +37,9 @@ export type StakeholderLabels = {
   entityDirector: string;
   entityShareholder: string;
   consentToAct: string;
+  dir2: string;
+  inc9Director: string;
+  subscriberSheet: string;
   formatEntityType: (raw: string) => string;
   cinLlpinLabel: string;
   capitalDetailsLabel: string;
@@ -74,6 +77,9 @@ const DEFAULT_LABELS: StakeholderLabels = {
   entityDirector: "(Director)",
   entityShareholder: "(Shareholder)",
   consentToAct: "Consent to Act",
+  dir2: "DIR-2",
+  inc9Director: "INC-9",
+  subscriberSheet: "Subscriber Sheet",
   formatEntityType: (raw) => raw,
   cinLlpinLabel: "CIN / LLPIN",
   capitalDetailsLabel: "Capital Details",
@@ -110,7 +116,10 @@ const LLP_LABELS: StakeholderLabels = {
   shareholderName: "Partner Name",
   entityDirector: "(Designated Partner)",
   entityShareholder: "(Partner)",
-  consentToAct: "Consent to Act as Designated Partner",
+  consentToAct: "Consent to Act as Designated Partner (Form 9)",
+  dir2: "Consent to Act as Designated Partner (Form 9)",
+  inc9Director: "Subscriber Sheet",
+  subscriberSheet: "Subscriber Sheet",
   formatEntityType: (raw) =>
     isLlpCompanyType(raw) ? "Limited Liability Partnership" : raw,
   cinLlpinLabel: "LLPIN",

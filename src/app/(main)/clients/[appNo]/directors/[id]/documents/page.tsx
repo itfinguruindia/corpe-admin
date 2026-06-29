@@ -19,24 +19,12 @@ import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
    CONFIG / RULES
 ======================= */
 
-// Document types with dual-source uploads
-const DUAL_SOURCE_DOCS = [
-  "DIR-2",
-  "INC-9",
-  "No PAN Declaration",
-  "Miscellaneous 1",
-  "Miscellaneous 2",
-  "Miscellaneous 3",
-];
-
-// Upload allowed only for dual-source docs (admin can upload drafts)
-const UPLOAD_ALLOWED_DOCS = DUAL_SOURCE_DOCS;
-
-const canUpload = (documentType: string) =>
-  UPLOAD_ALLOWED_DOCS.includes(documentType);
-
-const canPreviewOrDownload = (status: string, documentType: string) => {
-  if (DUAL_SOURCE_DOCS.includes(documentType)) {
+const canPreviewOrDownload = (
+  status: string,
+  documentType: string,
+  dualSourceLabels: string[],
+) => {
+  if (dualSourceLabels.includes(documentType)) {
     return false; // Dual-source docs use separate section
   }
   return status !== "pending";
@@ -64,7 +52,16 @@ type DualSourceState = {
 export default function DirectorDocumentsPage() {
   const { appNo, id } = useParams();
   const { requireEdit } = useClientTabEdit("director");
-  const { labels } = useClientCompanyLabels();
+  const { labels, isLlp } = useClientCompanyLabels();
+
+  const dualSourceDocLabels = [
+    labels.dir2,
+    labels.inc9Director,
+    "No PAN Declaration",
+    "Miscellaneous 1",
+    "Miscellaneous 2",
+    "Miscellaneous 3",
+  ];
 
   const [director, setDirector] = useState<Director | null>(null);
   const [documents, setDocuments] = useState<DirectorDocument[]>([]);
@@ -150,9 +147,11 @@ export default function DirectorDocumentsPage() {
       { key: "presentAddressProof", label: "Present Address Proof" },
       { key: "photo", label: "Photo" },
       { key: "signature", label: "Signature" },
-      { key: "consentToAct", label: labels.consentToAct },
-      { key: "dir2", label: "DIR-2" },
-      { key: "inc9Director", label: "INC-9" },
+      ...(isLlp
+        ? []
+        : [{ key: "consentToAct", label: labels.consentToAct }]),
+      { key: "dir2", label: labels.dir2 },
+      { key: "inc9Director", label: labels.inc9Director },
       { key: "noPanDeclaration", label: "No PAN Declaration" },
       { key: "miscellaneous1", label: "Miscellaneous 1" },
       { key: "miscellaneous2", label: "Miscellaneous 2" },
@@ -200,8 +199,8 @@ export default function DirectorDocumentsPage() {
 
   const getDocTypeKey = (documentType: string): string => {
     const map: Record<string, string> = {
-      "DIR-2": "dir2",
-      "INC-9": "inc9Director",
+      [labels.dir2]: "dir2",
+      [labels.inc9Director]: "inc9Director",
       "No PAN Declaration": "noPanDeclaration",
       "Miscellaneous 1": "miscellaneous1",
       "Miscellaneous 2": "miscellaneous2",
@@ -325,7 +324,7 @@ export default function DirectorDocumentsPage() {
   ======================= */
 
   const handleView = (doc: DirectorDocument) => {
-    if (DUAL_SOURCE_DOCS.includes(doc.documentType)) {
+    if (dualSourceDocLabels.includes(doc.documentType)) {
       return; // Handled in separate section
     }
     if (!doc.fileUrl) return;
@@ -334,7 +333,7 @@ export default function DirectorDocumentsPage() {
   };
 
   const handleDownload = (doc: DirectorDocument) => {
-    if (DUAL_SOURCE_DOCS.includes(doc.documentType)) {
+    if (dualSourceDocLabels.includes(doc.documentType)) {
       return; // Handled in separate section
     }
     if (!doc.fileUrl || !doc.fileName) return;
@@ -474,8 +473,19 @@ export default function DirectorDocumentsPage() {
     const { adminFile, clientFile } = files;
     const isRefreshingDoc =
       isRefreshing[docTypeKey as keyof typeof isRefreshing];
-    const isStage3Gated = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
-    const isLocked = isStage3Gated && ["dir2", "inc9Director", "noPanDeclaration", "miscellaneous1", "miscellaneous2", "miscellaneous3"].includes(docTypeKey);
+    const isStage3Gated = !!(
+      installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid
+    );
+    const isClientUploadLocked =
+      isStage3Gated &&
+      [
+        "dir2",
+        "inc9Director",
+        "noPanDeclaration",
+        "miscellaneous1",
+        "miscellaneous2",
+        "miscellaneous3",
+      ].includes(docTypeKey);
 
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
@@ -503,11 +513,11 @@ export default function DirectorDocumentsPage() {
                 className={`cursor-pointer text-secondary hover:text-primary ${isRefreshingDoc ? "animate-spin" : ""}`}
               />
             </div>
-            <div title={isLocked ? "Locked — installment due" : `Upload ${documentType} (Admin)`}>
+            <div title={`Upload ${documentType} template (Admin)`}>
               <Upload
                 size={20}
-                onClick={isLocked ? undefined : () => handleUpload(documentType)}
-                className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-primary hover:text-secondary"}
+                onClick={() => handleUpload(documentType)}
+                className="cursor-pointer text-primary hover:text-secondary"
               />
             </div>
           </div>
@@ -545,13 +555,13 @@ export default function DirectorDocumentsPage() {
                       className="cursor-pointer text-orange-600 hover:text-orange-700"
                     />
                   </div>
-                  <div title={isLocked ? "Locked — installment due" : "Delete"}>
+                  <div title="Delete template">
                     <Trash2
                       size={16}
-                      onClick={isLocked ? undefined : () =>
+                      onClick={() =>
                         handleDocDelete(documentType, docTypeKey, "admin")
                       }
-                      className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-red-600 hover:text-red-700"}
+                      className="cursor-pointer text-red-600 hover:text-red-700"
                     />
                   </div>
                 </div>
@@ -600,13 +610,30 @@ export default function DirectorDocumentsPage() {
                       className="cursor-pointer text-blue-600 hover:text-blue-700"
                     />
                   </div>
-                  <div title={isLocked ? "Locked — installment due" : "Delete"}>
+                  <div
+                    title={
+                      isClientUploadLocked
+                        ? "Locked — installment due"
+                        : "Delete"
+                    }
+                  >
                     <Trash2
                       size={16}
-                      onClick={isLocked ? undefined : () =>
-                        handleDocDelete(documentType, docTypeKey, "client")
+                      onClick={
+                        isClientUploadLocked
+                          ? undefined
+                          : () =>
+                              handleDocDelete(
+                                documentType,
+                                docTypeKey,
+                                "client",
+                              )
                       }
-                      className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-red-600 hover:text-red-700"}
+                      className={
+                        isClientUploadLocked
+                          ? "text-gray-300 cursor-not-allowed"
+                          : "cursor-pointer text-red-600 hover:text-red-700"
+                      }
                     />
                   </div>
                 </div>
@@ -675,8 +702,15 @@ export default function DirectorDocumentsPage() {
         </div>
 
         {!!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue) && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold">
-            <span>⚠️ Stage locked. Outstanding installment payments are due for this client. Document upload actions are disabled.</span>
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-900 text-sm">
+            <p className="font-semibold">
+              Outstanding installment payments are due for this client.
+            </p>
+            <p className="mt-1">
+              Client document actions are locked, but you can still upload
+              templates on the right (Admin Upload) so the client can download,
+              sign, and return them.
+            </p>
           </div>
         )}
 
@@ -690,7 +724,9 @@ export default function DirectorDocumentsPage() {
 
               <div>
                 {documents
-                  .filter((doc) => !DUAL_SOURCE_DOCS.includes(doc.documentType))
+                  .filter(
+                    (doc) => !dualSourceDocLabels.includes(doc.documentType),
+                  )
                   .map((document) => (
                     <div
                       key={document.id}
@@ -708,12 +744,14 @@ export default function DirectorDocumentsPage() {
                             !canPreviewOrDownload(
                               document.status,
                               document.documentType,
+                              dualSourceDocLabels,
                             )
                           }
                           className={
                             canPreviewOrDownload(
                               document.status,
                               document.documentType,
+                              dualSourceDocLabels,
                             )
                               ? "text-primary hover:text-secondary"
                               : "text-gray-300 cursor-not-allowed"
@@ -729,12 +767,14 @@ export default function DirectorDocumentsPage() {
                             !canPreviewOrDownload(
                               document.status,
                               document.documentType,
+                              dualSourceDocLabels,
                             )
                           }
                           className={
                             canPreviewOrDownload(
                               document.status,
                               document.documentType,
+                              dualSourceDocLabels,
                             )
                               ? "text-primary hover:text-secondary"
                               : "text-gray-300 cursor-not-allowed"
@@ -761,10 +801,10 @@ export default function DirectorDocumentsPage() {
             </div>
           </div>
 
-          {/* Right: Dual-Source Documents (DIR-2, INC-9, No PAN) */}
+          {/* Right: Dual-Source Documents */}
           <div className="col-span-1 space-y-4">
-            {renderDualSourceCard("DIR-2", "dir2", dir2Files)}
-            {renderDualSourceCard("INC-9", "inc9Director", inc9Files)}
+            {renderDualSourceCard(labels.dir2, "dir2", dir2Files)}
+            {renderDualSourceCard(labels.inc9Director, "inc9Director", inc9Files)}
             {(director as { isForeignResident?: boolean }).isForeignResident &&
               renderDualSourceCard(
                 "No PAN Declaration",
