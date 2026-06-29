@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { clientsApi } from "@/lib/api/clients";
 
@@ -140,6 +140,7 @@ export default function TrackingStatusContent({
 
   // Countdown timer for name extension step
   const [extTimeLeft, setExtTimeLeft] = useState<string | null>(null);
+  const expiryExtRef = useRef(false);
 
   useEffect(() => {
     if (appNo) {
@@ -163,13 +164,25 @@ export default function TrackingStatusContent({
       return;
     }
 
+    const tryAutoExpire = () => {
+      if (expiryExtRef.current) return;
+      expiryExtRef.current = true;
+      clientsApi.autoExpireNameExtension(appNo).catch(() => {});
+    };
+
     const updateTimer = () => {
       const now = Date.now();
       const start = new Date(attempt.countdownStartDate).getTime();
       const end = new Date(attempt.windowEndDate).getTime();
 
-      if (now < start || now >= end) {
+      if (now < start) {
         setExtTimeLeft(null);
+        return;
+      }
+
+      if (now >= end) {
+        setExtTimeLeft(null);
+        tryAutoExpire();
         return;
       }
 
@@ -177,6 +190,7 @@ export default function TrackingStatusContent({
 
       if (diff <= 0) {
         setExtTimeLeft("00d : 00h : 00m : 00s");
+        tryAutoExpire();
       } else {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor(
@@ -194,7 +208,7 @@ export default function TrackingStatusContent({
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [extensionStatus]);
+  }, [extensionStatus, appNo]);
 
   useEffect(() => {
     if (tracker && tracker.stages) {
@@ -1302,10 +1316,7 @@ export default function TrackingStatusContent({
                                               }
 
                                               if (opt.id === "Action Needed") {
-                                                return (
-                                                  step.title ===
-                                                  "ROC reviewed the name application"
-                                                );
+                                                return false;
                                               }
 
                                               return true;

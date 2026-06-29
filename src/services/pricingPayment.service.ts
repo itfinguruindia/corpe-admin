@@ -51,6 +51,19 @@ export type PaymentStep = {
     gstAmount?: number;
     gstPercentage?: number;
     currency?: string;
+    attempts?: Array<{
+      attemptNumber: number;
+      status: string;
+      amount: number;
+      windowStartDate?: string;
+      windowEndDate?: string;
+      countdownStartDate?: string;
+      paymentLinkSentAt?: string | null;
+      paidAt?: string | null;
+      markedDoneAt?: string | null;
+      expiredAt?: string | null;
+    }>;
+    currentAttempt?: number;
   };
 };
 

@@ -57,7 +57,19 @@ export default function PricingAndPaymentContent({
       }
     };
 
-    const paymentSteps: FrontendPaymentStep[] = steps.map((s: BackendPaymentStep, index: number) => {
+    const filteredSteps = steps.filter((s: BackendPaymentStep) => {
+      if (s.stepNumber !== 7) return true;
+      const bd = s.breakdown;
+      if (!bd) return false;
+      const currentAttempt = (bd as any).currentAttempt || 1;
+      const active = (bd as any).attempts?.find((a: any) => a.attemptNumber === currentAttempt);
+      if (!active) return false;
+      if (['done', 'paid', 'in_progress', 'expired'].includes(active.status)) return true;
+      if (active.countdownStartDate && new Date() >= new Date(active.countdownStartDate)) return true;
+      return false;
+    });
+
+    const paymentSteps: FrontendPaymentStep[] = filteredSteps.map((s: BackendPaymentStep, index: number) => {
       let actionText = "-";
       if (s.status === "paid") {
         actionText = "Payment Received";
@@ -342,6 +354,38 @@ export default function PricingAndPaymentContent({
                                     </div>
                                   )}
                                 </>
+                              )}
+
+                              {/* Stage 7 — Name Extension Attempts */}
+                              {step.stepNumber === 7 && step.breakdown.attempts && step.breakdown.attempts.length > 0 && (
+                                <div className="flex flex-col gap-1.5 border-t border-gray-200 pt-2 mt-1">
+                                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                                    Extension Attempts
+                                  </span>
+                                  {step.breakdown.attempts.map((att: any) => {
+                                    const statusColor =
+                                      att.status === 'done' ? 'text-green-700 bg-green-50 border-green-200' :
+                                      att.status === 'expired' ? 'text-red-700 bg-red-50 border-red-200' :
+                                      att.status === 'paid' || att.status === 'in_progress' ? 'text-blue-700 bg-blue-50 border-blue-200' :
+                                      'text-amber-700 bg-amber-50 border-amber-200';
+                                    const statusLabel =
+                                      att.status === 'done' ? 'Completed' :
+                                      att.status === 'paid' ? 'Paid' :
+                                      att.status === 'in_progress' ? 'In Progress' :
+                                      att.status === 'expired' ? 'Expired' : 'Pending';
+                                    return (
+                                      <div key={att.attemptNumber} className={`flex items-center justify-between border rounded px-2.5 py-1.5 text-[10px] font-semibold ${statusColor}`}>
+                                        <span>{att.attemptNumber === 1 ? '1st' : '2nd'} Attempt</span>
+                                        <div className="flex items-center gap-2">
+                                          <span>{formatCurrency(att.amount, pricingData.currency || 'INR')}</span>
+                                          <span className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold border border-current">
+                                            {statusLabel}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                               )}
 
                               {/* Regular Installments / Surcharges / Breakdown (excl. DIN) */}
