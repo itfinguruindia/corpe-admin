@@ -6,6 +6,7 @@ import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
 import { Card, Spinner } from "@heroui/react";
 import { Chip } from "@/components/ui";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 
 interface DirectorsContentProps {
   appNo: string;
@@ -13,6 +14,7 @@ interface DirectorsContentProps {
 
 export default function DirectorsContent({ appNo }: DirectorsContentProps) {
   const router = useRouter();
+  const { labels } = useClientCompanyLabels();
   const [directors, setDirectors] = useState<Director[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -95,7 +97,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-secondary">
-              Total Directors: {directors.length}
+              {labels.totalDirectors(directors.length)}
             </h2>
           </div>
 
@@ -110,7 +112,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-gray-900">
-                        Director {director.directorNumber}
+                        {labels.directorWithNumber(director.directorNumber)}
                       </h3>
                       {director.isBankSigningAuthority && (
                         <Chip

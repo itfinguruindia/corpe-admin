@@ -11,6 +11,7 @@ export interface CompanyOverview {
   district: string;
   pincode: string;
   state: string;
+  policeStationJurisdiction: string;
   entityType: string;
   cinLlpin: string;
   isIncorporated: boolean;
