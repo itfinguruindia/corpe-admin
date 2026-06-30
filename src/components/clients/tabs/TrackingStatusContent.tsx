@@ -22,6 +22,7 @@ import {
   ChevronUp,
   Send,
   X,
+  AlertTriangle,
 } from "lucide-react";
 
 import CustomSelect from "@/components/ui/CustomSelect";
@@ -167,7 +168,11 @@ export default function TrackingStatusContent({
     const tryAutoExpire = () => {
       if (expiryExtRef.current) return;
       expiryExtRef.current = true;
-      clientsApi.autoExpireNameExtension(appNo).catch(() => {});
+      clientsApi.getNameExtensionStatus(appNo)
+        .then((res: any) => {
+          if (res?.data) setExtensionStatus(res.data);
+        })
+        .catch(() => {});
     };
 
     const updateTimer = () => {
@@ -690,6 +695,29 @@ export default function TrackingStatusContent({
           </div>
         )}
 
+        {/* Admin Sticky Alert Bars */}
+        {extensionStatus && (
+          <>
+            {(extensionStatus.overallStatus === "expired_past" ||
+              extensionStatus.overallStatus === "restart_required") && (
+              <div className="bg-red-600 text-white flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-lg shadow-sm mb-4">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>
+                  <strong>Admin alert:</strong> Client's MCA name hold has expired — name reservation lost. Take action immediately.
+                </span>
+              </div>
+            )}
+            {extensionStatus.overallStatus === "expired_today" && (
+              <div className="bg-amber-500 text-white flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-lg shadow-sm mb-4">
+                <Clock className="w-4 h-4 shrink-0" />
+                <span>
+                  <strong>Admin alert:</strong> Client hasn't approved name extension — 20 days since name reservation letter. Send a reminder.
+                </span>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Name Extension Status Banner */}
         {extensionStatus &&
           extensionStatus.overallStatus !== "inactive" &&
@@ -697,6 +725,7 @@ export default function TrackingStatusContent({
             <div
               className={`rounded-xl p-4 flex items-center gap-3 shadow-sm border ${
                 extensionStatus.overallStatus === "restart_required" ||
+                extensionStatus.overallStatus === "expired_past" ||
                 extensionStatus.overallStatus === "expired"
                   ? "bg-red-50 border-red-300"
                   : extensionStatus.overallStatus === "paid" ||
@@ -708,6 +737,7 @@ export default function TrackingStatusContent({
               <AlertCircle
                 className={`w-5 h-5 shrink-0 self-start mt-1 ${
                   extensionStatus.overallStatus === "restart_required" ||
+                  extensionStatus.overallStatus === "expired_past" ||
                   extensionStatus.overallStatus === "expired"
                     ? "text-red-600"
                     : extensionStatus.overallStatus === "paid" ||
@@ -716,7 +746,8 @@ export default function TrackingStatusContent({
                       : "text-amber-600"
                 }`}
               />
-              {extensionStatus.overallStatus === "restart_required" ? (
+              {extensionStatus.overallStatus === "restart_required" ||
+              extensionStatus.overallStatus === "expired_past" ? (
                 <div className="flex-1 flex flex-col md:flex-row items-start justify-between gap-4">
                   <div className="space-y-3">
                     <p className="text-sm font-bold text-red-900 uppercase tracking-wide">
@@ -744,16 +775,22 @@ export default function TrackingStatusContent({
                       </span>
                     </div>
                   </div>
-                  <div className="flex md:flex-col lg:flex-row gap-3 w-full md:w-auto shrink-0">
-                    <button
-                      onClick={handleRequestRestart}
-                      disabled={isRequestingRestart}
-                      className="flex-1 md:flex-initial text-center bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition-colors cursor-pointer border-none disabled:opacity-50"
-                    >
-                      {isRequestingRestart
-                        ? "Requesting..."
-                        : "Request Restart from Client"}
-                    </button>
+                  <div className="flex md:flex-col lg:flex-row gap-3 w-full md:w-auto shrink-0 items-center">
+                    {extensionStatus.restartRequested ? (
+                      <span className="text-xs font-bold text-red-600 bg-red-100 px-3 py-2 rounded-lg border border-red-200 uppercase tracking-wide">
+                        Request has been sent
+                      </span>
+                    ) : (
+                      <button
+                        onClick={handleRequestRestart}
+                        disabled={isRequestingRestart}
+                        className="flex-1 md:flex-initial text-center bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition-colors cursor-pointer border-none disabled:opacity-50"
+                      >
+                        {isRequestingRestart
+                          ? "Requesting..."
+                          : "Request Restart from Client"}
+                      </button>
+                    )}
                     <button
                       onClick={() =>
                         setExtensionStatus((prev: any) =>
@@ -772,7 +809,9 @@ export default function TrackingStatusContent({
                 <div className="flex-1">
                   <p
                     className={`text-sm font-bold ${
-                      extensionStatus.overallStatus === "expired"
+                      extensionStatus.overallStatus === "expired" ||
+                      extensionStatus.overallStatus === "expired_today" ||
+                      extensionStatus.overallStatus === "expired_past"
                         ? "text-red-900"
                         : extensionStatus.overallStatus === "paid" ||
                             extensionStatus.overallStatus === "in_progress"
@@ -784,6 +823,8 @@ export default function TrackingStatusContent({
                       "Name Hold Monitoring — SPICe+ Part B pending"}
                     {extensionStatus.overallStatus === "countdown" &&
                       `Name Hold Expiring — Attempt ${extensionStatus.currentAttempt}`}
+                    {extensionStatus.overallStatus === "expired_today" &&
+                      `Name Hold Expired Today — Attempt ${extensionStatus.currentAttempt}`}
                     {extensionStatus.overallStatus === "pay_now" &&
                       `Payment Required — Name Extension Attempt ${extensionStatus.currentAttempt}`}
                     {extensionStatus.overallStatus === "paid" &&
@@ -795,7 +836,9 @@ export default function TrackingStatusContent({
                   </p>
                   <p
                     className={`text-xs mt-0.5 ${
-                      extensionStatus.overallStatus === "expired"
+                      extensionStatus.overallStatus === "expired" ||
+                      extensionStatus.overallStatus === "expired_today" ||
+                      extensionStatus.overallStatus === "expired_past"
                         ? "text-red-700"
                         : extensionStatus.overallStatus === "paid" ||
                             extensionStatus.overallStatus === "in_progress"
@@ -807,6 +850,8 @@ export default function TrackingStatusContent({
                       "Monitoring 20-day window. Name extension will activate at 5 days remaining."}
                     {extensionStatus.overallStatus === "countdown" &&
                       `Attempt ${extensionStatus.currentAttempt} — ${extensionStatus.currentAttempt === 1 ? "₹1,000" : "₹2,000"} fee required before expiry.`}
+                    {extensionStatus.overallStatus === "expired_today" &&
+                      "Today is the last day to complete the extension payment."}
                     {extensionStatus.overallStatus === "pay_now" &&
                       `Client can pay now. Send payment link or wait for auto-enable.`}
                     {extensionStatus.overallStatus === "paid" &&

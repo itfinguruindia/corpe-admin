@@ -57,19 +57,7 @@ export default function PricingAndPaymentContent({
       }
     };
 
-    const filteredSteps = steps.filter((s: BackendPaymentStep) => {
-      if (s.stepNumber !== 7) return true;
-      const bd = s.breakdown;
-      if (!bd) return false;
-      const currentAttempt = (bd as any).currentAttempt || 1;
-      const active = (bd as any).attempts?.find((a: any) => a.attemptNumber === currentAttempt);
-      if (!active) return false;
-      if (['done', 'paid', 'in_progress', 'expired'].includes(active.status)) return true;
-      if (active.countdownStartDate && new Date() >= new Date(active.countdownStartDate)) return true;
-      return false;
-    });
-
-    const paymentSteps: FrontendPaymentStep[] = filteredSteps.map((s: BackendPaymentStep, index: number) => {
+    const paymentSteps: FrontendPaymentStep[] = steps.map((s: BackendPaymentStep, index: number) => {
       let actionText = "-";
       if (s.status === "paid") {
         actionText = "Payment Received";

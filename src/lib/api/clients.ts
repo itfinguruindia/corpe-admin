@@ -952,11 +952,4 @@ export const clientsApi = {
     );
     return response.data;
   },
-
-  autoExpireNameExtension: async (applicationNo: string) => {
-    const response = await axiosInstance.post(
-      `/admin/clients/${applicationNo}/name-extension/auto-expire`
-    );
-    return response.data;
-  },
 };
