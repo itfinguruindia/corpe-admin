@@ -9,6 +9,7 @@ import type {
   AdminPricingPlan,
   AdminPricingStage,
   PricingPlanUpdateRequest,
+  PricingStageAmount,
 } from "@/types/pricingPlans";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
@@ -34,14 +35,9 @@ function isAttemptStageAmount(
 }
 
 function getCoreInstallmentTotal(stages: AdminPricingStage[]): number {
-  const stage1 = stages.find((s) => s.stageNumber === 1);
-  const stage4 = stages.find((s) => s.stageNumber === 4);
-  const stage6 = stages.find((s) => s.stageNumber === 6);
-  const values = [stage1?.amount, stage4?.amount, stage6?.amount];
-  if (values.some((value) => typeof value !== "number")) {
-    return 0;
-  }
-  return (values[0] as number) + (values[1] as number) + (values[2] as number);
+  return stages
+    .filter((s) => [1, 4, 6].includes(s.stageNumber))
+    .reduce((sum, s) => sum + (typeof s.amount === "number" ? s.amount : 0), 0);
 }
 
 function PlanEditor({
@@ -95,7 +91,7 @@ function PlanEditor({
           amount: {
             ...(stage.amount as Record<string, number>),
             [field]: value,
-          },
+          } as PricingStageAmount,
         };
       }),
     }));
@@ -330,7 +326,7 @@ function PlanEditor({
                       <input
                         type="number"
                         min={0}
-                        value={stage.amount[field]}
+                        value={(stage.amount as any)[field]}
                         onChange={(e) =>
                           updateStageAmountField(
                             stage.stageNumber,
@@ -360,7 +356,7 @@ function PlanEditor({
                       <input
                         type="number"
                         min={0}
-                        value={stage.amount[field]}
+                        value={(stage.amount as any)[field]}
                         onChange={(e) =>
                           updateStageAmountField(
                             stage.stageNumber,
