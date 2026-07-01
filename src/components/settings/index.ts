@@ -4,5 +4,6 @@ export { default as AccessRolesSection } from "./AccessRolesSection";
 export { default as NotificationsSection } from "./NotificationsSection";
 export { default as DataManagementSection } from "./DataManagementSection";
 export { default as ComplianceCalendarSection } from "./ComplianceCalendarSection";
+export { default as PricingManagementSection } from "./PricingManagementSection";
 export { default as RolesPermissionsMatrix } from "./RolesPermissionsMatrix";
 export { default as UserManagement } from "./UserManagement";
