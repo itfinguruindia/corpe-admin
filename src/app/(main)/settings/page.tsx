@@ -11,6 +11,7 @@ import {
   AccessRolesSection,
   NotificationsSection,
   ComplianceCalendarSection,
+  PricingManagementSection,
 } from "@/components/settings";
 import { performLogout, requestEmailChange } from "@/utils/auth";
 import { parsePhoneNumber } from "react-phone-number-input";
@@ -557,6 +558,7 @@ export default function SettingPage() {
         {/* Right Column */}
         <div className="space-y-6">
           <ComplianceCalendarSection id="compliance-calendar-section" />
+          <PricingManagementSection id="pricing-management-section" />
           <NotificationsSection id="notifications-section" />
         </div>
       </div>

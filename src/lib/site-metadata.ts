@@ -238,6 +238,13 @@ const ROUTE_RULES: RouteRule[] = [
     },
   },
   {
+    pattern: /^\/settings\/pricing$/,
+    meta: {
+      title: "Pricing Management",
+      description: "Edit incorporation pricing plans for all company types.",
+    },
+  },
+  {
     pattern: /^\/settings$/,
     meta: {
       title: "Settings",
