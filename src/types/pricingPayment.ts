@@ -17,6 +17,8 @@ export interface PaymentStep {
   paymentModeCapture: string;
   paymentLinkSent?: boolean;
   paymentLinkSentAt?: string | null;
+  _isActiveAttempt?: boolean;
+  _attemptNumber?: number;
   breakdown?: {
     rejectionFee?: number;
     installmentBase?: number;

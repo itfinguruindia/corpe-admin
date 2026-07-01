@@ -186,28 +186,23 @@ export default function TrackingStatusContent({
       }
 
       if (now >= end) {
-        setExtTimeLeft(null);
+        // Keep frozen at 00:00:00 — same behavior as the client side
+        setExtTimeLeft("00d : 00h : 00m : 00s");
         tryAutoExpire();
         return;
       }
 
       const diff = end - now;
-
-      if (diff <= 0) {
-        setExtTimeLeft("00d : 00h : 00m : 00s");
-        tryAutoExpire();
-      } else {
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor(
-          (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-        );
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        const pad = (n: number) => String(n).padStart(2, "0");
-        setExtTimeLeft(
-          `${pad(days)}d : ${pad(hours)}h : ${pad(minutes)}m : ${pad(seconds)}s`,
-        );
-      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(
+        (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+      );
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      setExtTimeLeft(
+        `${pad(days)}d : ${pad(hours)}h : ${pad(minutes)}m : ${pad(seconds)}s`,
+      );
     };
 
     updateTimer();
@@ -387,6 +382,8 @@ export default function TrackingStatusContent({
       setIsRequestingRestart(false);
     }
   };
+
+
 
   const toggleStageCollapse = (stageId: string) => {
     setCollapsedStages((prev) => {
@@ -849,7 +846,15 @@ export default function TrackingStatusContent({
                     {extensionStatus.overallStatus === "monitoring" &&
                       "Monitoring 20-day window. Name extension will activate at 5 days remaining."}
                     {extensionStatus.overallStatus === "countdown" &&
-                      `Attempt ${extensionStatus.currentAttempt} — ${extensionStatus.currentAttempt === 1 ? "₹1,000" : "₹2,000"} fee required before expiry.`}
+                      (() => {
+                        const attempt = extensionStatus.attempts?.find(
+                          (a: any) => a.attemptNumber === extensionStatus.currentAttempt
+                        );
+                        const amount = attempt?.amount ?? (extensionStatus.currentAttempt === 1 ? 1000 : 2000);
+                        const currency = extensionStatus.currency || "INR";
+                        const formatted = currency === "USD" ? `$${amount}` : `₹${amount.toLocaleString("en-IN")}`;
+                        return `Attempt ${extensionStatus.currentAttempt} — ${formatted} fee required before expiry.`;
+                      })()}
                     {extensionStatus.overallStatus === "expired_today" &&
                       "Today is the last day to complete the extension payment."}
                     {extensionStatus.overallStatus === "pay_now" &&

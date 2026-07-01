@@ -9,7 +9,7 @@ import {
 import { PricingPayment, PaymentStep as FrontendPaymentStep, StepStatus } from "@/types/pricingPayment";
 
 import { InfoField, Chip, Switch } from "@/components/ui";
-import { Lock, MoreVertical } from "lucide-react";
+import { Lock, MoreVertical, X } from "lucide-react";
 import { formatCurrency } from "@/utils/helpers";
 import useSwal from "@/utils/useSwal";
 import { Card, Spinner } from "@heroui/react";
@@ -25,6 +25,13 @@ export default function PricingAndPaymentContent({
   const [pricingData, setPricingData] = useState<PricingPayment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [includeGST, setIncludeGST] = useState(false);
+
+  // Send Payment Link Modal state
+  const [isPaymentLinkModalOpen, setIsPaymentLinkModalOpen] = useState(false);
+  const [paymentLinkReason, setPaymentLinkReason] = useState("");
+  const [notificationType, setNotificationType] = useState<"email_sms" | "email" | "sms" | "none">("email_sms");
+  const [sendingLink, setSendingLink] = useState(false);
+  const [selectedStep, setSelectedStep] = useState<FrontendPaymentStep | null>(null);
 
   useEffect(() => {
     const loadPricingData = async () => {
@@ -44,6 +51,43 @@ export default function PricingAndPaymentContent({
     loadPricingData();
   }, [appNo]);
 
+  const handleSendPaymentLink = async () => {
+    if (!selectedStep) return;
+    try {
+      setSendingLink(true);
+      const success = await pricingPaymentService.sendPaymentLink(
+        appNo,
+        selectedStep.stepNumber,
+        notificationType,
+        paymentLinkReason
+      );
+
+      if (success) {
+        await swal({
+          title: "Sent!",
+          text: "Payment link has been successfully marked as sent.",
+          icon: "success",
+        });
+        // Refresh pricing data
+        const data = await pricingPaymentService.getPricingAndPayment(appNo);
+        if (data) {
+          setPricingData(mapBackendToFrontend(data));
+        }
+        setIsPaymentLinkModalOpen(false);
+      } else {
+        await swal({
+          title: "Error",
+          text: "Failed to send payment link.",
+          icon: "error",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setSendingLink(false);
+    }
+  };
+
   const mapBackendToFrontend = (data: PricingAndPaymentResponse): PricingPayment => {
     const { summary, steps } = data;
 
@@ -57,30 +101,72 @@ export default function PricingAndPaymentContent({
       }
     };
 
-    const paymentSteps: FrontendPaymentStep[] = steps.map((s: BackendPaymentStep, index: number) => {
-      let actionText = "-";
-      if (s.status === "paid") {
-        actionText = "Payment Received";
-      } else if ([4, 6, 7].includes(s.stepNumber)) {
-        actionText = s.paymentLinkSent ? "Resend Payment Link" : "Send Payment Link";
-      }
+    const paymentSteps: FrontendPaymentStep[] = [];
+    let currentStepIndex = 1;
 
-      return {
-        step: index + 1,
-        stepNumber: s.stepNumber,
-        installmentName: s.installmentName,
-        amount: s.amount,
-        triggerGate: s.triggerGate,
-        effects: s.effects,
-        status: mapStatus(s.status),
-        action: actionText,
-        invoice: s.invoiceAvailable ? "Sent" : "Not Sent",
-        paymentAlert: s.status === "paid" ? "Paid Confirmation" : (s.status === "failed" ? "Payment Failed" : "Awaiting"),
-        paymentModeCapture: s.status === "paid" ? "Online" : "-", // Backend doesn't return mode yet in this API
-        breakdown: s.breakdown,
-        paymentLinkSent: s.paymentLinkSent,
-        paymentLinkSentAt: s.paymentLinkSentAt,
-      };
+    steps.forEach((s: BackendPaymentStep) => {
+      const bd = s.breakdown;
+      if (s.stepNumber === 7 && bd?.attempts?.length && bd.attempts.length > 0) {
+        bd.attempts.forEach((att: any) => {
+          let statusText = s.status; // fallback
+          if (att.paymentStatus === 'paid') statusText = 'paid';
+          else if (att.paymentStatus === 'failed') statusText = 'failed';
+          else if (att.attemptNumber === bd.currentAttempt) statusText = s.status;
+          else statusText = 'pending';
+
+          const mappedStatus = mapStatus(statusText);
+
+          let actionText = "-";
+          if (att.paymentStatus === "paid") {
+            actionText = "Payment Received";
+          } else {
+            actionText = att.paymentLinkSentAt ? "Resend Payment Link" : "Send Payment Link";
+          }
+
+          paymentSteps.push({
+            step: currentStepIndex++,
+            stepNumber: s.stepNumber,
+            installmentName: att.attemptNumber === 1 ? "Name Extension — 1st Attempt" : "Name Extension — 2nd Attempt",
+            amount: att.amount,
+            triggerGate: s.triggerGate,
+            effects: s.effects,
+            status: mappedStatus,
+            action: actionText,
+            invoice: att.invoiceAvailable ? "Sent" : "Not Sent",
+            paymentAlert: att.paymentStatus === "paid" ? "Paid Confirmation" : (att.paymentStatus === "failed" ? "Payment Failed" : "Awaiting"),
+            paymentModeCapture: att.paymentStatus === "paid" ? "Online" : "-",
+            breakdown: bd,
+            paymentLinkSent: !!att.paymentLinkSentAt,
+            paymentLinkSentAt: att.paymentLinkSentAt || null,
+            _isActiveAttempt: att.attemptNumber === bd.currentAttempt,
+            _attemptNumber: att.attemptNumber,
+          });
+        });
+      } else {
+        let actionText = "-";
+        if (s.status === "paid") {
+          actionText = "Payment Received";
+        } else if ([4, 6, 7].includes(s.stepNumber)) {
+          actionText = s.paymentLinkSent ? "Resend Payment Link" : "Send Payment Link";
+        }
+
+        paymentSteps.push({
+          step: currentStepIndex++,
+          stepNumber: s.stepNumber,
+          installmentName: s.installmentName,
+          amount: s.amount,
+          triggerGate: s.triggerGate,
+          effects: s.effects,
+          status: mapStatus(s.status),
+          action: actionText,
+          invoice: s.invoiceAvailable ? "Sent" : "Not Sent",
+          paymentAlert: s.status === "paid" ? "Paid Confirmation" : (s.status === "failed" ? "Payment Failed" : "Awaiting"),
+          paymentModeCapture: s.status === "paid" ? "Online" : "-",
+          breakdown: s.breakdown,
+          paymentLinkSent: s.paymentLinkSent,
+          paymentLinkSentAt: s.paymentLinkSentAt,
+        });
+      }
     });
 
     return {
@@ -478,12 +564,23 @@ export default function PricingAndPaymentContent({
                           {["Send Payment Link", "Resend Payment Link"].includes(step.action) ? (
                             <div className="flex flex-col gap-1 items-start">
                               <button
-                                className={`px-4 py-1.5 text-sm rounded-md transition-colors font-medium cursor-pointer ${
-                                  step.action === "Resend Payment Link"
-                                    ? "bg-gray-600 hover:bg-gray-700 text-white"
-                                    : "bg-[#F46A45] hover:bg-[#e55a35] text-white"
+                                disabled={step.stepNumber === 7 && step._isActiveAttempt === false}
+                                className={`px-4 py-1.5 text-sm rounded-md transition-colors font-medium ${
+                                  step.stepNumber === 7 && step._isActiveAttempt === false
+                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                    : step.action === "Resend Payment Link"
+                                      ? "bg-gray-600 hover:bg-gray-700 text-white cursor-pointer"
+                                      : "bg-[#F46A45] hover:bg-[#e55a35] text-white cursor-pointer"
                                 }`}
                                 onClick={async () => {
+                                  if (step.stepNumber === 7) {
+                                    setSelectedStep(step);
+                                    setPaymentLinkReason("Your MCA name reservation is expiring. This extension holds your proposed name while we complete registration.");
+                                    setNotificationType("email_sms");
+                                    setIsPaymentLinkModalOpen(true);
+                                    return;
+                                  }
+
                                   try {
                                     const actionLabel = step.action === "Resend Payment Link" ? "Resend" : "Send";
                                     const confirmed = await swal({
@@ -623,6 +720,100 @@ export default function PricingAndPaymentContent({
           )}
         </div>
       </Card>
+
+      {/* Send Payment Link Modal */}
+      {isPaymentLinkModalOpen && selectedStep && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in duration-200">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Request {(() => {
+                    const currentAttemptNum = selectedStep.breakdown?.currentAttempt || 1;
+                    return currentAttemptNum === 1 ? "1st" : "2nd";
+                  })()} name extension
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Client will see this in their approvals section
+                </p>
+              </div>
+              <button
+                onClick={() => setIsPaymentLinkModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1 bg-transparent border-none cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 flex flex-col gap-4 font-sans">
+              {/* Amount */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+                  Amount client will pay
+                </span>
+                <span className="text-lg font-black text-[#1E3A6E]">
+                  {(() => {
+                    const currentAttemptNum = selectedStep.breakdown?.currentAttempt || 1;
+                    const attempt = selectedStep.breakdown?.attempts?.find((a: any) => a.attemptNumber === currentAttemptNum);
+                    const baseAmt = attempt?.amount ?? (currentAttemptNum === 1 ? 1000 : 2000);
+                    return formatCurrency(baseAmt, pricingData.currency || "INR");
+                  })()}
+                </span>
+              </div>
+
+              {/* Reason */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+                  Reason for extension — shown to client
+                </span>
+                <textarea
+                  className="w-full text-xs p-3 border border-slate-200 rounded-lg bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
+                  rows={4}
+                  value={paymentLinkReason}
+                  onChange={(e) => setPaymentLinkReason(e.target.value)}
+                />
+              </div>
+
+              {/* Notify dropdown */}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+                  Notify client via
+                </span>
+                <select
+                  className="w-full text-xs px-3 py-2.5 border border-slate-200 rounded-lg bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  value={notificationType}
+                  onChange={(e) => setNotificationType(e.target.value as any)}
+                >
+                  <option value="email_sms">Email + SMS (recommended)</option>
+                  <option value="email">Email only</option>
+                  <option value="sms">SMS only</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-end gap-3 font-sans">
+              <button
+                disabled={sendingLink}
+                onClick={() => setIsPaymentLinkModalOpen(false)}
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={sendingLink}
+                onClick={handleSendPaymentLink}
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#1E3A6E] hover:bg-[#2D4F8E] text-white transition-all cursor-pointer border-none disabled:opacity-50"
+              >
+                {sendingLink ? "Sending request..." : "Send request to client"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -88,11 +88,17 @@ export const pricingPaymentService = {
     }
   },
 
-  async sendPaymentLink(applicationNo: string, stageNumber: number): Promise<boolean> {
+  async sendPaymentLink(
+    applicationNo: string,
+    stageNumber: number,
+    notificationType?: string,
+    reason?: string
+  ): Promise<boolean> {
     try {
       if (stageNumber === 7) {
         const response = await axiosInstance.post<{ success: boolean }>(
-          `/admin/clients/${applicationNo}/name-extension/send-payment-link`
+          `/admin/clients/${applicationNo}/name-extension/send-payment-link`,
+          { notificationType, reason }
         );
         return response.data.success;
       }

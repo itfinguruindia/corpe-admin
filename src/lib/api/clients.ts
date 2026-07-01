@@ -939,9 +939,14 @@ export const clientsApi = {
     return response.data;
   },
 
-  sendNameExtensionPaymentLink: async (applicationNo: string) => {
+  sendNameExtensionPaymentLink: async (
+    applicationNo: string,
+    notificationType?: string,
+    reason?: string
+  ) => {
     const response = await axiosInstance.post(
-      `/admin/clients/${applicationNo}/name-extension/send-payment-link`
+      `/admin/clients/${applicationNo}/name-extension/send-payment-link`,
+      { notificationType, reason }
     );
     return response.data;
   },
