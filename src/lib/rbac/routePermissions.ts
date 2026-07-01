@@ -55,6 +55,10 @@ export const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     permissions: [PERMISSIONS.SETTINGS_VIEW],
   },
   {
+    path: "/settings/pricing",
+    permissions: [PERMISSIONS.PRICING_EDIT, PERMISSIONS.SETTINGS_VIEW],
+  },
+  {
     path: "/settings",
     prefix: true,
     permissions: [PERMISSIONS.SETTINGS_VIEW],
