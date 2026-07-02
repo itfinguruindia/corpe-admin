@@ -306,9 +306,13 @@ export default function DirectorDocumentsPage() {
         }
 
         // Load dual-source document statuses
-        await loadAllDualSourceDocs(
-          Boolean((directorData as { isForeignResident?: boolean })?.isForeignResident),
+        const isForeignResident = Boolean(
+          (directorData as any)?.isForeignResident ??
+            (directorData as any)?.foreignResident ??
+            (directorData as any)?.isForeign ??
+            (directorData as any)?.isNri,
         );
+        await loadAllDualSourceDocs(isForeignResident);
       } catch (err) {
         console.error("Error loading director documents", err);
       } finally {
