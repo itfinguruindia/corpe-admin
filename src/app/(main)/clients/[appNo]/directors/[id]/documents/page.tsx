@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Eye, Download, Upload, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "@heroui/react";
 
@@ -52,7 +52,7 @@ type DualSourceState = {
 export default function DirectorDocumentsPage() {
   const { appNo, id } = useParams();
   const { requireEdit } = useClientTabEdit("director");
-  const { labels, isLlp } = useClientCompanyLabels();
+  const { labels, isLlp, isLoading: isCompanyTypeLoading } = useClientCompanyLabels();
 
   const dualSourceDocLabels = [
     labels.dir2,
@@ -64,7 +64,7 @@ export default function DirectorDocumentsPage() {
   ];
 
   const [director, setDirector] = useState<Director | null>(null);
-  const [documents, setDocuments] = useState<DirectorDocument[]>([]);
+  const [rawDocumentsData, setRawDocumentsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [installmentInfo, setInstallmentInfo] = useState<{
     firstInstallmentDue: boolean;
@@ -118,16 +118,18 @@ export default function DirectorDocumentsPage() {
      DATA TRANSFORM
   ======================= */
 
-  const transformDocumentsToArray = (docData: any): DirectorDocument[] => {
+  const documents = useMemo((): DirectorDocument[] => {
+    if (!rawDocumentsData) return [];
+
     const addressProofKeys = [
       { key: "addressProofIndia", label: "Address Proof (India)" },
       { key: "addressProof", label: "Address Proof" },
       { key: "addressProofForeign", label: "Address Proof (Foreign)" },
     ];
 
-    let addressProofToShow = null;
+    let addressProofToShow: (typeof addressProofKeys)[number] | null = null;
     for (const ap of addressProofKeys) {
-      if (docData[ap.key]) {
+      if (rawDocumentsData[ap.key]) {
         addressProofToShow = ap;
         break;
       }
@@ -160,7 +162,7 @@ export default function DirectorDocumentsPage() {
 
     return documentTypes
       .map((docType, index) => {
-        const doc = docData[docType.key];
+        const doc = rawDocumentsData[docType.key];
         return {
           id: `${docType.key}-${index}`,
           fieldKey: docType.key,
@@ -186,7 +188,7 @@ export default function DirectorDocumentsPage() {
         }
         return true;
       });
-  };
+  }, [rawDocumentsData, labels, isLlp, id]);
 
   /* =======================
      HELPER FUNCTIONS
@@ -299,7 +301,7 @@ export default function DirectorDocumentsPage() {
         ]);
 
         setDirector(directorData);
-        setDocuments(transformDocumentsToArray(documentsData));
+        setRawDocumentsData(documentsData);
 
         if (trackerResponse && trackerResponse.installmentInfo) {
           setInstallmentInfo(trackerResponse.installmentInfo);
@@ -672,7 +674,7 @@ export default function DirectorDocumentsPage() {
      UI STATES
   ======================= */
 
-  if (isLoading) {
+  if (isLoading || isCompanyTypeLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl text-gray-600">Loading...</div>

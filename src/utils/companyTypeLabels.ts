@@ -4,7 +4,9 @@ export function isLlpCompanyType(
   if (!companyType) return false;
   const normalized = companyType.toLowerCase().trim();
   return (
-    normalized === "limited-liability-partnership" || normalized === "llp"
+    normalized === "limited-liability-partnership" ||
+    normalized === "limited liability partnership" ||
+    normalized === "llp"
   );
 }
 
@@ -117,7 +119,7 @@ const LLP_LABELS: StakeholderLabels = {
   entityDirector: "(Designated Partner)",
   entityShareholder: "(Partner)",
   consentToAct: "Consent to Act as Designated Partner (Form 9)",
-  dir2: "Consent to Act as Designated Partner (Form 9)",
+  dir2: "Form 9",
   inc9Director: "Subscriber Sheet",
   subscriberSheet: "Subscriber Sheet",
   formatEntityType: (raw) =>
