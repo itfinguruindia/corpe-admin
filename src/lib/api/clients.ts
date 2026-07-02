@@ -957,4 +957,35 @@ export const clientsApi = {
     );
     return response.data;
   },
+
+  // ROC Query Methods
+  getRocQuery: async (orgId: string) => {
+    const response = await axiosInstance.get(`/admin/tracker/${orgId}/roc-query`);
+    return response.data?.data ?? response.data;
+  },
+
+  raiseRocQuery: async (orgId: string, payload: { stepId: string; queryText: string; needsDocument: boolean; needsTextResponse: boolean }) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/raise`, payload);
+    return response.data?.data ?? response.data;
+  },
+
+  approveRocResubmit: async (orgId: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/approve`);
+    return response.data?.data ?? response.data;
+  },
+
+  sendBackRocQuery: async (orgId: string, note: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/send-back`, { note });
+    return response.data?.data ?? response.data;
+  },
+
+  rejectRocQuery: async (orgId: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/reject`);
+    return response.data?.data ?? response.data;
+  },
+
+  resolveRocQuery: async (orgId: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/resolve`);
+    return response.data?.data ?? response.data;
+  },
 };

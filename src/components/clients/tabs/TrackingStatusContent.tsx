@@ -55,6 +55,7 @@ interface TrackerStep {
   isAutoSynced?: boolean;
   isHidden?: boolean;
   isLocked?: boolean;
+  rocQueryMetadata?: any;
 }
 
 interface TrackerSection {
@@ -142,6 +143,14 @@ export default function TrackingStatusContent({
   // Countdown timer for name extension step
   const [extTimeLeft, setExtTimeLeft] = useState<string | null>(null);
   const expiryExtRef = useRef(false);
+
+  // ROC Query states
+  const [rocQueryStepId, setRocQueryStepId] = useState<string>("");
+  const [queryFormText, setQueryFormText] = useState("");
+  const [queryNeedsDoc, setQueryNeedsDoc] = useState(true);
+  const [queryNeedsText, setQueryNeedsText] = useState(false);
+  const [adminSendBackNote, setAdminSendBackNote] = useState("");
+  const [isSubmittingQuery, setIsSubmittingQuery] = useState(false);
 
   useEffect(() => {
     if (appNo) {
@@ -1071,6 +1080,7 @@ export default function TrackingStatusContent({
                             {section.steps
                               .filter((step) => !step.isHidden)
                               .map((step) => {
+                                const isRocStep = step.title.toLowerCase() === "query resolution/resubmission" || step.title.toLowerCase() === "query resolution / resubmission";
                                 const isUrgent =
                                   step.status === "Action Needed";
                                 const extCurrentAttNum =
@@ -1091,7 +1101,7 @@ export default function TrackingStatusContent({
                                     }`}
                                   >
                                     {/* Step Details */}
-                                    <div className="flex items-start gap-3 flex-1">
+                                    <div className="flex items-start gap-3 flex-1 min-w-0">
                                       <div
                                         className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
                                           step.status === "Done"
@@ -1121,6 +1131,11 @@ export default function TrackingStatusContent({
                                             }`}
                                           >
                                             {step.title}
+                                            {isRocStep && step.rocQueryMetadata && step.rocQueryMetadata.roundNumber >= 2 && (
+                                              <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-mono ml-2 animate-pulse">
+                                                ROUND {step.rocQueryMetadata.roundNumber}
+                                              </span>
+                                            )}
                                           </h4>
                                           <span
                                             className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
@@ -1296,93 +1311,393 @@ export default function TrackingStatusContent({
                                               ))}
                                             </div>
                                           )}
+
+                                        {/* ROC Query Panels (Raise Query, Sent waiting, Review) */}
+                                        {isRocStep && step.rocQueryMetadata && (
+                                          <div className="mt-3 flex flex-col gap-3">
+                                            {/* Raise Query Panel: shows when status is 'pending' or 'resubmitted' */}
+                                            {(step.rocQueryMetadata.status === "pending" || step.rocQueryMetadata.status === "resubmitted" || rocQueryStepId === step._id) && (
+                                              <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-xl space-y-4 max-w-xl">
+                                                <h4 className="text-sm font-bold text-amber-900">Raise a query from ROC</h4>
+                                                <div className="space-y-1">
+                                                  <label className="block text-xs font-semibold text-slate-600">What is ROC asking for? (shown to client)</label>
+                                                  <textarea
+                                                    value={queryFormText}
+                                                    onChange={(e) => setQueryFormText(e.target.value)}
+                                                    className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-amber-400"
+                                                    placeholder="e.g. ROC has flagged a discrepancy between the registered office address on the application and the utility bill provided..."
+                                                  />
+                                                </div>
+                                                <div className="flex items-center gap-4 text-xs font-medium text-slate-700">
+                                                  <label className="flex items-center gap-1.5 cursor-pointer">
+                                                    <input type="checkbox" checked={queryNeedsDoc} onChange={(e) => setQueryNeedsDoc(e.target.checked)} className="rounded text-amber-500" />
+                                                    Requires document
+                                                  </label>
+                                                  <label className="flex items-center gap-1.5 cursor-pointer">
+                                                    <input type="checkbox" checked={queryNeedsText} onChange={(e) => setQueryNeedsText(e.target.checked)} className="rounded text-amber-500" />
+                                                    Requires written clarification
+                                                  </label>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                  <button
+                                                    disabled={isSubmittingQuery}
+                                                    onClick={async () => {
+                                                      if (!queryFormText.trim()) return alert("Please enter query text");
+                                                      try {
+                                                        setIsSubmittingQuery(true);
+                                                        await clientsApi.raiseRocQuery(tracker!.org._id, {
+                                                          stepId: step._id,
+                                                          queryText: queryFormText,
+                                                          needsDocument: queryNeedsDoc,
+                                                          needsTextResponse: queryNeedsText,
+                                                        });
+                                                        setQueryFormText("");
+                                                        setRocQueryStepId("");
+                                                        loadData();
+                                                      } catch (err: any) {
+                                                        alert(err.message || "Failed to raise query");
+                                                      } finally {
+                                                        setIsSubmittingQuery(false);
+                                                      }
+                                                    }}
+                                                    className="px-3 py-1.5 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-none"
+                                                  >
+                                                    {isSubmittingQuery && <Spinner size="sm" color="current" />}
+                                                    Send query to client
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            {/* Sent Waiting Panel: shows when status is 'query' */}
+                                            {step.rocQueryMetadata.status === "query" && (
+                                              <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-xl space-y-3 max-w-xl">
+                                                <div className="flex items-center justify-between">
+                                                  <h4 className="text-sm font-bold text-amber-900 flex items-center gap-1.5">
+                                                    <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                                                    Query sent to client — waiting for response
+                                                  </h4>
+                                                  <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-mono uppercase">
+                                                    Round {step.rocQueryMetadata.roundNumber}
+                                                  </span>
+                                                </div>
+                                                <div className="p-3 bg-white border border-amber-100 rounded-lg space-y-1">
+                                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Query text</div>
+                                                  <p className="text-xs text-slate-800 leading-normal">{step.rocQueryMetadata.queryText}</p>
+                                                </div>
+                                                {step.rocQueryMetadata.rejectNote && (
+                                                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg space-y-1">
+                                                    <div className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Send Back Rejection Note</div>
+                                                    <p className="text-xs text-rose-700 leading-normal">{step.rocQueryMetadata.rejectNote}</p>
+                                                  </div>
+                                                )}
+                                                <div className="text-xs text-blue-600 font-medium">
+                                                  Client has {step.rocQueryMetadata.daysRemaining} day(s) remaining to respond.
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            {/* Review Panel: shows when status is 'client_submitted' */}
+                                            {step.rocQueryMetadata.status === "client_submitted" && (
+                                              <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl space-y-4 max-w-xl">
+                                                <h4 className="text-sm font-bold text-blue-900">Client response received — review before resubmitting to ROC</h4>
+                                                
+                                                <div className="p-3 bg-white border border-blue-100 rounded-lg space-y-1">
+                                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Original query</div>
+                                                  <p className="text-xs text-slate-800 leading-normal">{step.rocQueryMetadata.queryText}</p>
+                                                </div>
+
+                                                <div className="p-3 bg-white border border-blue-100 rounded-lg space-y-2">
+                                                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Client submitted</div>
+                                                  <div className="space-y-1 text-xs font-semibold text-slate-700">
+                                                    {step.rocQueryMetadata.needsDocument && (
+                                                      <div className="flex items-center gap-1.5">
+                                                        {step.rocQueryMetadata.clientDocumentUrl ? (
+                                                          <>
+                                                            <span className="text-green-600 font-bold">✓</span>
+                                                            <span>Document attached:</span>
+                                                            <a
+                                                              href={`${process.env.NEXT_PUBLIC_API_BASE_URL}org/${tracker!.org._id}/files/by-type/roc-query-response/download`}
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              className="text-blue-600 underline font-medium hover:text-blue-700"
+                                                            >
+                                                              {step.rocQueryMetadata.clientDocumentName || "Download document"}
+                                                            </a>
+                                                          </>
+                                                        ) : (
+                                                          <>
+                                                            <span className="text-red-500 font-bold">✗</span>
+                                                            <span className="text-red-600">No document attached</span>
+                                                          </>
+                                                        )}
+                                                      </div>
+                                                    )}
+                                                    {step.rocQueryMetadata.needsTextResponse && (
+                                                      <div className="space-y-1">
+                                                        <div className="flex items-center gap-1.5">
+                                                          {step.rocQueryMetadata.clientTextResponse ? (
+                                                            <>
+                                                              <span className="text-green-600 font-bold">✓</span>
+                                                              <span>Clarification response:</span>
+                                                            </>
+                                                          ) : (
+                                                            <>
+                                                              <span className="text-red-500 font-bold">✗</span>
+                                                              <span className="text-red-600">No written response</span>
+                                                            </>
+                                                          )}
+                                                        </div>
+                                                        {step.rocQueryMetadata.clientTextResponse && (
+                                                          <p className="p-2 bg-slate-50 border border-slate-100 rounded text-xs text-slate-800 font-normal leading-normal">
+                                                            {step.rocQueryMetadata.clientTextResponse}
+                                                          </p>
+                                                        )}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                  <label className="block text-xs font-semibold text-slate-600">Note (required if sending back)</label>
+                                                  <textarea
+                                                    value={adminSendBackNote}
+                                                    onChange={(e) => setAdminSendBackNote(e.target.value)}
+                                                    className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
+                                                    placeholder="Tell the client exactly what was missing or incorrect — they'll see this on their end."
+                                                  />
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                  <button
+                                                    disabled={isSubmittingQuery}
+                                                    onClick={async () => {
+                                                      try {
+                                                        setIsSubmittingQuery(true);
+                                                        await clientsApi.approveRocResubmit(tracker!.org._id);
+                                                        setAdminSendBackNote("");
+                                                        loadData();
+                                                      } catch (err: any) {
+                                                        alert(err.message || "Failed to approve resubmission");
+                                                      } finally {
+                                                        setIsSubmittingQuery(false);
+                                                      }
+                                                    }}
+                                                    className="px-3 py-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-none"
+                                                  >
+                                                    {isSubmittingQuery && <Spinner size="sm" color="current" />}
+                                                    ✓ Sufficient — resubmit to ROC
+                                                  </button>
+                                                  <button
+                                                    disabled={isSubmittingQuery}
+                                                    onClick={async () => {
+                                                      if (!adminSendBackNote.trim()) return alert("Please enter note explaining why you are sending it back");
+                                                      try {
+                                                        setIsSubmittingQuery(true);
+                                                        await clientsApi.sendBackRocQuery(tracker!.org._id, adminSendBackNote);
+                                                        setAdminSendBackNote("");
+                                                        loadData();
+                                                      } catch (err: any) {
+                                                        alert(err.message || "Failed to send back query");
+                                                      } finally {
+                                                        setIsSubmittingQuery(false);
+                                                      }
+                                                    }}
+                                                    className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                  >
+                                                    {isSubmittingQuery && <Spinner size="sm" color="current" />}
+                                                    ↩ Send back to client
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            {/* Lapsed Panel: shows when status is 'lapsed' */}
+                                            {step.rocQueryMetadata.status === "lapsed" && (
+                                              <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-2 max-w-xl text-rose-800 text-xs">
+                                                <h4 className="font-bold text-sm text-rose-900">Application Lapsed</h4>
+                                                <p>The 10-day resubmission window closed without a response. Please contact your CorpE advisor to discuss next steps.</p>
+                                              </div>
+                                            )}
+
+                                            {/* Round History / Activity Log Timeline */}
+                                            {step.rocQueryMetadata.activityLog && step.rocQueryMetadata.activityLog.length > 0 && (
+                                              <div className="mt-4 pt-3 border-t border-slate-100 space-y-2 max-w-xl">
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ROC Query History & Log</div>
+                                                <div className="pl-3 border-l border-slate-200 space-y-3">
+                                                  {step.rocQueryMetadata.activityLog.map((log: any, lIdx: number) => (
+                                                    <div key={lIdx} className="text-xs space-y-0.5 relative">
+                                                      <span className="absolute left-[-16px] top-1 w-2 h-2 bg-slate-300 rounded-full border border-white" />
+                                                      <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                                                        <span className="capitalize font-bold text-slate-500">{log.actor}</span>
+                                                        <span>{new Date(log.createdAt).toLocaleString()}</span>
+                                                      </div>
+                                                      <p className="text-slate-600 leading-normal">{log.text}</p>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
 
                                     {/* Step Dropdown Control — no + button */}
                                     <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                                       <div className="w-36">
-                                        <CustomSelect
-                                          value={step.status}
-                                          isDisabled={
-                                            step.isEditable === false ||
-                                            step.title ===
-                                              "All documents delivered to you"
-                                          }
-                                          onChange={(val) =>
-                                            handleStatusChange(
-                                              currentStage.stageId || stage._id,
-                                              section._id,
-                                              step._id,
-                                              val,
-                                            )
-                                          }
-                                          ariaLabel={`Status for ${step.title}`}
-                                          options={statusOptions.filter(
-                                            (opt) => {
-                                              if (
-                                                step.title ===
-                                                "Name reservation letter received"
-                                              ) {
-                                                return (
-                                                  opt.id === "In Progress" ||
-                                                  opt.id === "Done" ||
-                                                  opt.id === "Pending" ||
-                                                  opt.id === "Rejected"
-                                                );
+                                        {isRocStep ? (
+                                          <CustomSelect
+                                            value={step.rocQueryMetadata?.status || "pending"}
+                                            isDisabled={!canEdit}
+                                            onChange={async (val) => {
+                                              if (val === "query") {
+                                                setRocQueryStepId(step._id);
+                                              } else if (val === "rejected") {
+                                                if (
+                                                  confirm(
+                                                    "Are you sure you want to mark this application as Rejected? This will route the client to the rejection form."
+                                                  )
+                                                ) {
+                                                  await clientsApi.rejectRocQuery(tracker!.org._id);
+                                                  loadData();
+                                                }
+                                              } else if (val === "resolved") {
+                                                await clientsApi.resolveRocQuery(tracker!.org._id);
+                                                loadData();
+                                              } else if (val === "resubmitted") {
+                                                await clientsApi.approveRocResubmit(tracker!.org._id);
+                                                loadData();
+                                              } else if (val === "pending") {
+                                                setRocQueryStepId("");
+                                                loadData();
                                               }
-
-                                              if (
-                                                step.title.startsWith(
-                                                  "Name reservation extension",
-                                                ) ||
-                                                step.title.startsWith(
-                                                  "Name reservation extended",
-                                                )
-                                              ) {
-                                                return (
-                                                  opt.id === "Done" ||
-                                                  opt.id === "In Progress" ||
-                                                  opt.id === "Pending" ||
-                                                  opt.id === "Action Needed"
-                                                );
-                                              }
-
-                                              if (step.ownerType === "client") {
-                                                return (
-                                                  opt.id === "Pending" ||
-                                                  opt.id === "Done" ||
-                                                  opt.id === "Action Needed"
-                                                );
-                                              }
-
-                                              if (opt.id === "Not Available") {
-                                                return (
+                                            }}
+                                            ariaLabel="ROC Query Status"
+                                            options={[
+                                              { id: "pending", label: "Pending" },
+                                              { id: "query", label: "Resubmission Required" },
+                                              { id: "rejected", label: "Rejected" },
+                                              { id: "resubmitted", label: "Resubmitted to ROC" },
+                                              { id: "resolved", label: "Resolved" },
+                                            ]}
+                                            renderValue={(val) => {
+                                              const labels: Record<string, string> = {
+                                                pending: "Pending",
+                                                query: "Resubmission Required",
+                                                client_submitted: "Submitted — Under Review",
+                                                resubmitted: "Resubmitted to ROC",
+                                                rejected: "Rejected",
+                                                resolved: "Resolved",
+                                                lapsed: "Lapsed",
+                                              };
+                                              const colors: Record<
+                                                string,
+                                                "default" | "warning" | "danger" | "success" | "accent"
+                                              > = {
+                                                pending: "default",
+                                                query: "warning",
+                                                client_submitted: "accent",
+                                                resubmitted: "default",
+                                                rejected: "danger",
+                                                resolved: "success",
+                                                lapsed: "danger",
+                                              };
+                                              return (
+                                                <Chip
+                                                  color={colors[val] || "default"}
+                                                  variant="soft"
+                                                  size="sm"
+                                                  className="font-bold border-0 bg-transparent p-0 flex items-center gap-1"
+                                                >
+                                                  <span>{labels[val] || val}</span>
+                                                </Chip>
+                                              );
+                                            }}
+                                          />
+                                        ) : (
+                                          <CustomSelect
+                                            value={step.status}
+                                            isDisabled={
+                                              step.isEditable === false ||
+                                              step.title ===
+                                                "All documents delivered to you"
+                                            }
+                                            onChange={(val) =>
+                                              handleStatusChange(
+                                                currentStage.stageId || stage._id,
+                                                section._id,
+                                                step._id,
+                                                val,
+                                              )
+                                            }
+                                            ariaLabel={`Status for ${step.title}`}
+                                            options={statusOptions.filter(
+                                              (opt) => {
+                                                if (
                                                   step.title ===
-                                                    "Name availability check" ||
-                                                  step.title ===
-                                                    "Trademark Check"
-                                                );
-                                              }
+                                                  "Name reservation letter received"
+                                                ) {
+                                                  return (
+                                                    opt.id === "In Progress" ||
+                                                    opt.id === "Done" ||
+                                                    opt.id === "Pending" ||
+                                                    opt.id === "Rejected"
+                                                  );
+                                                }
 
-                                              if (opt.id === "Action Needed") {
-                                                return false;
-                                              }
+                                                if (
+                                                  step.title.startsWith(
+                                                    "Name reservation extension",
+                                                  ) ||
+                                                  step.title.startsWith(
+                                                    "Name reservation extended",
+                                                  )
+                                                ) {
+                                                  return (
+                                                    opt.id === "Done" ||
+                                                    opt.id === "In Progress" ||
+                                                    opt.id === "Pending" ||
+                                                    opt.id === "Action Needed"
+                                                  );
+                                                }
 
-                                              return true;
-                                            },
-                                          )}
-                                          renderValue={(val) => (
-                                            <Chip
-                                              color={getStatusChipColor(val)}
-                                              variant="soft"
-                                              size="sm"
-                                              className="font-bold border-0 bg-transparent p-0 flex items-center gap-1"
-                                            >
-                                              <span>{val}</span>
-                                            </Chip>
-                                          )}
-                                        />
+                                                if (step.ownerType === "client") {
+                                                  return (
+                                                    opt.id === "Pending" ||
+                                                    opt.id === "Done" ||
+                                                    opt.id === "Action Needed"
+                                                  );
+                                                }
+
+                                                if (opt.id === "Not Available") {
+                                                  return (
+                                                    step.title ===
+                                                      "Name availability check" ||
+                                                    step.title ===
+                                                      "Trademark Check"
+                                                  );
+                                                }
+
+                                                if (opt.id === "Action Needed") {
+                                                  return false;
+                                                }
+
+                                                return true;
+                                              },
+                                            )}
+                                            renderValue={(val) => (
+                                              <Chip
+                                                color={getStatusChipColor(val)}
+                                                variant="soft"
+                                                size="sm"
+                                                className="font-bold border-0 bg-transparent p-0 flex items-center gap-1"
+                                              >
+                                                <span>{val}</span>
+                                              </Chip>
+                                            )}
+                                          />
+                                        )}
                                       </div>
                                     </div>
                                   </div>
