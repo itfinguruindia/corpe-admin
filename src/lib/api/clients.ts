@@ -396,6 +396,48 @@ export const clientsApi = {
     return response.data as Blob;
   },
 
+  getLlpAgreementStatus: async (applicationNo: string) => {
+    try {
+      const response = await axiosInstance.get(
+        `/admin/clients/${applicationNo}/llp-agreement/status`,
+      );
+      return response.data?.data ?? response.data;
+    } catch {
+      return { status: "pending", adminFile: null, clientFile: null };
+    }
+  },
+
+  uploadLlpAgreementDocument: async (applicationNo: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/llp-agreement`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return response.data?.data ?? response.data;
+  },
+
+  downloadLlpAgreementDocument: async (
+    applicationNo: string,
+    source?: "admin" | "client",
+  ) => {
+    const url = source
+      ? `/admin/clients/${applicationNo}/llp-agreement/download?source=${source}`
+      : `/admin/clients/${applicationNo}/llp-agreement/download`;
+
+    const response = await axiosInstance.get(url, {
+      responseType: "blob",
+    });
+    return response.data as Blob;
+  },
+
   getMcaQueryStatus: async (applicationNo: string) => {
     const response = await axiosInstance.get(
       `/admin/clients/${applicationNo}/mca-query/status`,
