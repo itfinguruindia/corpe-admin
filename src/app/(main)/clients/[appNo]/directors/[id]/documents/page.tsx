@@ -14,6 +14,11 @@ import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import {
+  getDirectorDualSourceDocumentFields,
+  getDirectorRegularDocumentFields,
+  resolveIsForeignResident,
+} from "@/utils/stakeholderDocumentFields";
 
 /* =======================
    CONFIG / RULES
@@ -53,15 +58,6 @@ export default function DirectorDocumentsPage() {
   const { appNo, id } = useParams();
   const { requireEdit } = useClientTabEdit("director");
   const { labels, isLlp, isLoading: isCompanyTypeLoading } = useClientCompanyLabels();
-
-  const dualSourceDocLabels = [
-    labels.dir2,
-    labels.inc9Director,
-    "No PAN Declaration",
-    "Miscellaneous 1",
-    "Miscellaneous 2",
-    "Miscellaneous 3",
-  ];
 
   const [director, setDirector] = useState<Director | null>(null);
   const [rawDocumentsData, setRawDocumentsData] = useState<any>(null);
@@ -114,6 +110,42 @@ export default function DirectorDocumentsPage() {
     miscellaneous3: false,
   });
 
+  const isForeignResident = useMemo(
+    () => resolveIsForeignResident(director as Record<string, unknown> | null),
+    [director],
+  );
+
+  const dualSourceDocumentFields = useMemo(
+    () =>
+      getDirectorDualSourceDocumentFields({
+        isForeignResident,
+        isLlp,
+        labels,
+      }),
+    [isForeignResident, isLlp, labels],
+  );
+
+  const dualSourceDocLabels = useMemo(
+    () => dualSourceDocumentFields.map((field) => field.label),
+    [dualSourceDocumentFields],
+  );
+
+  const primaryDualSourceFields = useMemo(
+    () =>
+      dualSourceDocumentFields.filter(
+        (field) => !field.key.startsWith("miscellaneous"),
+      ),
+    [dualSourceDocumentFields],
+  );
+
+  const miscDualSourceFields = useMemo(
+    () =>
+      dualSourceDocumentFields.filter((field) =>
+        field.key.startsWith("miscellaneous"),
+      ),
+    [dualSourceDocumentFields],
+  );
+
   /* =======================
      DATA TRANSFORM
   ======================= */
@@ -121,74 +153,27 @@ export default function DirectorDocumentsPage() {
   const documents = useMemo((): DirectorDocument[] => {
     if (!rawDocumentsData) return [];
 
-    const addressProofKeys = [
-      { key: "addressProofIndia", label: "Address Proof (India)" },
-      { key: "addressProof", label: "Address Proof" },
-      { key: "addressProofForeign", label: "Address Proof (Foreign)" },
-    ];
+    const documentTypes = getDirectorRegularDocumentFields({
+      isForeignResident,
+      isLlp,
+      labels,
+      rawDocumentsData,
+    });
 
-    let addressProofToShow: (typeof addressProofKeys)[number] | null = null;
-    for (const ap of addressProofKeys) {
-      if (rawDocumentsData[ap.key]) {
-        addressProofToShow = ap;
-        break;
-      }
-    }
-
-    const documentTypes = [
-      { key: "adhar", label: "Aadhaar Card" },
-      { key: "panCard", label: "PAN Card" },
-      { key: "otherGovtDocs", label: "Other Government Documents" },
-      ...(addressProofToShow ? [addressProofToShow] : []),
-      {
-        key: "passportOrDrivingOrVoter",
-        label: "Passport/Driving License/Voter ID",
-      },
-      { key: "passportForeign", label: "Passport (Foreign)" },
-      { key: "otherIDForeign", label: "Other ID (Foreign)" },
-      { key: "presentAddressProof", label: "Present Address Proof" },
-      { key: "photo", label: "Photo" },
-      { key: "signature", label: "Signature" },
-      ...(isLlp
-        ? []
-        : [{ key: "consentToAct", label: labels.consentToAct }]),
-      { key: "dir2", label: labels.dir2 },
-      { key: "inc9Director", label: labels.inc9Director },
-      { key: "noPanDeclaration", label: "No PAN Declaration" },
-      { key: "miscellaneous1", label: "Miscellaneous 1" },
-      { key: "miscellaneous2", label: "Miscellaneous 2" },
-      { key: "miscellaneous3", label: "Miscellaneous 3" },
-    ];
-
-    return documentTypes
-      .map((docType, index) => {
-        const doc = rawDocumentsData[docType.key];
-        return {
-          id: `${docType.key}-${index}`,
-          fieldKey: docType.key,
-          directorId: id as string,
-          documentType: docType.label,
-          status: doc ? doc.status || "uploaded" : "pending",
-          fileUrl: doc?.url || "",
-          fileName: doc?.name || "",
-          uploadedAt: doc?.uploadedAt || "",
-        };
-      })
-      .filter((doc) => {
-        if (
-          [
-            "Address Proof (India)",
-            "Address Proof",
-            "Address Proof (Foreign)",
-          ].includes(doc.documentType)
-        ) {
-          return (
-            addressProofToShow && doc.documentType === addressProofToShow.label
-          );
-        }
-        return true;
-      });
-  }, [rawDocumentsData, labels, isLlp, id]);
+    return documentTypes.map((docType, index) => {
+      const doc = rawDocumentsData[docType.key];
+      return {
+        id: `${docType.key}-${index}`,
+        fieldKey: docType.key,
+        directorId: id as string,
+        documentType: docType.label,
+        status: doc ? doc.status || "uploaded" : "pending",
+        fileUrl: doc?.url || "",
+        fileName: doc?.name || "",
+        uploadedAt: doc?.uploadedAt || "",
+      };
+    });
+  }, [rawDocumentsData, labels, isLlp, isForeignResident, id]);
 
   /* =======================
      HELPER FUNCTIONS
@@ -200,15 +185,19 @@ export default function DirectorDocumentsPage() {
   };
 
   const getDocTypeKey = (documentType: string): string => {
-    const map: Record<string, string> = {
-      [labels.dir2]: "dir2",
-      [labels.inc9Director]: "inc9Director",
-      "No PAN Declaration": "noPanDeclaration",
-      "Miscellaneous 1": "miscellaneous1",
-      "Miscellaneous 2": "miscellaneous2",
-      "Miscellaneous 3": "miscellaneous3",
-    };
-    return map[documentType] || "";
+    const fromDualSource = dualSourceDocumentFields.find(
+      (field) => field.label === documentType,
+    );
+    if (fromDualSource) return fromDualSource.key;
+
+    const fromRegular = getDirectorRegularDocumentFields({
+      isForeignResident,
+      isLlp,
+      labels,
+      rawDocumentsData,
+    }).find((field) => field.label === documentType);
+
+    return fromRegular?.key || "";
   };
 
   const getSetterForDocType = (docType: string) => {
@@ -255,21 +244,28 @@ export default function DirectorDocumentsPage() {
     }
   };
 
-  const loadAllDualSourceDocs = async (isForeignResident?: boolean) => {
+  const getDualSourceFiles = (docTypeKey: string): DualSourceState => {
+    const map: Record<string, DualSourceState> = {
+      dir2: dir2Files,
+      inc9Director: inc9Files,
+      noPanDeclaration: noPanFiles,
+      miscellaneous1: misc1Files,
+      miscellaneous2: misc2Files,
+      miscellaneous3: misc3Files,
+    };
+    return map[docTypeKey] ?? { adminFile: null, clientFile: null };
+  };
+
+  const loadAllDualSourceDocs = async () => {
     if (!appNo || !id) return;
 
-    const docTypes = [
-      { key: "dir2", setter: setDir2Files },
-      { key: "inc9Director", setter: setInc9Files },
-      ...(isForeignResident
-        ? [{ key: "noPanDeclaration", setter: setNoPanFiles }]
-        : []),
-      { key: "miscellaneous1", setter: setMisc1Files },
-      { key: "miscellaneous2", setter: setMisc2Files },
-      { key: "miscellaneous3", setter: setMisc3Files },
-    ];
+    const docTypes = dualSourceDocumentFields.map((field) => ({
+      key: field.key,
+      setter: getSetterForDocType(field.key),
+    }));
 
     const promises = docTypes.map(async ({ key, setter }) => {
+      if (!setter) return;
       try {
         const status = await clientsApi.getDirectorDocStatus(
           appNo as string,
@@ -306,15 +302,6 @@ export default function DirectorDocumentsPage() {
         if (trackerResponse && trackerResponse.installmentInfo) {
           setInstallmentInfo(trackerResponse.installmentInfo);
         }
-
-        // Load dual-source document statuses
-        const isForeignResident = Boolean(
-          (directorData as any)?.isForeignResident ??
-            (directorData as any)?.foreignResident ??
-            (directorData as any)?.isForeign ??
-            (directorData as any)?.isNri,
-        );
-        await loadAllDualSourceDocs(isForeignResident);
       } catch (err) {
         console.error("Error loading director documents", err);
       } finally {
@@ -324,6 +311,20 @@ export default function DirectorDocumentsPage() {
 
     if (appNo && id) loadData();
   }, [appNo, id]);
+
+  useEffect(() => {
+    if (!appNo || !id || isLoading || isCompanyTypeLoading || !director) {
+      return;
+    }
+    void loadAllDualSourceDocs();
+  }, [
+    appNo,
+    id,
+    director,
+    isLoading,
+    isCompanyTypeLoading,
+    dualSourceDocumentFields,
+  ]);
 
   /* =======================
      ACTIONS
@@ -809,35 +810,28 @@ export default function DirectorDocumentsPage() {
 
           {/* Right: Dual-Source Documents */}
           <div className="col-span-1 space-y-4">
-            {renderDualSourceCard(labels.dir2, "dir2", dir2Files)}
-            {renderDualSourceCard(labels.inc9Director, "inc9Director", inc9Files)}
-            {(director as { isForeignResident?: boolean }).isForeignResident &&
+            {primaryDualSourceFields.map((field) =>
               renderDualSourceCard(
-                "No PAN Declaration",
-                "noPanDeclaration",
-                noPanFiles,
-              )}
+                field.label,
+                field.key,
+                getDualSourceFiles(field.key),
+              ),
+            )}
           </div>
         </div>
 
-        {/* Bottom: Miscellaneous Documents (Side by Side) */}
+        {/* Bottom: Miscellaneous Documents (standard company types only) */}
+        {miscDualSourceFields.length > 0 && (
         <div className="grid grid-cols-3 gap-6 mt-6">
-          {renderDualSourceCard(
-            "Miscellaneous 1",
-            "miscellaneous1",
-            misc1Files,
-          )}
-          {renderDualSourceCard(
-            "Miscellaneous 2",
-            "miscellaneous2",
-            misc2Files,
-          )}
-          {renderDualSourceCard(
-            "Miscellaneous 3",
-            "miscellaneous3",
-            misc3Files,
+          {miscDualSourceFields.map((field) =>
+            renderDualSourceCard(
+              field.label,
+              field.key,
+              getDualSourceFiles(field.key),
+            ),
           )}
         </div>
+        )}
       </div>
 
       {/* Preview Modal */}
