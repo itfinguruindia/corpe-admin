@@ -6,6 +6,7 @@ import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { Card, Spinner } from "@heroui/react";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { toStakeholderId } from "@/utils/stakeholderIds";
 
 interface ShareholdersContentProps {
   appNo: string;
@@ -51,7 +52,7 @@ export default function ShareholdersContent({
             (s: any, idx: number) => {
               const isAlsoDirector = directors.some((d: any) => isSamePerson(s, d));
               return {
-                id: s.shareholderId || `${idx}`,
+                id: toStakeholderId(s, idx),
                 applicationNo: appNo,
                 shareholderNumber: idx + 1,
                 hasDIN: false,

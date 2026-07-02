@@ -8,6 +8,7 @@ import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { matchesStakeholderId, toStakeholderId } from "@/utils/stakeholderIds";
 
 export default function ShareholderDetailPage() {
   const { appNo, id } = useParams();
@@ -69,7 +70,7 @@ export default function ShareholderDetailPage() {
                 isSamePerson(s, d),
               );
               return {
-                id: s.shareholderId || `${idx}`,
+                id: toStakeholderId(s, idx),
                 applicationNo: appNo as string,
                 shareholderNumber: idx + 1,
                 hasDIN: false,
@@ -106,7 +107,9 @@ export default function ShareholderDetailPage() {
           setAllShareholders(mappedShareholders);
           // Find the shareholder by id
           const foundShareholder = mappedShareholders.find(
-            (sh: any) => sh.id === id,
+            (sh: Shareholder, idx: number) =>
+              String(sh.id) === String(id) ||
+              matchesStakeholderId(response.data.shareholders[idx], String(id)),
           );
           setShareholder(foundShareholder || null);
           if (foundShareholder) {

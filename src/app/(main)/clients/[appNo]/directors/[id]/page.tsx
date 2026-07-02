@@ -10,6 +10,7 @@ import { InfoField, Switch, Chip } from "@/components/ui";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { matchesStakeholderId, toStakeholderId } from "@/utils/stakeholderIds";
 
 export default function DirectorDetailPage() {
   const { appNo, id } = useParams();
@@ -49,7 +50,7 @@ export default function DirectorDetailPage() {
         ) {
           const mappedDirectors = response.data.directors.map(
             (d: any, idx: number) => ({
-              id: d.directorId || `${idx}`,
+              id: toStakeholderId(d, idx),
               applicationNo: appNo as string,
               directorNumber: idx + 1,
               hasDIN: d.hasDIN || false,
@@ -88,7 +89,9 @@ export default function DirectorDetailPage() {
           setAllDirectors(mappedDirectors);
           // Find the director by id
           const foundDirector = mappedDirectors.find(
-            (dir: any) => dir.id === id,
+            (dir: Director, idx: number) =>
+              String(dir.id) === String(id) ||
+              matchesStakeholderId(response.data.directors[idx], String(id)),
           );
           setDirector(foundDirector || null);
           if (foundDirector) {
