@@ -21,6 +21,7 @@ import { getFileType } from "@/utils/helpers";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { toStakeholderId } from "@/utils/stakeholderIds";
 
 interface UploadedDocumentsContentProps {
   appNo: string;
@@ -72,7 +73,7 @@ export default function UploadedDocumentsContent({
           // Map directors
           const mappedDirectors = (response.data.directors || []).map(
             (d: any, idx: number) => ({
-              id: d.directorId || `${idx}`,
+              id: toStakeholderId(d, idx),
               directorNumber: idx + 1,
             }),
           );
@@ -80,7 +81,7 @@ export default function UploadedDocumentsContent({
           // Map shareholders
           const mappedShareholders = (response.data.shareholders || []).map(
             (s: any, idx: number) => ({
-              id: s.shareholderId || `${idx}`,
+              id: toStakeholderId(s, idx),
               shareholderNumber: idx + 1,
             }),
           );

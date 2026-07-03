@@ -7,6 +7,7 @@ import { clientsApi } from "@/lib/api/clients";
 import { Card, Spinner } from "@heroui/react";
 import { Chip } from "@/components/ui";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { toStakeholderId } from "@/utils/stakeholderIds";
 
 interface DirectorsContentProps {
   appNo: string;
@@ -30,7 +31,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
         ) {
           const mappedDirectors: Director[] = response.data.directors.map(
             (d: any, idx: number) => ({
-              id: d.directorId || `${idx}`,
+              id: toStakeholderId(d, idx),
               applicationNo: appNo,
               directorNumber: idx + 1,
               hasDIN: d.hasDIN || false,

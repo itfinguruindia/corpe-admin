@@ -8,7 +8,7 @@ import { toast } from "@heroui/react";
 import { clientsApi } from "@/lib/api/clients";
 import CustomSelect from "@/components/ui/CustomSelect";
 import Modal from "@/components/ui/Modal";
-import { RegistrationData } from "@/types/registrationDocuments";
+import { RegistrationData, LlpAgreementStatus } from "@/types/registrationDocuments";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { getFileType } from "@/utils/helpers";
@@ -69,6 +69,13 @@ export default function RegistrationDocumentsContent({
     secondInstallmentDue: boolean;
     secondInstallmentPaid: boolean;
   } | null>(null);
+  const [llpAgreementStatus, setLlpAgreementStatus] =
+    useState<LlpAgreementStatus | null>(null);
+  const llpAgreementInputRef = useRef<HTMLInputElement>(null);
+
+  const isLlpCompany =
+    data?.companyType?.toLowerCase() === "llp" ||
+    data?.companyType?.toLowerCase() === "limited-liability-partnership";
 
   const isLocked = !!(
     installmentInfo?.firstInstallmentDue ||
@@ -90,6 +97,16 @@ export default function RegistrationDocumentsContent({
       if (result?.companyStatus) setCompanyStatus(result.companyStatus);
       if (trackerResponse && trackerResponse.installmentInfo) {
         setInstallmentInfo(trackerResponse.installmentInfo);
+      }
+      const companyType = String(result?.companyType || "").toLowerCase();
+      if (
+        companyType === "llp" ||
+        companyType === "limited-liability-partnership"
+      ) {
+        const llpStatus = await clientsApi.getLlpAgreementStatus(appNo);
+        setLlpAgreementStatus(llpStatus);
+      } else {
+        setLlpAgreementStatus(null);
       }
     } catch (error) {
       console.error("Failed to load registration data:", error);
@@ -243,6 +260,82 @@ export default function RegistrationDocumentsContent({
     }
   };
 
+  const handleLlpAgreementUploadClick = () => {
+    if (!requireEdit()) return;
+    if (!data?.cin) {
+      toast.warning(
+        "Please submit a valid CIN first to unlock document uploads.",
+      );
+      return;
+    }
+    if (llpAgreementInputRef.current) {
+      llpAgreementInputRef.current.value = "";
+      llpAgreementInputRef.current.click();
+    }
+  };
+
+  const handleLlpAgreementFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    try {
+      setIsLoading(true);
+      await clientsApi.uploadLlpAgreementDocument(appNo, file);
+      toast.success("LLP Agreement uploaded successfully!");
+      loadData();
+    } catch (error) {
+      console.error("Failed to upload LLP Agreement:", error);
+      notifyApiError(error, {
+        fallback: "Failed to upload LLP Agreement.",
+        actionLabel: "upload LLP Agreement",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLlpAgreementDownload = async (source: "admin" | "client") => {
+    try {
+      const fileName =
+        source === "admin"
+          ? llpAgreementStatus?.adminFile?.name
+          : llpAgreementStatus?.clientFile?.name;
+      const blob = await clientsApi.downloadLlpAgreementDocument(appNo, source);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName || "llp-agreement.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download LLP Agreement:", error);
+      toast.danger("No file uploaded yet or download failed.");
+    }
+  };
+
+  const handleLlpAgreementPreview = async (source: "admin" | "client") => {
+    try {
+      const fileName =
+        source === "admin"
+          ? llpAgreementStatus?.adminFile?.name
+          : llpAgreementStatus?.clientFile?.name;
+      const blob = await clientsApi.downloadLlpAgreementDocument(appNo, source);
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setPreviewFileName(fileName || "llp-agreement.pdf");
+      setPreviewTitle("LLP Agreement");
+      setIsPreviewOpen(true);
+    } catch (error) {
+      console.error("Failed to preview LLP Agreement:", error);
+      toast.danger("Could not open LLP Agreement.");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -269,6 +362,13 @@ export default function RegistrationDocumentsContent({
           onChange={handleFileChange}
           className="hidden"
           accept=".pdf,.png,.jpg,.jpeg"
+        />
+        <input
+          type="file"
+          ref={llpAgreementInputRef}
+          onChange={handleLlpAgreementFileChange}
+          className="hidden"
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
         />
 
         <div className="flex items-center justify-between mb-8">
@@ -490,6 +590,109 @@ export default function RegistrationDocumentsContent({
             );
           })}
         </div>
+
+        {isLlpCompany && (
+          <div className="mt-10 max-w-5xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-black">LLP Agreement</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Upload the draft agreement for the client to download and
+                  re-upload after signing.
+                </p>
+              </div>
+              <button
+                onClick={handleLlpAgreementUploadClick}
+                disabled={!data?.cin}
+                className="inline-flex items-center gap-2 rounded-lg border border-[#F46A45] px-4 py-2 text-sm font-medium text-[#F46A45] transition-colors hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40"
+                title="Upload LLP Agreement (Admin)"
+              >
+                <Upload size={18} />
+                Upload Draft
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {llpAgreementStatus?.adminFile ? (
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-orange-700">
+                      Admin Upload
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleLlpAgreementPreview("admin")}
+                        className="text-orange-600 hover:text-orange-700"
+                        title="Preview"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleLlpAgreementDownload("admin")}
+                        className="text-orange-600 hover:text-orange-700"
+                        title="Download"
+                      >
+                        <Download size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="truncate text-sm text-secondary">
+                    {llpAgreementStatus.adminFile.name}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
+                  <div className="mb-1 text-xs font-medium text-gray-400">
+                    Admin Upload
+                  </div>
+                  <div className="text-sm text-gray-400">No file uploaded</div>
+                </div>
+              )}
+
+              {llpAgreementStatus?.clientFile ? (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-blue-700">
+                      Client Upload
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleLlpAgreementPreview("client")}
+                        className="text-blue-600 hover:text-blue-700"
+                        title="Preview"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleLlpAgreementDownload("client")}
+                        className="text-blue-600 hover:text-blue-700"
+                        title="Download"
+                      >
+                        <Download size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="truncate text-sm text-secondary">
+                    {llpAgreementStatus.clientFile.name}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
+                  <div className="mb-1 text-xs font-medium text-gray-400">
+                    Client Upload
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    Waiting for client upload
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Preview Modal */}
         <Modal
