@@ -25,6 +25,7 @@ export const pricingPlansService = {
     const response = await axiosInstance.put<ApiResponse<AdminPricingPlan>>(
       `/pricing/plans/${planId}`,
       payload,
+      { timeout: 60000 },
     );
     return response.data.data;
   },
