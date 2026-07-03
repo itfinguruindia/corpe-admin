@@ -8,9 +8,9 @@ import { FileUploadComponent } from "@/components/upload";
 import Modal from "@/components/ui/Modal";
 import { clientsApi } from "@/lib/api/clients";
 import type { CompanyMiscDocType, MoaAoaDocType } from "@/lib/api/clients";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 import { getFileType } from "@/utils/helpers";
 
 interface MoaAoaContentProps {
@@ -76,13 +76,24 @@ const INITIAL_SECTIONS: DocumentSection[] = [
 ];
 
 export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("moa");
   const [sections, setSections] = useState<DocumentSection[]>(INITIAL_SECTIONS);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshingKey, setRefreshingKey] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState("");
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
+
+  const isLocked = !!(
+    installmentInfo?.firstInstallmentDue ||
+    !installmentInfo?.secondInstallmentPaid
+  );
 
   const getFileName = (value: string) => {
     if (!value) return "";
@@ -127,7 +138,13 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        await loadAllSections();
+        const [_, trackerRes] = await Promise.all([
+          loadAllSections(),
+          clientsApi.getTrackingStatus(appNo).catch(() => null),
+        ]);
+        if (trackerRes && trackerRes.installmentInfo) {
+          setInstallmentInfo(trackerRes.installmentInfo);
+        }
       } catch (error) {
         console.error("Error fetching MOA & AOA:", error);
         setSections(INITIAL_SECTIONS);
@@ -137,7 +154,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
     };
 
     loadData();
-  }, [loadAllSections]);
+  }, [loadAllSections, appNo]);
 
   const refreshSection = async (sectionKey: string) => {
     const section = sections.find((s) => s.key === sectionKey);
@@ -235,7 +252,13 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
 
   const handleAdminUpload = async (section: DocumentSection, file: File) => {
     if (!file) return;
-    if (!requireClientTabEdit(admin, "moa")) return;
+    if (!requireEdit()) return;
+    if (isLocked) {
+      toast("Action locked. Installment payment is due.", {
+        variant: "danger",
+      });
+      return;
+    }
 
     try {
       if (section.kind === "moa-aoa") {
@@ -269,9 +292,14 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
   };
 
   const renderUploadCard = (section: DocumentSection) => (
-    <div key={section.key} className="rounded-xl bg-white p-4 shadow-sm h-full flex flex-col">
+    <div
+      key={section.key}
+      className="rounded-xl bg-white p-4 shadow-sm h-full flex flex-col"
+    >
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold text-secondary">{section.label}</h2>
+        <h2 className="text-base font-semibold text-secondary">
+          {section.label}
+        </h2>
         <div className="flex items-center gap-3">
           <div title="Refresh status">
             <RefreshCw
@@ -282,20 +310,50 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
               }`}
             />
           </div>
+          <DocumentIssueButton
+            applicationNo={appNo}
+            target={{
+              entityType: "company",
+              entityId: "company",
+              entityLabel: "Company Documents",
+              fieldKey: section.docType,
+              documentLabel: section.label,
+              clientRoute: "document-upload",
+            }}
+            className="inline-flex items-center text-primary hover:text-secondary"
+          />
           <FileUploadComponent
             context="clients"
             allowedFileTypes=".pdf,.doc,.docx"
             title={`Upload ${section.label}`}
             subtitle="Upload from your computer, Google Drive, or existing documents."
             dropLabel="Drag and drop your file here"
-            onBeforeOpen={() => requireClientTabEdit(admin, "moa")}
+            onBeforeOpen={() => {
+              if (isLocked) {
+                toast("Action locked. Installment payment is due.", {
+                  variant: "danger",
+                });
+                return false;
+              }
+              return requireEdit();
+            }}
             onFileSelect={(file) => handleAdminUpload(section, file)}
             renderTrigger={(openPicker) => (
-              <div title={`Upload ${section.label} (Admin)`}>
+              <div
+                title={
+                  isLocked
+                    ? "Locked — installment due"
+                    : `Upload ${section.label} (Admin)`
+                }
+              >
                 <Upload
                   size={20}
-                  onClick={openPicker}
-                  className="cursor-pointer text-primary hover:text-secondary"
+                  onClick={isLocked ? undefined : openPicker}
+                  className={
+                    isLocked
+                      ? "text-gray-300 cursor-not-allowed"
+                      : "cursor-pointer text-primary hover:text-secondary"
+                  }
                 />
               </div>
             )}
@@ -381,7 +439,6 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
           </div>
         )}
       </div>
-
     </div>
   );
 
@@ -401,6 +458,15 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
             MOA & AOA
           </div>
         </div>
+
+        {isLocked && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold">
+            <span>
+              ⚠️ Stage locked. Outstanding installment payments are due for this
+              client. Document upload actions are disabled.
+            </span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {sections.map((section) => renderUploadCard(section))}

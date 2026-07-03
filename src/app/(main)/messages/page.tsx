@@ -45,6 +45,7 @@ export default function MessagesPage() {
   useEffect(() => {
     const socket = connectSocket();
     socketRef.current = socket;
+    if (!socket) return;
 
     // Listen for room updates (new messages, etc.)
     const handleRoomUpdated = () => {
@@ -122,6 +123,10 @@ export default function MessagesPage() {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             onNewChat={() => setShowNewChatModal(true)}
+            onRefresh={() => {
+              setIsLoading(true);
+              void fetchRooms();
+            }}
             isLoading={isLoading}
           />
         </div>

@@ -7,6 +7,7 @@ export interface IUpdateTicketPayload {
   status?: string;
   assignee?: string | null;
   priority?: string;
+  comment?: string;
 }
 
 function mapAssignee(
@@ -22,7 +23,7 @@ function mapTicketItem(item: Record<string, unknown>): Ticket {
   return {
     id: String(item._id),
     applicationNo: (item.applicationNo as string) || "N/A",
-    category: item.category as string,
+    category: (item.category as string) || "General",
     subject: item.subject as string,
     status: item.status as Ticket["status"],
     assignee: mapAssignee(item.assignee),
@@ -86,6 +87,22 @@ export class TicketApi {
     } catch (error) {
       console.error("Error updating ticket:", error);
       return false;
+    }
+  }
+
+  static async getTicketById(ticketId: string): Promise<Ticket | null> {
+    try {
+      const response = await axiosInstance.get(
+        `/admin/support/ticket/${ticketId}`,
+      );
+      const data = response.data?.data ?? response.data;
+      if (response.data?.success && data) {
+        return mapTicketItem(data as Record<string, unknown>);
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching ticket:", error);
+      return null;
     }
   }
 }

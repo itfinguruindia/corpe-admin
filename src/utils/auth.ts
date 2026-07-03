@@ -1,6 +1,7 @@
 import axiosInstance from "@/lib/axios";
 import { clearAuthData, setAuthData } from "@/redux/slices/authSlice";
 import { store } from "@/redux/store";
+import type { Admin } from "@/types/admin";
 import Cookies from "js-cookie";
 import { redirectAfterAuth } from "@/utils/navigation";
 
@@ -18,8 +19,9 @@ function clearAuthStorage(): void {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("adminInfo");
-  Cookies.remove("accessToken");
-  Cookies.remove("refreshToken");
+  // Remove with explicit path to match how cookies were set (js-cookie defaults to "/").
+  Cookies.remove("accessToken", { path: "/" });
+  Cookies.remove("refreshToken", { path: "/" });
   store.dispatch(clearAuthData());
 }
 
@@ -156,6 +158,31 @@ export async function loginAdmin({
     return true;
   } else {
     throw new Error(response.data.message || "Login failed");
+  }
+}
+
+export async function refreshAdminSession(): Promise<Admin | null> {
+  try {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return null;
+
+    const response = await axiosInstance.get("/admin/auth/session");
+    if (!response.data?.success) return null;
+
+    const admin = response.data.data?.admin as Admin | undefined;
+    if (!admin?.id) return null;
+
+    localStorage.setItem("adminInfo", JSON.stringify(admin));
+    store.dispatch(
+      setAuthData({
+        accessToken: token,
+        refreshToken: localStorage.getItem("refreshToken"),
+        admin,
+      }),
+    );
+    return admin;
+  } catch {
+    return null;
   }
 }
 

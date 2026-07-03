@@ -58,6 +58,14 @@ export const clientsApi = {
     return response.data.data;
   },
 
+  // Get lightweight payment status
+  getPaymentStatus: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/payment-status`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
   // Delete a client by application number
   deleteClient: async (applicationNo: string) => {
     const response = await axiosInstance.delete(
@@ -66,8 +74,8 @@ export const clientsApi = {
     return response.data;
   },
 
-  // Update assignee for a client
-  updateAssignee: async (applicationNo: string, adminId: string) => {
+  // Update assignee for a client (pass null to unassign)
+  updateAssignee: async (applicationNo: string, adminId: string | null) => {
     const response = await axiosInstance.patch(
       `/admin/clients/${applicationNo}/assignee`,
       { adminId },
@@ -75,8 +83,8 @@ export const clientsApi = {
     return response.data;
   },
 
-  // Update assigner for a client
-  updateAssigner: async (applicationNo: string, adminId: string) => {
+  // Update assigner for a client (pass null to unassign)
+  updateAssigner: async (applicationNo: string, adminId: string | null) => {
     const response = await axiosInstance.patch(
       `/admin/clients/${applicationNo}/assigner`,
       { adminId },
@@ -101,9 +109,10 @@ export const clientsApi = {
   },
 
   // Get directors and shareholders by application number
-  getDirectorAndShareHolders: async (applicationNo: string) => {
+  getDirectorAndShareHolders: async (applicationNo: string, includeDraft: boolean = true) => {
     const response = await axiosInstance.get(
       `/admin/clients/${applicationNo}/getDirectorAndShareHolders`,
+      { params: { includeDraft } },
     );
     return response.data;
   },
@@ -177,11 +186,11 @@ export const clientsApi = {
     return response.data;
   },
 
-  // Update kycVerified / dscApplication for a director
+  // Update kycVerified / dscApplication / dinStatus for a director
   updateDirectorStatus: async (
     applicationNo: string,
     directorId: string,
-    updates: { kycVerified?: boolean; dscApplication?: boolean },
+    updates: { kycVerified?: boolean; dscApplication?: boolean; dinStatus?: string },
   ) => {
     const response = await axiosInstance.patch(
       `/admin/clients/${applicationNo}/directors/${directorId}/status`,
@@ -384,6 +393,93 @@ export const clientsApi = {
     const response = await axiosInstance.get(url, {
       responseType: "blob",
     });
+    return response.data as Blob;
+  },
+
+  getLlpAgreementStatus: async (applicationNo: string) => {
+    try {
+      const response = await axiosInstance.get(
+        `/admin/clients/${applicationNo}/llp-agreement/status`,
+      );
+      return response.data?.data ?? response.data;
+    } catch {
+      return { status: "pending", adminFile: null, clientFile: null };
+    }
+  },
+
+  uploadLlpAgreementDocument: async (applicationNo: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/llp-agreement`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return response.data?.data ?? response.data;
+  },
+
+  downloadLlpAgreementDocument: async (
+    applicationNo: string,
+    source?: "admin" | "client",
+  ) => {
+    const url = source
+      ? `/admin/clients/${applicationNo}/llp-agreement/download?source=${source}`
+      : `/admin/clients/${applicationNo}/llp-agreement/download`;
+
+    const response = await axiosInstance.get(url, {
+      responseType: "blob",
+    });
+    return response.data as Blob;
+  },
+
+  getMcaQueryStatus: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/mca-query/status`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  updateMcaQueryText: async (applicationNo: string, text: string) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/mca-query/text`,
+      { text },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  uploadMcaQueryFile: async (applicationNo: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/mca-query/files`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  deleteMcaQueryFile: async (applicationNo: string, filePath: string) => {
+    const response = await axiosInstance.delete(
+      `/admin/clients/${applicationNo}/mca-query/files?filePath=${encodeURIComponent(filePath)}`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  downloadMcaClarificationFile: async (
+    applicationNo: string,
+    source: "mca" | "client",
+    filePath: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/mca-query/download?source=${source}&filePath=${encodeURIComponent(filePath)}`,
+      { responseType: "blob" },
+    );
     return response.data as Blob;
   },
 
@@ -764,5 +860,143 @@ export const clientsApi = {
   initializeTracker: async (orgId: string) => {
     const response = await axiosInstance.post(`/admin/tracker/${orgId}/initialize`);
     return response.data?.data ?? response.data;
-  }
+  },
+
+  getGlobalComments: async (applicationNo: string, area?: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/global-comments`,
+      { params: area && area !== "all" ? { area } : {} },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  createGlobalComment: async (
+    applicationNo: string,
+    payload: { content: string; area: string; files?: File[] },
+  ) => {
+    const formData = new FormData();
+    formData.append("content", payload.content);
+    formData.append("area", payload.area);
+    (payload.files || []).forEach((file) => formData.append("file", file));
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/global-comments`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  deleteGlobalComment: async (applicationNo: string, commentId: string) => {
+    const response = await axiosInstance.delete(
+      `/admin/clients/${applicationNo}/global-comments/${commentId}`,
+    );
+    return response.data;
+  },
+
+  downloadGlobalCommentFile: async (
+    applicationNo: string,
+    commentId: string,
+    filePath: string,
+    fileName: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/global-comments/download`,
+      {
+        params: { commentId, filePath },
+        responseType: "blob",
+      },
+    );
+    const blobUrl = window.URL.createObjectURL(response.data);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = fileName;
+    link.click();
+    window.URL.revokeObjectURL(blobUrl);
+  },
+
+  getGlobalCommentFileBlob: async (
+    applicationNo: string,
+    commentId: string,
+    filePath: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/global-comments/download`,
+      {
+        params: { commentId, filePath },
+        responseType: "blob",
+      },
+    );
+    return response.data as Blob;
+  },
+
+  listDocumentIssues: async (
+    applicationNo: string,
+    status?: "open" | "resolved",
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/document-issues`,
+      { params: status ? { status } : undefined },
+    );
+    return response.data?.data?.issues ?? response.data?.issues ?? [];
+  },
+
+  createDocumentIssue: async (
+    applicationNo: string,
+    payload: {
+      entityType: string;
+      entityId: string;
+      entityLabel?: string;
+      fieldKey: string;
+      documentLabel: string;
+      clientRoute: string;
+      comment: string;
+    },
+  ) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/document-issues`,
+      payload,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  resolveDocumentIssue: async (applicationNo: string, issueId: string) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/document-issues/${issueId}/resolve`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  deleteDocumentIssue: async (applicationNo: string, issueId: string) => {
+    const response = await axiosInstance.delete(
+      `/admin/clients/${applicationNo}/document-issues/${issueId}`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  getNameExtensionStatus: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/name-extension/status`
+    );
+    return response.data;
+  },
+
+  sendNameExtensionPaymentLink: async (
+    applicationNo: string,
+    notificationType?: string,
+    reason?: string
+  ) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/name-extension/send-payment-link`,
+      { notificationType, reason }
+    );
+    return response.data;
+  },
+
+  requestNameExtensionRestart: async (applicationNo: string) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/name-extension/request-restart`
+    );
+    return response.data;
+  },
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { clientsApi } from "@/lib/api/clients";
 
@@ -22,9 +22,11 @@ import {
   ChevronUp,
   Send,
   X,
+  AlertTriangle,
 } from "lucide-react";
 
 import CustomSelect from "@/components/ui/CustomSelect";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 
 // Types matching updated backend application tracker
 interface TrackerNote {
@@ -37,7 +39,13 @@ interface TrackerStep {
   _id: string;
   title: string;
   description: string;
-  status: "Done" | "In Progress" | "Action Needed" | "Pending" | "Not Available" | "Rejected";
+  status:
+    | "Done"
+    | "In Progress"
+    | "Action Needed"
+    | "Pending"
+    | "Not Available"
+    | "Rejected";
   ownerType: "admin" | "client" | "govt";
   visibleTo: "both" | "admin-only";
   statusChangedAt?: string | null;
@@ -68,6 +76,13 @@ interface TrackerStage {
   attempts?: TrackerStage[];
 }
 
+interface InstallmentInfo {
+  firstInstallmentDue: boolean;
+  firstInstallmentPaid: boolean;
+  secondInstallmentDue: boolean;
+  secondInstallmentPaid: boolean;
+}
+
 interface TrackerData {
   _id: string;
   org: {
@@ -84,6 +99,7 @@ interface TrackerData {
   overallProgress: number;
   currentStageIndex: number;
   stages: TrackerStage[];
+  installmentInfo?: InstallmentInfo;
   assignee?: {
     _id: string;
     name?: string;
@@ -101,18 +117,98 @@ export default function TrackingStatusContent({
   appNo,
 }: TrackingStatusContentProps) {
   const router = useRouter();
+  const { requireEdit, canEdit } = useClientTabEdit("track");
 
   const [tracker, setTracker] = useState<TrackerData | null>(null);
   const [companyOverview, setCompanyOverview] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
-  const [collapsedStages, setCollapsedStages] = useState<Record<string, boolean>>({});
-  const [selectedAttemptIdxs, setSelectedAttemptIdxs] = useState<Record<string, number>>({});
+  const [collapsedStages, setCollapsedStages] = useState<
+    Record<string, boolean>
+  >({});
+  const [selectedAttemptIdxs, setSelectedAttemptIdxs] = useState<
+    Record<string, number>
+  >({});
 
   // Notes state
   const [selectedStepId, setSelectedStepId] = useState<string>("");
   const [noteText, setNoteText] = useState<string>("");
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isRequestingRestart, setIsRequestingRestart] = useState(false);
+
+  // Extension status from API
+  const [extensionStatus, setExtensionStatus] = useState<any>(null);
+
+  // Countdown timer for name extension step
+  const [extTimeLeft, setExtTimeLeft] = useState<string | null>(null);
+  const expiryExtRef = useRef(false);
+
+  useEffect(() => {
+    if (appNo) {
+      clientsApi
+        .getNameExtensionStatus(appNo)
+        .then((res) => {
+          if (res?.data) setExtensionStatus(res.data);
+        })
+        .catch(() => {});
+    }
+  }, [appNo]);
+
+  useEffect(() => {
+    const currentAttemptNum = extensionStatus?.currentAttempt || 1;
+    const attempt = extensionStatus?.attempts?.find(
+      (a: any) => a.attemptNumber === currentAttemptNum,
+    );
+
+    if (!attempt || !attempt.countdownStartDate) {
+      setExtTimeLeft(null);
+      return;
+    }
+
+    const tryAutoExpire = () => {
+      if (expiryExtRef.current) return;
+      expiryExtRef.current = true;
+      clientsApi.getNameExtensionStatus(appNo)
+        .then((res: any) => {
+          if (res?.data) setExtensionStatus(res.data);
+        })
+        .catch(() => {});
+    };
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const start = new Date(attempt.countdownStartDate).getTime();
+      const end = new Date(attempt.windowEndDate).getTime();
+
+      if (now < start) {
+        setExtTimeLeft(null);
+        return;
+      }
+
+      if (now >= end) {
+        // Keep frozen at 00:00:00 — same behavior as the client side
+        setExtTimeLeft("00d : 00h : 00m : 00s");
+        tryAutoExpire();
+        return;
+      }
+
+      const diff = end - now;
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor(
+        (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+      );
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      setExtTimeLeft(
+        `${pad(days)}d : ${pad(hours)}h : ${pad(minutes)}m : ${pad(seconds)}s`,
+      );
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [extensionStatus, appNo]);
 
   useEffect(() => {
     if (tracker && tracker.stages) {
@@ -121,7 +217,10 @@ export default function TrackingStatusContent({
         tracker.stages.forEach((stage) => {
           if (stage.attempts && stage.attempts.length > 0) {
             const currentIdx = prev[stage._id];
-            if (currentIdx === undefined || currentIdx >= stage.attempts.length) {
+            if (
+              currentIdx === undefined ||
+              currentIdx >= stage.attempts.length
+            ) {
               next[stage._id] = stage.attempts.length - 1;
             }
           }
@@ -161,7 +260,7 @@ export default function TrackingStatusContent({
 
       if (trackerData && trackerData.stages) {
         // For stages with re-attempts (e.g. Name Application after a rejection),
-        // treat the last attempt's status/sections as the effective ones.
+        // use the last attempt's sections/steps for the first-step selection.
         const getEffectiveStage = (stage: TrackerStage): TrackerStage => {
           if (stage.attempts && stage.attempts.length > 0) {
             return stage.attempts[stage.attempts.length - 1];
@@ -169,10 +268,13 @@ export default function TrackingStatusContent({
           return stage;
         };
 
-        // Open the first stage whose effective status is "In Progress";
+        // Open the first stage whose own status is "In Progress";
+        // (stage.status on the grouped entry is always current —
+        //  the backing store's JSON copies in stage.attempts are not
+        //  updated by recomputeStageStatuses, so we never use them here.)
         // otherwise fall back to stage 1 (order 1).
         const firstInProgressIndex = trackerData.stages.findIndex(
-          (stage: TrackerStage) => getEffectiveStage(stage).status === "In Progress"
+          (stage: TrackerStage) => stage.status === "In Progress",
         );
         const openIndex = firstInProgressIndex >= 0 ? firstInProgressIndex : 0;
 
@@ -196,6 +298,7 @@ export default function TrackingStatusContent({
   };
 
   const handleInitializeTracker = async () => {
+    if (!requireEdit()) return;
     if (!companyOverview || !companyOverview._id) {
       alert("Cannot initialize tracker: Organization not loaded.");
       return;
@@ -216,8 +319,9 @@ export default function TrackingStatusContent({
     stageId: string,
     sectionId: string,
     stepId: string,
-    newStatus: string
+    newStatus: string,
   ) => {
+    if (!requireEdit()) return;
     if (!tracker) return;
     try {
       await clientsApi.updateStepStatus(
@@ -225,33 +329,61 @@ export default function TrackingStatusContent({
         stageId,
         sectionId,
         stepId,
-        newStatus
+        newStatus,
       );
       const updated = await clientsApi.getTrackingStatus(appNo);
       setTracker(updated);
     } catch (error: any) {
       console.error("Failed to update status", error);
-      const errMsg = error?.response?.data?.message || error?.message || "Unknown error";
+      const errMsg =
+        error?.response?.data?.message || error?.message || "Unknown error";
       alert(`Failed to update status: ${errMsg}`);
     }
   };
 
   const handleAddNote = async () => {
+    if (!requireEdit()) return;
     if (!tracker || !selectedStepId || !noteText.trim()) return;
     try {
       setIsSavingNote(true);
-      await clientsApi.addNoteToStep(tracker.org._id, selectedStepId, noteText.trim());
+      await clientsApi.addNoteToStep(
+        tracker.org._id,
+        selectedStepId,
+        noteText.trim(),
+      );
       setNoteText("");
       const updated = await clientsApi.getTrackingStatus(appNo);
       setTracker(updated);
     } catch (error: any) {
       console.error("Failed to add note", error);
-      const errMsg = error?.response?.data?.message || error?.message || "Unknown error";
+      const errMsg =
+        error?.response?.data?.message || error?.message || "Unknown error";
       alert(`Failed to add note: ${errMsg}`);
     } finally {
       setIsSavingNote(false);
     }
   };
+
+  const handleRequestRestart = async () => {
+    try {
+      setIsRequestingRestart(true);
+      await clientsApi.requestNameExtensionRestart(appNo);
+      const res = await clientsApi.getNameExtensionStatus(appNo);
+      if (res && res.data) {
+        setExtensionStatus(res.data);
+      }
+      alert(
+        "Restart requested successfully. Client has been notified and rejection flow initialized.",
+      );
+    } catch (err: any) {
+      console.error("Failed to request restart:", err);
+      alert(err.response?.data?.message || "Failed to request restart.");
+    } finally {
+      setIsRequestingRestart(false);
+    }
+  };
+
+
 
   const toggleStageCollapse = (stageId: string) => {
     setCollapsedStages((prev) => {
@@ -336,7 +468,7 @@ export default function TrackingStatusContent({
   }
 
   const getStatusChipColor = (
-    status: string
+    status: string,
   ): "success" | "warning" | "danger" | "default" => {
     switch (status) {
       case "Done":
@@ -357,7 +489,9 @@ export default function TrackingStatusContent({
       case "Done":
         return <Check className="w-3.5 h-3.5 text-white" />;
       case "In Progress":
-        return <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600" />;
+        return (
+          <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600" />
+        );
       case "Action Needed":
         return <AlertCircle className="w-3.5 h-3.5 text-red-600" />;
       case "Not Available":
@@ -418,11 +552,16 @@ export default function TrackingStatusContent({
       step.notes.map((note) => ({
         ...note,
         stepTitle: step.title,
-      }))
+      })),
     )
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
 
-  const blockedCount = allSteps.filter((s) => s.status === "Action Needed").length;
+  const blockedCount = allSteps.filter(
+    (s) => s.status === "Action Needed",
+  ).length;
 
   // Build step options for HeroUI Select
   const stepSelectItems = tracker.stages.flatMap((stage) =>
@@ -432,14 +571,13 @@ export default function TrackingStatusContent({
         .map((step) => ({
           key: step._id,
           label: `Stage ${stage.order} — ${step.title}`,
-        }))
-    )
+        })),
+    ),
   );
 
   return (
     <div className="min-h-screen p-2 font-sans text-sm text-[#1A1D23]">
       <div className="max-w-[1440px] mx-auto flex flex-col gap-4">
-
         {/* Banner Card — company info header flush to card edges, no gap */}
         <Card className="border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl p-0">
           {/* Gradient header flush to rounded card */}
@@ -453,7 +591,8 @@ export default function TrackingStatusContent({
                   Application: {tracker.applicationNo || `#${appNo}`}
                 </h1>
                 <p className="text-xs text-slate-400 font-mono mt-0.5">
-                  Company ID: {tracker.org?._id || "—"} • Entity Type: {tracker.companyType}
+                  Company ID: {tracker.org?._id || "—"} • Entity Type:{" "}
+                  {tracker.companyType}
                 </p>
               </div>
             </div>
@@ -486,8 +625,9 @@ export default function TrackingStatusContent({
               </div>
               <div className="text-lg font-bold text-slate-800 font-mono">
                 {Math.ceil(
-                  (new Date().getTime() - new Date(tracker.startedAt).getTime()) /
-                    (1000 * 60 * 60 * 24)
+                  (new Date().getTime() -
+                    new Date(tracker.startedAt).getTime()) /
+                    (1000 * 60 * 60 * 24),
                 )}
               </div>
               <div className="text-[10px] text-slate-500 mt-0.5">
@@ -508,6 +648,228 @@ export default function TrackingStatusContent({
           </div>
         </Card>
 
+        {/* Installment Payment Warning Banners */}
+        {tracker.installmentInfo?.firstInstallmentDue && (
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-amber-900">
+                1st Installment Payment Required
+              </p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                The Digital Signature Certificate (DSC) section in Stage 2 and
+                all of Stages 3 &amp; 4 are locked until the client pays the 1st
+                Installment.
+                <a
+                  href={`/clients/${appNo}/pricing-and-payment`}
+                  className="underline font-semibold ml-1"
+                >
+                  Go to Pricing &amp; Payment
+                </a>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {tracker.installmentInfo?.secondInstallmentDue && (
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center gap-3 shadow-sm">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-amber-900">
+                2nd Installment Payment Required
+              </p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Stages 3 &amp; 4 are locked until the client pays the 2nd
+                Installment.
+                <a
+                  href={`/clients/${appNo}/pricing-and-payment`}
+                  className="underline font-semibold ml-1"
+                >
+                  Go to Pricing &amp; Payment
+                </a>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Admin Sticky Alert Bars */}
+        {extensionStatus && (
+          <>
+            {(extensionStatus.overallStatus === "expired_past" ||
+              extensionStatus.overallStatus === "restart_required") && (
+              <div className="bg-red-600 text-white flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-lg shadow-sm mb-4">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>
+                  <strong>Admin alert:</strong> Client's MCA name hold has expired — name reservation lost. Take action immediately.
+                </span>
+              </div>
+            )}
+            {extensionStatus.overallStatus === "expired_today" && (
+              <div className="bg-amber-500 text-white flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-lg shadow-sm mb-4">
+                <Clock className="w-4 h-4 shrink-0" />
+                <span>
+                  <strong>Admin alert:</strong> Client hasn't approved name extension — 20 days since name reservation letter. Send a reminder.
+                </span>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Name Extension Status Banner */}
+        {extensionStatus &&
+          extensionStatus.overallStatus !== "inactive" &&
+          extensionStatus.overallStatus !== "done" && (
+            <div
+              className={`rounded-xl p-4 flex items-center gap-3 shadow-sm border ${
+                extensionStatus.overallStatus === "restart_required" ||
+                extensionStatus.overallStatus === "expired_past" ||
+                extensionStatus.overallStatus === "expired"
+                  ? "bg-red-50 border-red-300"
+                  : extensionStatus.overallStatus === "paid" ||
+                      extensionStatus.overallStatus === "in_progress"
+                    ? "bg-blue-50 border-blue-300"
+                    : "bg-amber-50 border-amber-300"
+              }`}
+            >
+              <AlertCircle
+                className={`w-5 h-5 shrink-0 self-start mt-1 ${
+                  extensionStatus.overallStatus === "restart_required" ||
+                  extensionStatus.overallStatus === "expired_past" ||
+                  extensionStatus.overallStatus === "expired"
+                    ? "text-red-600"
+                    : extensionStatus.overallStatus === "paid" ||
+                        extensionStatus.overallStatus === "in_progress"
+                      ? "text-blue-600"
+                      : "text-amber-600"
+                }`}
+              />
+              {extensionStatus.overallStatus === "restart_required" ||
+              extensionStatus.overallStatus === "expired_past" ? (
+                <div className="flex-1 flex flex-col md:flex-row items-start justify-between gap-4">
+                  <div className="space-y-3">
+                    <p className="text-sm font-bold text-red-900 uppercase tracking-wide">
+                      Application Restart Required
+                    </p>
+                    <p className="text-xs text-red-700 leading-relaxed font-medium max-w-2xl">
+                      Both name extension payments were missed and SPICe+ Part B
+                      was not filed within 20 days — the current MCA name
+                      reservation has lapsed.
+                    </p>
+                    <div className="flex flex-wrap gap-4 text-xs font-semibold uppercase tracking-wider text-red-900 bg-red-100/50 rounded-lg p-3 w-fit">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+                        Ext 1 — Missed
+                      </span>
+                      <span className="text-red-300">|</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+                        Ext 2 — Missed
+                      </span>
+                      <span className="text-red-300">|</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+                        SPICe B — Not Filed
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex md:flex-col lg:flex-row gap-3 w-full md:w-auto shrink-0 items-center">
+                    {extensionStatus.restartRequested ? (
+                      <span className="text-xs font-bold text-red-600 bg-red-100 px-3 py-2 rounded-lg border border-red-200 uppercase tracking-wide">
+                        Request has been sent
+                      </span>
+                    ) : (
+                      <button
+                        onClick={handleRequestRestart}
+                        disabled={isRequestingRestart}
+                        className="flex-1 md:flex-initial text-center bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition-colors cursor-pointer border-none disabled:opacity-50"
+                      >
+                        {isRequestingRestart
+                          ? "Requesting..."
+                          : "Request Restart from Client"}
+                      </button>
+                    )}
+                    <button
+                      onClick={() =>
+                        setExtensionStatus((prev: any) =>
+                          prev
+                            ? { ...prev, overallStatus: "expired" as const }
+                            : prev,
+                        )
+                      }
+                      className="flex-1 md:flex-initial text-center bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+                    >
+                      Dismiss for now
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1">
+                  <p
+                    className={`text-sm font-bold ${
+                      extensionStatus.overallStatus === "expired" ||
+                      extensionStatus.overallStatus === "expired_today" ||
+                      extensionStatus.overallStatus === "expired_past"
+                        ? "text-red-900"
+                        : extensionStatus.overallStatus === "paid" ||
+                            extensionStatus.overallStatus === "in_progress"
+                          ? "text-blue-900"
+                          : "text-amber-900"
+                    }`}
+                  >
+                    {extensionStatus.overallStatus === "monitoring" &&
+                      "Name Hold Monitoring — SPICe+ Part B pending"}
+                    {extensionStatus.overallStatus === "countdown" &&
+                      `Name Hold Expiring — Attempt ${extensionStatus.currentAttempt}`}
+                    {extensionStatus.overallStatus === "expired_today" &&
+                      `Name Hold Expired Today — Attempt ${extensionStatus.currentAttempt}`}
+                    {extensionStatus.overallStatus === "pay_now" &&
+                      `Payment Required — Name Extension Attempt ${extensionStatus.currentAttempt}`}
+                    {extensionStatus.overallStatus === "paid" &&
+                      "Name Extension — Payment Received"}
+                    {extensionStatus.overallStatus === "in_progress" &&
+                      "Name Extension — MCA Processing"}
+                    {extensionStatus.overallStatus === "expired" &&
+                      "Name Extension Expired"}
+                  </p>
+                  <p
+                    className={`text-xs mt-0.5 ${
+                      extensionStatus.overallStatus === "expired" ||
+                      extensionStatus.overallStatus === "expired_today" ||
+                      extensionStatus.overallStatus === "expired_past"
+                        ? "text-red-700"
+                        : extensionStatus.overallStatus === "paid" ||
+                            extensionStatus.overallStatus === "in_progress"
+                          ? "text-blue-700"
+                          : "text-amber-700"
+                    }`}
+                  >
+                    {extensionStatus.overallStatus === "monitoring" &&
+                      "Monitoring 20-day window. Name extension will activate at 5 days remaining."}
+                    {extensionStatus.overallStatus === "countdown" &&
+                      (() => {
+                        const attempt = extensionStatus.attempts?.find(
+                          (a: any) => a.attemptNumber === extensionStatus.currentAttempt
+                        );
+                        const amount = attempt?.amount ?? (extensionStatus.currentAttempt === 1 ? 1000 : 2000);
+                        const currency = extensionStatus.currency || "INR";
+                        const formatted = currency === "USD" ? `$${amount}` : `₹${amount.toLocaleString("en-IN")}`;
+                        return `Attempt ${extensionStatus.currentAttempt} — ${formatted} fee required before expiry.`;
+                      })()}
+                    {extensionStatus.overallStatus === "expired_today" &&
+                      "Today is the last day to complete the extension payment."}
+                    {extensionStatus.overallStatus === "pay_now" &&
+                      `Client can pay now. Send payment link or wait for auto-enable.`}
+                    {extensionStatus.overallStatus === "paid" &&
+                      "Payment confirmed. Admin can mark the extension step as Done after MCA processing."}
+                    {extensionStatus.overallStatus === "in_progress" &&
+                      "Admin is working on MCA portal to extend the name hold."}
+                    {extensionStatus.overallStatus === "expired" &&
+                      "Extension window lapsed. Contact client to discuss next steps."}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4 items-start">
@@ -533,8 +895,8 @@ export default function TrackingStatusContent({
                         stage.status === "Completed"
                           ? "bg-emerald-500 text-white"
                           : stage.status === "In Progress"
-                          ? "bg-amber-500 text-white"
-                          : "bg-slate-200 text-slate-600"
+                            ? "bg-amber-500 text-white"
+                            : "bg-slate-200 text-slate-600"
                       }`}
                     >
                       {stage.order}
@@ -556,10 +918,13 @@ export default function TrackingStatusContent({
               const isCollapsed = collapsedStages[stage._id];
               const isCurrent = tracker.currentStageIndex === stageIdx;
 
-              const selectedAttemptIdx = selectedAttemptIdxs[stage._id] ?? (stage.attempts ? stage.attempts.length - 1 : 0);
-              const currentStage = (stage.attempts && stage.attempts[selectedAttemptIdx])
-                ? stage.attempts[selectedAttemptIdx]
-                : stage;
+              const selectedAttemptIdx =
+                selectedAttemptIdxs[stage._id] ??
+                (stage.attempts ? stage.attempts.length - 1 : 0);
+              const currentStage =
+                stage.attempts && stage.attempts[selectedAttemptIdx]
+                  ? stage.attempts[selectedAttemptIdx]
+                  : stage;
 
               return (
                 <Card
@@ -580,8 +945,8 @@ export default function TrackingStatusContent({
                           stage.status === "Completed"
                             ? "bg-emerald-100 text-emerald-800"
                             : stage.status === "In Progress"
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-slate-100 text-slate-600"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-slate-100 text-slate-600"
                         }`}
                       >
                         {stage.order}
@@ -590,7 +955,12 @@ export default function TrackingStatusContent({
                         <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                           {stage.label}
                           {isCurrent && (
-                            <Chip size="sm" color="accent" variant="soft" className="h-4 text-[10px]">
+                            <Chip
+                              size="sm"
+                              color="accent"
+                              variant="soft"
+                              className="h-4 text-[10px]"
+                            >
                               Active
                             </Chip>
                           )}
@@ -601,7 +971,7 @@ export default function TrackingStatusContent({
                     <div className="flex items-center gap-3">
                       <span
                         className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${getStageStatusColorClass(
-                          stage.status
+                          stage.status,
                         )}`}
                       >
                         {getStageStatusLabel(stage.status)}
@@ -641,7 +1011,10 @@ export default function TrackingStatusContent({
                                       : "text-slate-500 hover:text-slate-900 hover:bg-white/30"
                                   }`}
                                 >
-                                  Attempt {idx + 1} {idx === (stage.attempts?.length || 0) - 1 ? "(Active)" : ""}
+                                  Attempt {idx + 1}{" "}
+                                  {idx === (stage.attempts?.length || 0) - 1
+                                    ? "(Active)"
+                                    : ""}
                                 </button>
                               );
                             })}
@@ -653,11 +1026,41 @@ export default function TrackingStatusContent({
                         <div key={section._id} className="bg-white">
                           {/* Section Header */}
                           <div className="px-4 py-2 bg-slate-50 flex items-center justify-between border-b border-slate-100">
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                              Section: {section.label}
-                            </span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                Section: {section.label}
+                              </span>
+                              {(section.label ===
+                                "Digital Signature Certificate (DSC)" ||
+                                section.label ===
+                                  "Digital Signature Certificate (DSC) procedure" ||
+                                section.label === "DSC procedure") &&
+                                tracker.installmentInfo
+                                  ?.firstInstallmentDue && (
+                                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
+                                    <svg
+                                      className="w-3 h-3"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2.5"
+                                    >
+                                      <rect
+                                        x="3"
+                                        y="11"
+                                        width="18"
+                                        height="11"
+                                        rx="2"
+                                        ry="2"
+                                      />
+                                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                    </svg>
+                                    Locked — 1st Installment Due
+                                  </span>
+                                )}
+                            </div>
                             {section.estimation && (
-                              <span className="text-xs text-slate-400 font-mono">
+                              <span className="text-xs text-slate-400 font-mono shrink-0 ml-2">
                                 Est: {section.estimation}
                               </span>
                             )}
@@ -668,140 +1071,323 @@ export default function TrackingStatusContent({
                             {section.steps
                               .filter((step) => !step.isHidden)
                               .map((step) => {
-                              const isUrgent = step.status === "Action Needed";
+                                const isUrgent =
+                                  step.status === "Action Needed";
+                                const extCurrentAttNum =
+                                  extensionStatus?.currentAttempt || 1;
+                                const extActiveAtt =
+                                  extensionStatus?.attempts?.find(
+                                    (a: any) =>
+                                      a.attemptNumber === extCurrentAttNum,
+                                  );
 
-                              return (
-                                <div
-                                  key={step._id}
-                                  className={`p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
-                                    isUrgent ? "bg-amber-50/30" : "hover:bg-slate-50/50"
-                                  }`}
-                                >
-                                  {/* Step Details */}
-                                  <div className="flex items-start gap-3 flex-1">
-                                    <div
-                                      className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
-                                        step.status === "Done"
-                                          ? "bg-emerald-500 border-emerald-500"
-                                          : step.status === "In Progress"
-                                          ? "bg-amber-100 border-amber-300 animate-pulse"
-                                          : step.status === "Action Needed"
-                                          ? "bg-rose-100 border-rose-300"
-                                          : step.status === "Not Available" || step.status === "Rejected"
-                                          ? "bg-red-500 border-red-500"
-                                          : "bg-slate-50 border-slate-200"
-                                      }`}
-                                    >
-                                      {getStatusIcon(step.status)}
-                                    </div>
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <h4
-                                          className={`text-sm font-semibold text-slate-800 ${
-                                            step.status === "Done" || step.status === "Not Available" || step.status === "Rejected" ? "text-slate-400 line-through font-normal" : ""
-                                          }`}
-                                        >
-                                          {step.title}
-                                        </h4>
-                                        <span
-                                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
-                                            step.ownerType === "client"
-                                              ? "bg-amber-100 text-amber-800"
-                                              : step.ownerType === "govt"
-                                              ? "bg-emerald-100 text-emerald-800"
-                                              : "bg-blue-100 text-blue-800"
-                                          }`}
-                                        >
-                                          {step.ownerType.toUpperCase()}
-                                        </span>
-                                        {step.visibleTo === "admin-only" && (
-                                          <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">
-                                            ADMIN ONLY
-                                          </span>
-                                        )}
-                                        {step.isAutoSynced && (
-                                          <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-mono">
-                                            AUTO-MANAGED
-                                          </span>
-                                        )}
-                                        {step.isLocked && (
-                                          <span className="text-[10px] font-bold bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded font-mono flex items-center gap-1">
-                                            🔒 LOCKED
-                                          </span>
-                                        )}
+                                return (
+                                  <div
+                                    key={step._id}
+                                    className={`p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
+                                      isUrgent
+                                        ? "bg-amber-50/30"
+                                        : "hover:bg-slate-50/50"
+                                    }`}
+                                  >
+                                    {/* Step Details */}
+                                    <div className="flex items-start gap-3 flex-1">
+                                      <div
+                                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
+                                          step.status === "Done"
+                                            ? "bg-emerald-500 border-emerald-500"
+                                            : step.status === "In Progress"
+                                              ? "bg-amber-100 border-amber-300 animate-pulse"
+                                              : step.status === "Action Needed"
+                                                ? "bg-rose-100 border-rose-300"
+                                                : step.status ===
+                                                      "Not Available" ||
+                                                    step.status === "Rejected"
+                                                  ? "bg-red-500 border-red-500"
+                                                  : "bg-slate-50 border-slate-200"
+                                        }`}
+                                      >
+                                        {getStatusIcon(step.status)}
                                       </div>
-                                      <p className="text-slate-500 text-sm mt-0.5">{step.description}</p>
-
-                                      {/* Timestamp / Notes Indicator */}
-                                      <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400 flex-wrap font-mono">
-                                        {step.statusChangedAt && (
-                                          <span>
-                                            Updated {new Date(step.statusChangedAt).toLocaleString()}
-                                          </span>
-                                        )}
-                                        {step.notes && step.notes.length > 0 && (
-                                          <span className="flex items-center gap-1 text-blue-600 font-semibold">
-                                            <FileText className="w-3 h-3" />
-                                            {step.notes.length} note(s)
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      {/* Inline Notes Display */}
-                                      {step.notes && step.notes.length > 0 && (
-                                        <div className="mt-2 pl-3 border-l-2 border-slate-200 space-y-1.5">
-                                          {step.notes.map((note, nIdx) => (
-                                            <div key={nIdx} className="bg-slate-50 p-2 rounded text-xs text-slate-600 border border-slate-100">
-                                              <div className="flex items-center justify-between text-[10px] text-slate-400 mb-0.5 font-mono">
-                                                <span>Admin Note</span>
-                                                <span>{new Date(note.createdAt).toLocaleString()}</span>
-                                              </div>
-                                              <p className="whitespace-pre-wrap">{note.text}</p>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Step Dropdown Control — no + button */}
-                                  <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-                                    <div className="w-36">
-                                      <CustomSelect
-                                        value={step.status}
-                                        isDisabled={step.isEditable === false}
-                                        onChange={(val) =>
-                                          handleStatusChange(currentStage.stageId || stage._id, section._id, step._id, val)
-                                        }
-                                        ariaLabel={`Status for ${step.title}`}
-                                        options={statusOptions.filter((opt) => {
-                                          if (opt.id === "Not Available") {
-                                            return (
-                                              step.title === "MCA portal availability check" ||
-                                              step.title === "Trademark & IP India check"
-                                            );
-                                          }
-                                          if (opt.id === "Rejected") {
-                                            return step.title === "Name reservation letter received";
-                                          }
-                                          return true;
-                                        })}
-                                        renderValue={(val) => (
-                                          <Chip
-                                            color={getStatusChipColor(val)}
-                                            variant="soft"
-                                            size="sm"
-                                            className="font-bold border-0 bg-transparent p-0 flex items-center gap-1"
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <h4
+                                            className={`text-sm font-semibold text-slate-800 ${
+                                              step.status === "Done" ||
+                                              step.status === "Not Available" ||
+                                              step.status === "Rejected"
+                                                ? "text-slate-400 line-through font-normal"
+                                                : ""
+                                            }`}
                                           >
-                                            <span>{val}</span>
-                                          </Chip>
+                                            {step.title}
+                                          </h4>
+                                          <span
+                                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
+                                              step.ownerType === "client"
+                                                ? "bg-amber-100 text-amber-800"
+                                                : step.ownerType === "govt"
+                                                  ? "bg-emerald-100 text-emerald-800"
+                                                  : "bg-blue-100 text-blue-800"
+                                            }`}
+                                          >
+                                            {step.ownerType.toUpperCase()}
+                                          </span>
+                                          {step.visibleTo === "admin-only" && (
+                                            <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">
+                                              ADMIN ONLY
+                                            </span>
+                                          )}
+                                          {step.isAutoSynced && (
+                                            <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-mono">
+                                              AUTO-MANAGED
+                                            </span>
+                                          )}
+                                          {step.isLocked && (
+                                            <span className="text-[10px] font-bold bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded font-mono flex items-center gap-1">
+                                              🔒 LOCKED
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-slate-500 text-sm mt-0.5">
+                                          {step.description}
+                                        </p>
+
+                                        {/* Extension Metadata — countdown + attempt history */}
+                                        {(step as any).extensionMetadata && (
+                                          <div className="mt-2 flex flex-col gap-2">
+                                            {/* Status-based card */}
+                                            {extActiveAtt?.status === "paid" ||
+                                            extActiveAtt?.status ===
+                                              "in_progress" ? (
+                                              <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 shadow-sm">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                                  <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                                                    Name Extension — Payment
+                                                    Received
+                                                  </span>
+                                                </div>
+                                                <p className="text-[10px] text-emerald-700 mt-1 font-medium">
+                                                  Payment confirmed for attempt{" "}
+                                                  {extActiveAtt.attemptNumber}.{" "}
+                                                  {extActiveAtt.status ===
+                                                  "in_progress"
+                                                    ? "Admin is working on MCA portal."
+                                                    : "Awaiting admin action on MCA portal."}
+                                                </p>
+                                              </div>
+                                            ) : extActiveAtt?.status ===
+                                              "done" ? (
+                                              <div className="flex items-center gap-2 text-[10px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2 shadow-sm">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                                <span>
+                                                  Name reservation extended —{" "}
+                                                  {extActiveAtt.attemptNumber ===
+                                                  1
+                                                    ? "1st"
+                                                    : "2nd"}{" "}
+                                                  attempt ✓
+                                                </span>
+                                              </div>
+                                            ) : extActiveAtt?.status ===
+                                              "expired" ? (
+                                              <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 shadow-sm">
+                                                <span className="text-[10px] font-bold text-red-800">
+                                                  Name extension expired —
+                                                  restart required
+                                                </span>
+                                              </div>
+                                            ) : extTimeLeft ? (
+                                              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 shadow-sm">
+                                                <div className="flex items-center justify-between">
+                                                  <span className="text-[10px] font-semibold text-amber-800 uppercase tracking-wider">
+                                                    Name Hold Expires In
+                                                  </span>
+                                                  <span className="font-mono text-xs font-bold text-amber-600 bg-white border border-amber-100 px-2.5 py-1 rounded-lg">
+                                                    {extTimeLeft}
+                                                  </span>
+                                                </div>
+                                                <p className="text-[10px] text-gray-500 mt-1">
+                                                  Payment must be completed
+                                                  before expiry to prevent name
+                                                  loss.
+                                                </p>
+                                              </div>
+                                            ) : null}
+                                            {/* Attempt history chips */}
+                                            <div className="flex flex-wrap gap-2">
+                                              {(
+                                                (step as any).extensionMetadata
+                                                  .attempts || []
+                                              ).map(
+                                                (att: any, attIdx: number) => (
+                                                  <span
+                                                    key={attIdx}
+                                                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono border ${
+                                                      att.status === "done"
+                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                                        : att.status ===
+                                                              "paid" ||
+                                                            att.status ===
+                                                              "in_progress"
+                                                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                                                          : att.status ===
+                                                              "expired"
+                                                            ? "bg-red-50 text-red-700 border-red-200"
+                                                            : "bg-amber-50 text-amber-700 border-amber-200"
+                                                    }`}
+                                                  >
+                                                    Ext {att.attemptNumber}:{" "}
+                                                    {att.status}
+                                                  </span>
+                                                ),
+                                              )}
+                                              {(step as any).extensionMetadata
+                                                .spiceBSubmitted && (
+                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded font-mono bg-green-50 text-green-700 border border-green-200">
+                                                  SPICe+ B ✓
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
                                         )}
-                                      />
+
+                                        {/* Timestamp / Notes Indicator */}
+                                        <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400 flex-wrap font-mono">
+                                          {step.statusChangedAt && (
+                                            <span>
+                                              Updated{" "}
+                                              {new Date(
+                                                step.statusChangedAt,
+                                              ).toLocaleString()}
+                                            </span>
+                                          )}
+                                          {step.notes &&
+                                            step.notes.length > 0 && (
+                                              <span className="flex items-center gap-1 text-blue-600 font-semibold">
+                                                <FileText className="w-3 h-3" />
+                                                {step.notes.length} note(s)
+                                              </span>
+                                            )}
+                                        </div>
+
+                                        {/* Inline Notes Display */}
+                                        {step.notes &&
+                                          step.notes.length > 0 && (
+                                            <div className="mt-2 pl-3 border-l-2 border-slate-200 space-y-1.5">
+                                              {step.notes.map((note, nIdx) => (
+                                                <div
+                                                  key={nIdx}
+                                                  className="bg-slate-50 p-2 rounded text-xs text-slate-600 border border-slate-100"
+                                                >
+                                                  <div className="flex items-center justify-between text-[10px] text-slate-400 mb-0.5 font-mono">
+                                                    <span>Admin Note</span>
+                                                    <span>
+                                                      {new Date(
+                                                        note.createdAt,
+                                                      ).toLocaleString()}
+                                                    </span>
+                                                  </div>
+                                                  <p className="whitespace-pre-wrap">
+                                                    {note.text}
+                                                  </p>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                      </div>
+                                    </div>
+
+                                    {/* Step Dropdown Control — no + button */}
+                                    <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                                      <div className="w-36">
+                                        <CustomSelect
+                                          value={step.status}
+                                          isDisabled={
+                                            step.isEditable === false ||
+                                            step.title ===
+                                              "All documents delivered to you"
+                                          }
+                                          onChange={(val) =>
+                                            handleStatusChange(
+                                              currentStage.stageId || stage._id,
+                                              section._id,
+                                              step._id,
+                                              val,
+                                            )
+                                          }
+                                          ariaLabel={`Status for ${step.title}`}
+                                          options={statusOptions.filter(
+                                            (opt) => {
+                                              if (
+                                                step.title ===
+                                                "Name reservation letter received"
+                                              ) {
+                                                return (
+                                                  opt.id === "In Progress" ||
+                                                  opt.id === "Done" ||
+                                                  opt.id === "Pending" ||
+                                                  opt.id === "Rejected"
+                                                );
+                                              }
+
+                                              if (
+                                                step.title.startsWith(
+                                                  "Name reservation extension",
+                                                ) ||
+                                                step.title.startsWith(
+                                                  "Name reservation extended",
+                                                )
+                                              ) {
+                                                return (
+                                                  opt.id === "Done" ||
+                                                  opt.id === "In Progress" ||
+                                                  opt.id === "Pending" ||
+                                                  opt.id === "Action Needed"
+                                                );
+                                              }
+
+                                              if (step.ownerType === "client") {
+                                                return (
+                                                  opt.id === "Pending" ||
+                                                  opt.id === "Done" ||
+                                                  opt.id === "Action Needed"
+                                                );
+                                              }
+
+                                              if (opt.id === "Not Available") {
+                                                return (
+                                                  step.title ===
+                                                    "Name availability check" ||
+                                                  step.title ===
+                                                    "Trademark Check"
+                                                );
+                                              }
+
+                                              if (opt.id === "Action Needed") {
+                                                return false;
+                                              }
+
+                                              return true;
+                                            },
+                                          )}
+                                          renderValue={(val) => (
+                                            <Chip
+                                              color={getStatusChipColor(val)}
+                                              variant="soft"
+                                              size="sm"
+                                              className="font-bold border-0 bg-transparent p-0 flex items-center gap-1"
+                                            >
+                                              <span>{val}</span>
+                                            </Chip>
+                                          )}
+                                        />
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
                           </div>
                         </div>
                       ))}
@@ -821,39 +1407,56 @@ export default function TrackingStatusContent({
               </div>
               <div className="p-0 divide-y divide-slate-50">
                 <div className="px-4 py-2 flex justify-between gap-3">
-                  <span className="text-slate-400 font-medium">Company Name</span>
+                  <span className="text-slate-400 font-medium">
+                    Company Name
+                  </span>
                   <span className="font-semibold text-slate-800 text-right">
                     {companyOverview?.companyName || "ABC Ventures"}
                   </span>
                 </div>
                 <div className="px-4 py-2 flex justify-between gap-3">
-                  <span className="text-slate-400 font-medium">Application Ref</span>
+                  <span className="text-slate-400 font-medium">
+                    Application Ref
+                  </span>
                   <span className="font-mono text-xs text-slate-600 text-right font-semibold">
                     {appNo}
                   </span>
                 </div>
                 <div className="px-4 py-2 flex justify-between gap-3">
-                  <span className="text-slate-400 font-medium">Client Name</span>
+                  <span className="text-slate-400 font-medium">
+                    Client Name
+                  </span>
                   <span className="font-semibold text-slate-800 text-right">
-                    {companyOverview?.clientName || `${companyOverview?.client?.firstName || "—"} ${companyOverview?.client?.lastName || ""}`}
+                    {companyOverview?.clientName ||
+                      `${companyOverview?.client?.firstName || "—"} ${companyOverview?.client?.lastName || ""}`}
                   </span>
                 </div>
                 <div className="px-4 py-2 flex justify-between gap-3">
-                  <span className="text-slate-400 font-medium">Entity Type</span>
+                  <span className="text-slate-400 font-medium">
+                    Entity Type
+                  </span>
                   <span className="font-semibold text-slate-800 text-right">
                     {tracker.companyType}
                   </span>
                 </div>
                 <div className="px-4 py-2 flex justify-between gap-3">
-                  <span className="text-slate-400 font-medium">Contact Email</span>
+                  <span className="text-slate-400 font-medium">
+                    Contact Email
+                  </span>
                   <span className="text-slate-600 font-medium text-right font-mono text-xs">
-                    {companyOverview?.contactEmail || companyOverview?.client?.email || "—"}
+                    {companyOverview?.contactEmail ||
+                      companyOverview?.client?.email ||
+                      "—"}
                   </span>
                 </div>
                 <div className="px-4 py-2 flex justify-between gap-3">
-                  <span className="text-slate-400 font-medium">Contact Phone</span>
+                  <span className="text-slate-400 font-medium">
+                    Contact Phone
+                  </span>
                   <span className="text-slate-600 font-medium text-right">
-                    {companyOverview?.contactNo || companyOverview?.client?.phoneNumber || "—"}
+                    {companyOverview?.contactNo ||
+                      companyOverview?.client?.phoneNumber ||
+                      "—"}
                   </span>
                 </div>
                 <div className="px-4 py-2 flex justify-between gap-3">
@@ -868,14 +1471,20 @@ export default function TrackingStatusContent({
             {/* Client Actions Required */}
             <Card className="border border-slate-200 shadow-sm bg-white rounded-xl overflow-hidden">
               <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                <h3 className="font-bold text-slate-800">Client Actions Required</h3>
+                <h3 className="font-bold text-slate-800">
+                  Client Actions Required
+                </h3>
                 <span className="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full font-mono">
-                  {clientActionSteps.filter((s) => s.status === "Done").length} / {clientActionSteps.length}
+                  {clientActionSteps.filter((s) => s.status === "Done").length}{" "}
+                  / {clientActionSteps.length}
                 </span>
               </div>
               <div className="p-0 divide-y divide-slate-50">
                 {clientActionSteps.map((step) => (
-                  <div key={step._id} className="p-3 flex items-start gap-2.5 justify-between">
+                  <div
+                    key={step._id}
+                    className="p-3 flex items-start gap-2.5 justify-between"
+                  >
                     <div className="flex gap-2 items-start">
                       <div className="mt-0.5 shrink-0">
                         {step.status === "Done" ? (
@@ -891,7 +1500,10 @@ export default function TrackingStatusContent({
                           {step.title}
                         </div>
                         <div className="text-xs text-slate-400 mt-0.5">
-                          Status: <span className="font-medium text-slate-600">{step.status}</span>
+                          Status:{" "}
+                          <span className="font-medium text-slate-600">
+                            {step.status}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -906,9 +1518,14 @@ export default function TrackingStatusContent({
             </Card>
 
             {/* Internal Case Notes — HeroUI Select + Textarea */}
-            <Card id="internal-notes-card" className="border border-slate-200 shadow-sm bg-white rounded-xl overflow-hidden">
+            <Card
+              id="internal-notes-card"
+              className="border border-slate-200 shadow-sm bg-white rounded-xl overflow-hidden"
+            >
               <div className="p-3 border-b border-slate-100 bg-slate-50/50">
-                <h3 className="font-bold text-slate-800">Internal Case Notes</h3>
+                <h3 className="font-bold text-slate-800">
+                  Internal Case Notes
+                </h3>
               </div>
 
               {/* Note Creator Form */}
@@ -922,7 +1539,9 @@ export default function TrackingStatusContent({
                     value={selectedStepId}
                     onChange={(e) => setSelectedStepId(e.target.value)}
                   >
-                    <option value="" disabled>— Choose step —</option>
+                    <option value="" disabled>
+                      — Choose step —
+                    </option>
                     {stepSelectItems.map((item) => (
                       <option key={item.key} value={item.key}>
                         {item.label}
@@ -945,7 +1564,9 @@ export default function TrackingStatusContent({
                     variant="primary"
                     className="text-xs h-8 px-4 rounded-lg font-bold flex items-center justify-center gap-1.5"
                     onClick={handleAddNote}
-                    isDisabled={isSavingNote || !selectedStepId || !noteText.trim()}
+                    isDisabled={
+                      isSavingNote || !selectedStepId || !noteText.trim()
+                    }
                   >
                     {isSavingNote ? (
                       <span>Saving...</span>
@@ -964,13 +1585,17 @@ export default function TrackingStatusContent({
                 {allNotes.map((note, nIdx) => (
                   <div key={nIdx} className="p-3 text-[11px] leading-relaxed">
                     <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono mb-1">
-                      <span className="font-semibold text-blue-900">Case Manager</span>
+                      <span className="font-semibold text-blue-900">
+                        Case Manager
+                      </span>
                       <span>{new Date(note.createdAt).toLocaleString()}</span>
                     </div>
                     <div className="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-100 px-1.5 py-0.5 rounded inline-block mb-1.5 font-mono max-w-full truncate">
                       Step: {note.stepTitle}
                     </div>
-                    <p className="text-slate-700 whitespace-pre-wrap">{note.text}</p>
+                    <p className="text-slate-700 whitespace-pre-wrap">
+                      {note.text}
+                    </p>
                   </div>
                 ))}
 

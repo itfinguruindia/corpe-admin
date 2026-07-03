@@ -35,6 +35,7 @@ import {
 } from "@/redux/slices/notificationSlice";
 import clsx from "clsx";
 import Link from "next/link";
+import RefreshButton from "@/components/ui/RefreshButton";
 
 const CATEGORY_MAP: Record<
   string,
@@ -185,6 +186,11 @@ export default function NotificationsPage() {
         </div>
 
         <div className="flex items-center gap-3 self-end sm:self-auto">
+          <RefreshButton
+            onClick={fetchNotifications}
+            isLoading={loading}
+            ariaLabel="Refresh notifications"
+          />
           <Button
             className="bg-primary-500 text-white font-bold rounded-xl h-11 px-6 shadow-lg shadow-primary-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             onClick={handleMarkAllAsRead}

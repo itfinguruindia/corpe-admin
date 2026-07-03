@@ -2,23 +2,37 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "@heroui/react";
+
 import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
-import { InfoField, Switch } from "@/components/ui";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { InfoField, Switch, Chip } from "@/components/ui";
+import CustomSelect from "@/components/ui/CustomSelect";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { matchesStakeholderId, toStakeholderId } from "@/utils/stakeholderIds";
 
 export default function DirectorDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
-  const { admin } = usePermissions();
+  const { labels } = useClientCompanyLabels();
+  const { requireEdit, canEdit } = useClientTabEdit("director");
   const [director, setDirector] = useState<Director | null>(null);
   const [allDirectors, setAllDirectors] = useState<Director[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasDIN, setHasDIN] = useState(false);
   const [kycVerified, setKycVerified] = useState(false);
   const [dscApplication, setDscApplication] = useState(false);
+  const [dinStatus, setDinStatus] = useState<string>("Pending");
   const [isStage2Enabled, setIsStage2Enabled] = useState(false);
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
+
+  const isLocked = !!installmentInfo?.firstInstallmentDue;
 
   useEffect(() => {
     const loadData = async () => {
@@ -27,6 +41,7 @@ export default function DirectorDetailPage() {
         // Use the same API as the all directors listing page
         const response = await clientsApi.getDirectorAndShareHolders(
           appNo as string,
+          false,
         );
         if (
           response &&
@@ -35,7 +50,7 @@ export default function DirectorDetailPage() {
         ) {
           const mappedDirectors = response.data.directors.map(
             (d: any, idx: number) => ({
-              id: d.directorId || `${idx}`,
+              id: toStakeholderId(d, idx),
               applicationNo: appNo as string,
               directorNumber: idx + 1,
               hasDIN: d.hasDIN || false,
@@ -63,6 +78,10 @@ export default function DirectorDetailPage() {
                 : 0,
               kycVerified: d.kycVerified ?? false,
               dscApplication: d.dscApplication ?? false,
+              isBankSigningAuthority: d.isBankSigningAuthority ?? false,
+              dinStatus: d.dinStatus || "Pending",
+              isDinActivationFeePaid: d.isDinActivationFeePaid ?? false,
+              isCommitted: d.isCommitted ?? false,
               createdAt: undefined,
               updatedAt: undefined,
             }),
@@ -70,13 +89,21 @@ export default function DirectorDetailPage() {
           setAllDirectors(mappedDirectors);
           // Find the director by id
           const foundDirector = mappedDirectors.find(
-            (dir: any) => dir.id === id,
+            (dir: Director, idx: number) =>
+              String(dir.id) === String(id) ||
+              matchesStakeholderId(response.data.directors[idx], String(id)),
           );
           setDirector(foundDirector || null);
           if (foundDirector) {
             setHasDIN(foundDirector.hasDIN);
             setKycVerified(foundDirector.kycVerified);
             setDscApplication(foundDirector.dscApplication);
+            const effectiveDinStatus =
+              foundDirector.dinStatus === "Inactive" &&
+              foundDirector.isDinActivationFeePaid
+                ? "In Progress"
+                : foundDirector.dinStatus || "Pending";
+            setDinStatus(effectiveDinStatus);
           }
         } else {
           setAllDirectors([]);
@@ -84,13 +111,20 @@ export default function DirectorDetailPage() {
         }
 
         try {
-          const trackerRes = await clientsApi.getTrackingStatus(appNo as string);
+          const trackerRes = await clientsApi.getTrackingStatus(
+            appNo as string,
+          );
           if (trackerRes) {
-            const activeStage = trackerRes.stages && typeof trackerRes.currentStageIndex === 'number'
-              ? trackerRes.stages[trackerRes.currentStageIndex]
-              : null;
+            const activeStage =
+              trackerRes.stages &&
+              typeof trackerRes.currentStageIndex === "number"
+                ? trackerRes.stages[trackerRes.currentStageIndex]
+                : null;
             const isStage2 = activeStage?.stageId === "stage_2_documents_kyc";
             setIsStage2Enabled(isStage2);
+            if (trackerRes.installmentInfo) {
+              setInstallmentInfo(trackerRes.installmentInfo);
+            }
           } else {
             setIsStage2Enabled(false);
           }
@@ -113,8 +147,8 @@ export default function DirectorDetailPage() {
   }, [appNo, id]);
 
   const handleKycToggle = async () => {
-    if (!isStage2Enabled) return;
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!isStage2Enabled || !director?.isCommitted) return;
+    if (!requireEdit()) return;
     const newValue = !kycVerified;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
@@ -127,8 +161,8 @@ export default function DirectorDetailPage() {
   };
 
   const handleDscToggle = async () => {
-    if (!isStage2Enabled) return;
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!isStage2Enabled || !director?.isCommitted || isLocked) return;
+    if (!requireEdit()) return;
     const newValue = !dscApplication;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
@@ -137,6 +171,19 @@ export default function DirectorDetailPage() {
       setDscApplication(newValue);
     } catch (error) {
       console.error("Error updating DSC status:", error);
+    }
+  };
+
+  const handleDinStatusChange = async (newValue: string) => {
+    if (!isStage2Enabled || !director?.isCommitted) return;
+    if (!requireEdit()) return;
+    try {
+      await clientsApi.updateDirectorStatus(appNo as string, id as string, {
+        dinStatus: newValue,
+      });
+      setDinStatus(newValue);
+    } catch (error) {
+      console.error("Error updating DIN status:", error);
     }
   };
 
@@ -163,7 +210,7 @@ export default function DirectorDetailPage() {
   if (!director) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Director not found</div>
+        <div className="text-xl text-gray-600">{labels.directorNotFound}</div>
       </div>
     );
   }
@@ -186,7 +233,7 @@ export default function DirectorDetailPage() {
                   : "bg-white text-secondary hover:shadow-md"
               }`}
             >
-              Director {dir.directorNumber}
+              {labels.directorWithNumber(dir.directorNumber)}
             </button>
           ))}
         </div>
@@ -196,15 +243,18 @@ export default function DirectorDetailPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-semibold text-secondary">
-                Director {director.directorNumber}
+                {labels.directorWithNumber(director.directorNumber)}
               </h2>
+              {director.isBankSigningAuthority && (
+                <Chip label="Bank Signing Authority" variant="blue" />
+              )}
             </div>
             <div className="flex gap-4">
               <button
                 onClick={() => router.push(`/clients/${appNo}/directors`)}
                 className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-md font-medium transition-colors"
               >
-                View more Directors
+                {labels.viewMoreDirectors}
               </button>
               <button
                 onClick={() =>
@@ -223,7 +273,7 @@ export default function DirectorDetailPage() {
           <div className="w-full grid grid-cols-2 justify-between border-b border-[#F9A826]">
             <div className="flex items-center gap-3 pb-4">
               <span className="text-sm font-semibold text-gray-900">
-                Do you have DIN?
+                {labels.doYouHaveDin}
               </span>
               <div className="flex bg-gray-200 rounded-md overflow-hidden">
                 <button
@@ -248,18 +298,44 @@ export default function DirectorDetailPage() {
                 </button>
               </div>
             </div>
-            <div className="pl-4">
+            <div className="pl-4 flex items-center justify-between gap-4">
               <InfoField
-                label="DIN"
+                label={labels.din}
                 value={director?.din || "N/A"}
                 border={false}
               />
+              {hasDIN && (
+                <div className="flex flex-col gap-1 min-w-[150px]">
+                  <span className="text-[12px] font-semibold text-gray-500">
+                    {labels.dinStatus}
+                  </span>
+                  <CustomSelect
+                    ariaLabel={labels.dinStatus}
+                    value={dinStatus}
+                    onChange={handleDinStatusChange}
+                    options={[
+                      { id: "Pending", label: "Pending" },
+                      { id: "Active", label: "Active" },
+                      { id: "Inactive", label: "Inactive" },
+                      { id: "In Progress", label: "In Progress" },
+                    ]}
+                    isDisabled={
+                      !isStage2Enabled ||
+                      !director.isCommitted ||
+                      !canEdit
+                    }
+                  />
+                </div>
+              )}
             </div>
           </div>
 
           {/* Director Information */}
           <div className="grid grid-cols-2 gap-x-8">
-            <InfoField label="Director Name" value={director.name} />
+            <InfoField
+              label={labels.directorName}
+              value={String(director.directorName)}
+            />
             <InfoField label="Father name" value={director.fatherName} />
             <InfoField label="Email" value={director.email} />
             <InfoField label="Phone No." value={director.phoneNo} />
@@ -315,7 +391,11 @@ export default function DirectorDetailPage() {
                 KYC Verified
               </span>
 
-              <Switch checked={kycVerified} onChange={handleKycToggle} disabled={!isStage2Enabled} />
+              <Switch
+                checked={kycVerified}
+                onChange={handleKycToggle}
+                disabled={!isStage2Enabled || !director.isCommitted}
+              />
             </div>
 
             {/* DSC Application */}
@@ -324,7 +404,21 @@ export default function DirectorDetailPage() {
                 DSC Application
               </span>
 
-              <Switch checked={dscApplication} onChange={handleDscToggle} disabled={!isStage2Enabled} />
+              <div
+                onClick={() => {
+                  if (isLocked) {
+                    toast.danger("Action locked. Installment payment is due.");
+                  }
+                }}
+              >
+                <Switch
+                  checked={dscApplication}
+                  onChange={handleDscToggle}
+                  disabled={
+                    !isStage2Enabled || !director.isCommitted || isLocked
+                  }
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -18,8 +18,10 @@ import { clientsApi } from "@/lib/api/clients";
 import TabCard from "@/components/dashboard/TabCard";
 import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { toStakeholderId } from "@/utils/stakeholderIds";
 
 interface UploadedDocumentsContentProps {
   appNo: string;
@@ -29,7 +31,8 @@ export default function UploadedDocumentsContent({
   appNo,
 }: UploadedDocumentsContentProps) {
   const router = useRouter();
-  const { admin } = usePermissions();
+  const { labels } = useClientCompanyLabels();
+  const { requireEdit } = useClientTabEdit("company");
   const [directors, setDirectors] = useState<
     { id: string; directorNumber: number }[]
   >([]);
@@ -43,6 +46,12 @@ export default function UploadedDocumentsContent({
   }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
 
   // Preview Modal States
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -54,16 +63,17 @@ export default function UploadedDocumentsContent({
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [response, overviewResponse] = await Promise.all([
-          clientsApi.getDirectorAndShareHolders(appNo),
+        const [response, overviewResponse, trackerResponse] = await Promise.all([
+          clientsApi.getDirectorAndShareHolders(appNo, false),
           clientsApi.getCompanyOverview(appNo),
+          clientsApi.getTrackingStatus(appNo).catch(() => null),
         ]);
 
         if (response && response.data) {
           // Map directors
           const mappedDirectors = (response.data.directors || []).map(
             (d: any, idx: number) => ({
-              id: d.directorId || `${idx}`,
+              id: toStakeholderId(d, idx),
               directorNumber: idx + 1,
             }),
           );
@@ -71,7 +81,7 @@ export default function UploadedDocumentsContent({
           // Map shareholders
           const mappedShareholders = (response.data.shareholders || []).map(
             (s: any, idx: number) => ({
-              id: s.shareholderId || `${idx}`,
+              id: toStakeholderId(s, idx),
               shareholderNumber: idx + 1,
             }),
           );
@@ -90,6 +100,10 @@ export default function UploadedDocumentsContent({
             proofOfOfficeAddressAdminDraft:
               registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
           });
+        }
+
+        if (trackerResponse && trackerResponse.installmentInfo) {
+          setInstallmentInfo(trackerResponse.installmentInfo);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -150,7 +164,7 @@ export default function UploadedDocumentsContent({
   };
 
   const handleDocUpload = (docType: string, label: string) => {
-    if (!requireClientTabEdit(admin, "company")) return;
+    if (!requireEdit()) return;
 
     const input = document.createElement("input");
     input.type = "file";
@@ -184,7 +198,7 @@ export default function UploadedDocumentsContent({
   };
 
   const handleDocDelete = async (docType: string, label: string) => {
-    if (!requireClientTabEdit(admin, "company")) return;
+    if (!requireEdit()) return;
 
     if (!confirm(`Are you sure you want to delete the ${label}?`)) {
       return;
@@ -268,6 +282,18 @@ export default function UploadedDocumentsContent({
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
+              <DocumentIssueButton
+                applicationNo={appNo}
+                target={{
+                  entityType: "registeredOffice",
+                  entityId: "registeredOffice",
+                  entityLabel: "Registered Office",
+                  fieldKey: docType,
+                  documentLabel: label,
+                  clientRoute: "corporate-structure",
+                }}
+                className="inline-flex items-center text-primary hover:text-secondary p-1"
+              />
             </div>
           </div>
           {fileObj ? (
@@ -318,6 +344,13 @@ export default function UploadedDocumentsContent({
     onRefresh?: () => void,
     refreshing?: boolean,
   ) => {
+    // Admin must be able to upload the template in all conditions so the
+    // client can download and upload signed copy.
+    const lockAdminTemplate = false;
+    const lockClientSignedCopy = !!(
+      installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid
+    );
+
     return (
       <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[180px]">
         <div>
@@ -332,6 +365,18 @@ export default function UploadedDocumentsContent({
                 />
               </div>
             )}
+            <DocumentIssueButton
+              applicationNo={appNo}
+              target={{
+                entityType: "registeredOffice",
+                entityId: "registeredOffice",
+                entityLabel: "Registered Office",
+                fieldKey: docTypeClient,
+                documentLabel: label,
+                clientRoute: "corporate-structure",
+              }}
+              className="inline-flex items-center text-primary hover:text-secondary p-1 shrink-0"
+            />
           </div>
 
           <div className="space-y-4">
@@ -343,21 +388,31 @@ export default function UploadedDocumentsContent({
                 </span>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() =>
+                    onClick={lockAdminTemplate ? undefined : () =>
                       handleDocUpload(docTypeAdmin, "Admin Template")
                     }
-                    title="Upload template"
-                    className="p-1.5 text-gray-500 hover:text-primary hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
+                    disabled={lockAdminTemplate}
+                    title={lockAdminTemplate ? "Locked" : "Upload template"}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      lockAdminTemplate
+                        ? "text-gray-300 cursor-not-allowed"
+                        : "text-gray-500 hover:text-primary hover:bg-orange-50 cursor-pointer"
+                    }`}
                   >
                     <Upload className="w-4 h-4" />
                   </button>
                   {adminFile && (
                     <button
-                      onClick={() =>
+                      onClick={lockAdminTemplate ? undefined : () =>
                         handleDocDelete(docTypeAdmin, "Admin Template")
                       }
-                      title="Delete template"
-                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      disabled={lockAdminTemplate}
+                      title={lockAdminTemplate ? "Locked" : "Delete template"}
+                      className={`p-1.5 rounded-lg transition-colors ${
+                        lockAdminTemplate
+                          ? "text-gray-300 cursor-not-allowed"
+                          : "text-red-500 hover:bg-red-50 cursor-pointer"
+                      }`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -418,11 +473,20 @@ export default function UploadedDocumentsContent({
                 <div className="flex items-center gap-2">
                   {clientFile && (
                     <button
-                      onClick={() =>
+                      onClick={lockClientSignedCopy ? undefined : () =>
                         handleDocDelete(docTypeClient, "Client Signed Copy")
                       }
-                      title="Delete client copy"
-                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      disabled={lockClientSignedCopy}
+                      title={
+                        lockClientSignedCopy
+                          ? "Locked — installment due"
+                          : "Delete client copy"
+                      }
+                      className={`p-1.5 rounded-lg transition-colors ${
+                        lockClientSignedCopy
+                          ? "text-gray-300 cursor-not-allowed"
+                          : "text-red-500 hover:bg-red-50 cursor-pointer"
+                      }`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -491,10 +555,15 @@ export default function UploadedDocumentsContent({
       <div className="max-w-7xl mx-auto">
         <div className="mb-10">
           <p className="text-gray-500 mt-2 text-lg">
-            Manage and view uploaded documents for directors, shareholders, and
-            registered office proofs.
+            {labels.uploadedDocsDescription}
           </p>
         </div>
+
+        {!!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid) && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold max-w-5xl">
+            <span>⚠️ Stage locked. Outstanding installment payments are due for this client. Document actions are disabled.</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
           {/* Directors Section */}
@@ -503,7 +572,7 @@ export default function UploadedDocumentsContent({
               <div className="bg-primary/10 p-2 rounded-lg">
                 <UserCheck className="text-primary w-6 h-6" />
               </div>
-              <h2 className="text-2xl font-bold text-secondary">Directors</h2>
+              <h2 className="text-2xl font-bold text-secondary">{labels.directors}</h2>
               <span className="bg-gray-200 text-gray-700 px-3 py-0.5 rounded-full text-sm font-medium ml-auto">
                 {directors.length}
               </span>
@@ -514,14 +583,14 @@ export default function UploadedDocumentsContent({
                 {directors.map((director) => (
                   <TabCard
                     key={director.id}
-                    label={`Director ${director.directorNumber}`}
+                    label={labels.directorWithNumber(director.directorNumber)}
                     onClick={() => handleDirectorClick(director)}
                     className="text-left hover:border-primary/50 transition-all shadow-sm hover:shadow-md"
                   />
                 ))}
               </div>
             ) : (
-              <EmptyState message="No directors listed for this application." />
+              <EmptyState message={labels.noDirectorsListed} />
             )}
           </section>
 
@@ -532,7 +601,7 @@ export default function UploadedDocumentsContent({
                 <Users className="text-blue-600 w-6 h-6" />
               </div>
               <h2 className="text-2xl font-bold text-secondary">
-                Shareholders
+                {labels.shareholders}
               </h2>
               <span className="bg-gray-200 text-gray-700 px-3 py-0.5 rounded-full text-sm font-medium ml-auto">
                 {shareholders.length}
@@ -544,14 +613,14 @@ export default function UploadedDocumentsContent({
                 {shareholders.map((shareholder) => (
                   <TabCard
                     key={shareholder.id}
-                    label={`Shareholder ${shareholder.shareholderNumber}`}
+                    label={labels.shareholderWithNumber(shareholder.shareholderNumber)}
                     onClick={() => handleShareholderClick(shareholder)}
                     className="text-left hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
                   />
                 ))}
               </div>
             ) : (
-              <EmptyState message="No shareholders listed for this application." />
+              <EmptyState message={labels.noShareholdersListed} />
             )}
           </section>
         </div>

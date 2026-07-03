@@ -11,6 +11,7 @@ export interface CompanyOverview {
   district: string;
   pincode: string;
   state: string;
+  policeStationJurisdiction: string;
   entityType: string;
   cinLlpin: string;
   isIncorporated: boolean;
@@ -23,6 +24,8 @@ export interface CompanyOverview {
   planChosen: string;
   contactNo: string;
   contactEmail: string;
+  officePhone?: string;
+  officeEmail?: string;
   clientName: string;
   capitalDetails: number;
   paidUpCapital: number;
@@ -37,7 +40,7 @@ export type CompanyStatus =
   | "Pending"
   | "Rejected"
   | "Under Review";
-export type PaymentStatus = "Approved" | "Pending" | "Failed";
+export type PaymentStatus = string;
 
 // API Response types for future integration
 export interface CompanyOverviewResponse {

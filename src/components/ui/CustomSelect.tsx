@@ -12,6 +12,23 @@ interface CustomSelectProps {
   className?: string;
 }
 
+function resolveSelectOptionId(
+  raw: unknown,
+  options: { id: string; label: string }[],
+): string {
+  if (raw == null) return "";
+  const value = typeof raw === "string" ? raw.trim() : String(raw).trim();
+  if (!value) return "";
+
+  const byId = options.find((option) => option.id === value);
+  if (byId) return byId.id;
+
+  const byLabel = options.find(
+    (option) => option.label.toLowerCase() === value.toLowerCase(),
+  );
+  return byLabel?.id ?? value;
+}
+
 const CustomSelect = (props: CustomSelectProps) => {
   const {
     options,
@@ -27,12 +44,16 @@ const CustomSelect = (props: CustomSelectProps) => {
     <Select
       className={className ?? "min-w-32 w-full"}
       value={value}
-      onChange={(value) => onChange(value as string)}
+      onChange={(value) => {
+        onChange(resolveSelectOptionId(value, options));
+      }}
       aria-label={ariaLabel}
       isDisabled={isDisabled}
     >
       {label ? (
-        <Label>{label}</Label>
+        <Label className="mb-2 block text-sm font-medium text-gray-800">
+          {label}
+        </Label>
       ) : (
         <Label className="sr-only">{ariaLabel}</Label>
       )}

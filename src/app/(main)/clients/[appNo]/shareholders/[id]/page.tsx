@@ -2,16 +2,19 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "@heroui/react";
 import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { matchesStakeholderId, toStakeholderId } from "@/utils/stakeholderIds";
 
 export default function ShareholderDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
-  const { admin } = usePermissions();
+  const { labels } = useClientCompanyLabels();
+  const { requireEdit } = useClientTabEdit("shareholder");
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
   const [allShareholders, setAllShareholders] = useState<Shareholder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,6 +22,14 @@ export default function ShareholderDetailPage() {
   const [kycVerified, setKycVerified] = useState(false);
   const [dscApplication, setDscApplication] = useState(false);
   const [isStage2Enabled, setIsStage2Enabled] = useState(false);
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
+
+  const isLocked = !!installmentInfo?.firstInstallmentDue;
 
   useEffect(() => {
     const loadData = async () => {
@@ -26,6 +37,7 @@ export default function ShareholderDetailPage() {
         setIsLoading(true);
         const response = await clientsApi.getDirectorAndShareHolders(
           appNo as string,
+          false,
         );
         if (
           response &&
@@ -36,24 +48,29 @@ export default function ShareholderDetailPage() {
           const isSamePerson = (sh: any, dir: any) => {
             const shPan = sh.panNumber?.toLowerCase()?.trim();
             const dirPan = dir.panNumber?.toLowerCase()?.trim();
-            if (shPan && dirPan && shPan !== "-" && dirPan !== "-") return shPan === dirPan;
-            
+            if (shPan && dirPan && shPan !== "-" && dirPan !== "-")
+              return shPan === dirPan;
+
             const shEmail = sh.email?.toLowerCase()?.trim();
             const dirEmail = dir.email?.toLowerCase()?.trim();
-            if (shEmail && dirEmail && shEmail !== "-" && dirEmail !== "-") return shEmail === dirEmail;
-            
+            if (shEmail && dirEmail && shEmail !== "-" && dirEmail !== "-")
+              return shEmail === dirEmail;
+
             const shName = sh.name?.toLowerCase()?.trim();
             const dirName = dir.name?.toLowerCase()?.trim();
-            if (shName && dirName && shName !== "-" && dirName !== "-") return shName === dirName;
-            
+            if (shName && dirName && shName !== "-" && dirName !== "-")
+              return shName === dirName;
+
             return false;
           };
 
           const mappedShareholders = response.data.shareholders.map(
             (s: any, idx: number) => {
-              const isAlsoDirector = directors.some((d: any) => isSamePerson(s, d));
+              const isAlsoDirector = directors.some((d: any) =>
+                isSamePerson(s, d),
+              );
               return {
-                id: s.shareholderId || `${idx}`,
+                id: toStakeholderId(s, idx),
                 applicationNo: appNo as string,
                 shareholderNumber: idx + 1,
                 hasDIN: false,
@@ -90,7 +107,9 @@ export default function ShareholderDetailPage() {
           setAllShareholders(mappedShareholders);
           // Find the shareholder by id
           const foundShareholder = mappedShareholders.find(
-            (sh: any) => sh.id === id,
+            (sh: Shareholder, idx: number) =>
+              String(sh.id) === String(id) ||
+              matchesStakeholderId(response.data.shareholders[idx], String(id)),
           );
           setShareholder(foundShareholder || null);
           if (foundShareholder) {
@@ -103,13 +122,20 @@ export default function ShareholderDetailPage() {
         }
 
         try {
-          const trackerRes = await clientsApi.getTrackingStatus(appNo as string);
+          const trackerRes = await clientsApi.getTrackingStatus(
+            appNo as string,
+          );
           if (trackerRes) {
-            const activeStage = trackerRes.stages && typeof trackerRes.currentStageIndex === 'number'
-              ? trackerRes.stages[trackerRes.currentStageIndex]
-              : null;
+            const activeStage =
+              trackerRes.stages &&
+              typeof trackerRes.currentStageIndex === "number"
+                ? trackerRes.stages[trackerRes.currentStageIndex]
+                : null;
             const isStage2 = activeStage?.stageId === "stage_2_documents_kyc";
             setIsStage2Enabled(isStage2);
+            if (trackerRes.installmentInfo) {
+              setInstallmentInfo(trackerRes.installmentInfo);
+            }
           } else {
             setIsStage2Enabled(false);
           }
@@ -133,7 +159,7 @@ export default function ShareholderDetailPage() {
 
   const handleKycToggle = async () => {
     if (!isStage2Enabled) return;
-    if (!requireClientTabEdit(admin, "shareholder")) return;
+    if (!requireEdit()) return;
     const newValue = !kycVerified;
     try {
       await clientsApi.updateShareholderStatus(appNo as string, id as string, {
@@ -146,8 +172,8 @@ export default function ShareholderDetailPage() {
   };
 
   const handleDscToggle = async () => {
-    if (!isStage2Enabled) return;
-    if (!requireClientTabEdit(admin, "shareholder")) return;
+    if (!isStage2Enabled || isLocked) return;
+    if (!requireEdit()) return;
     const newValue = !dscApplication;
     try {
       await clientsApi.updateShareholderStatus(appNo as string, id as string, {
@@ -182,7 +208,7 @@ export default function ShareholderDetailPage() {
   if (!shareholder) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Shareholder not found</div>
+        <div className="text-xl text-gray-600">{labels.shareholderNotFound}</div>
       </div>
     );
   }
@@ -205,7 +231,7 @@ export default function ShareholderDetailPage() {
                   : "bg-white text-secondary hover:shadow-md"
               }`}
             >
-              Shareholder {sh.shareholderNumber}
+              {labels.shareholderWithNumber(sh.shareholderNumber)}
             </button>
           ))}
         </div>
@@ -215,11 +241,11 @@ export default function ShareholderDetailPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-semibold text-secondary">
-                Shareholder
+                {labels.shareholder}
               </h2>
               {shareholder.isAlsoDirector && (
                 <span className="text-xs bg-blue-50 text-blue-600 font-semibold px-2.5 py-1 rounded border border-blue-200 animate-pulse">
-                  Also a director
+                  {labels.alsoADirector}
                 </span>
               )}
             </div>
@@ -228,7 +254,7 @@ export default function ShareholderDetailPage() {
                 onClick={() => router.push(`/clients/${appNo}/shareholders`)}
                 className="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-md font-medium transition-colors"
               >
-                View more Shareholders
+                {labels.viewMoreShareholders}
               </button>
               <button
                 onClick={() =>
@@ -246,17 +272,17 @@ export default function ShareholderDetailPage() {
           {/* Shareholders Count */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-900">
-              Shareholders {allShareholders.length}
+              {labels.totalShareholders(allShareholders.length)}
             </h3>
           </div>
 
           {/* Shareholder Information */}
           <div className="space-y-0">
             {shareholder.din && (
-              <InfoField label="DIN" value={shareholder.din} />
+              <InfoField label={labels.din} value={shareholder.din} />
             )}
             <InfoField
-              label="Shareholder Name"
+              label={labels.shareholderName}
               value={shareholder.shareholderName}
             />
             <InfoField label="Father name" value={shareholder.fatherName} />
@@ -316,9 +342,9 @@ export default function ShareholderDetailPage() {
                 KYC Verified
               </span>
 
-              <Switch 
-                checked={kycVerified} 
-                onChange={handleKycToggle} 
+              <Switch
+                checked={kycVerified}
+                onChange={handleKycToggle}
                 disabled={!isStage2Enabled || shareholder.isAlsoDirector}
               />
             </div>
@@ -329,11 +355,21 @@ export default function ShareholderDetailPage() {
                 DSC Application
               </span>
 
-              <Switch 
-                checked={dscApplication} 
-                onChange={handleDscToggle} 
-                disabled={!isStage2Enabled || shareholder.isAlsoDirector}
-              />
+              <div
+                onClick={() => {
+                  if (isLocked) {
+                    toast.danger("Action locked. Installment payment is due.");
+                  }
+                }}
+              >
+                <Switch
+                  checked={dscApplication}
+                  onChange={handleDscToggle}
+                  disabled={
+                    !isStage2Enabled || shareholder.isAlsoDirector || isLocked
+                  }
+                />
+              </div>
             </div>
           </div>
         </div>

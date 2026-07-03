@@ -31,13 +31,39 @@ export type PaymentStep = {
   status: "paid" | "pending" | "failed" | "due";
   orderId?: string;
   invoiceAvailable?: boolean;
+  isLocked?: boolean;
   paymentLinkSent?: boolean;
   paymentLinkSentAt?: string | null;
   breakdown?: {
-    rejectionFee: number;
-    installmentBase: number;
-    installmentGST: number;
-    installmentTotal: number;
+    rejectionFee?: number;
+    installmentBase?: number;
+    installmentGST?: number;
+    installmentTotal?: number;
+    indianCount?: number;
+    indianRate?: number;
+    foreignCount?: number;
+    foreignRate?: number;
+    nonShareholderCount?: number;
+    nonShareholderRate?: number;
+    dinCount?: number;
+    dinRate?: number;
+    dinTotal?: number;
+    gstAmount?: number;
+    gstPercentage?: number;
+    currency?: string;
+    attempts?: Array<{
+      attemptNumber: number;
+      status: string;
+      amount: number;
+      windowStartDate?: string;
+      windowEndDate?: string;
+      countdownStartDate?: string;
+      paymentLinkSentAt?: string | null;
+      paidAt?: string | null;
+      markedDoneAt?: string | null;
+      expiredAt?: string | null;
+    }>;
+    currentAttempt?: number;
   };
 };
 
@@ -62,8 +88,20 @@ export const pricingPaymentService = {
     }
   },
 
-  async sendPaymentLink(applicationNo: string, stageNumber: number): Promise<boolean> {
+  async sendPaymentLink(
+    applicationNo: string,
+    stageNumber: number,
+    notificationType?: string,
+    reason?: string
+  ): Promise<boolean> {
     try {
+      if (stageNumber === 7) {
+        const response = await axiosInstance.post<{ success: boolean }>(
+          `/admin/clients/${applicationNo}/name-extension/send-payment-link`,
+          { notificationType, reason }
+        );
+        return response.data.success;
+      }
       const response = await axiosInstance.post<{ success: boolean }>(
         `/admin/clients/${applicationNo}/payment-link/send`,
         { stageNumber }

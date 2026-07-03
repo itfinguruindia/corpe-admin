@@ -57,8 +57,6 @@ export function SearchSelect(props: SearchSelectProps) {
     ? (props.value as SearchSelectOption | null)
     : null;
 
-  console.log({ selectedSingle });
-
   const selectedMulti = isMultiple ? (props.value as SearchSelectOption[]) : [];
 
   const isOptionSelected = (opt: SearchSelectOption) => {
@@ -130,6 +128,7 @@ export function SearchSelect(props: SearchSelectProps) {
   };
 
   const handleClear = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     if (isMultiple) {
       (props.onChange as (v: SearchSelectOption[]) => void)([]);
@@ -260,8 +259,15 @@ export function SearchSelect(props: SearchSelectProps) {
         <span className="flex items-center gap-0.5 shrink-0">
           {hasValue && !disabled && (
             <span
-              onClick={handleClear}
+              role="button"
+              tabIndex={0}
+              onMouseDown={handleClear}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
               className="text-slate-400 hover:text-slate-600 cursor-pointer p-0.5 rounded"
+              aria-label="Clear selection"
             >
               <X size={12} />
             </span>

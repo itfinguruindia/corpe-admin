@@ -30,14 +30,36 @@ interface ClientsTableProps {
   onSortChange: (desc: SortDescriptor) => void;
   assigneeOptions: SearchSelectOption[];
   assignerOptions: SearchSelectOption[];
-  onAssigneeChange: (appNo: string, opt: SearchSelectOption) => void;
-  onAssignerChange: (appNo: string, opt: SearchSelectOption) => void;
+  onAssigneeChange: (appNo: string, opt: SearchSelectOption | null) => void;
+  onAssignerChange: (appNo: string, opt: SearchSelectOption | null) => void;
   onDelete: (appNo: string) => void;
   onChat: (orgId: string) => void;
   currentPage: number;
   totalPages: number;
   total: number;
   onPageChange: (page: number) => void;
+  currentAdminId?: string | null;
+  isSuperAdmin?: boolean;
+  canAssignClients?: boolean;
+  canDeleteClients?: boolean;
+}
+
+function canManageClientAssignment(
+  isSuperAdmin: boolean,
+  canAssignClients: boolean,
+): boolean {
+  if (isSuperAdmin) return true;
+  return canAssignClients;
+}
+
+function canDeleteClientRow(
+  _row: Client,
+  _currentAdminId: string | null | undefined,
+  isSuperAdmin: boolean,
+  canDeleteClients: boolean,
+): boolean {
+  if (isSuperAdmin) return true;
+  return canDeleteClients;
 }
 
 export default function ClientsTable({
@@ -56,6 +78,10 @@ export default function ClientsTable({
   totalPages,
   total,
   onPageChange,
+  currentAdminId = null,
+  isSuperAdmin = false,
+  canAssignClients = false,
+  canDeleteClients = false,
 }: ClientsTableProps) {
   const columns: ColumnDef<Client>[] = [
     {
@@ -96,7 +122,12 @@ export default function ClientsTable({
       id: "assignee",
       label: "Assignee",
       sortable: false,
-      render: (row) => (
+      render: (row) => {
+        const canAssign = canManageClientAssignment(
+          isSuperAdmin,
+          canAssignClients,
+        );
+        return (
         <div className="min-w-[200px]">
           <SearchSelect
             options={assigneeOptions}
@@ -104,18 +135,26 @@ export default function ClientsTable({
               row.assigneeId ? { id: row.assigneeId, name: row.assignee } : null
             }
             onChange={(opt) => {
-              if (opt) onAssigneeChange(row.appNo, opt);
+              if (!canAssign) return;
+              onAssigneeChange(row.appNo, opt);
             }}
             placeholder="Assignee"
+            disabled={!canAssign}
           />
         </div>
-      ),
+        );
+      },
     },
     {
       id: "assigner",
       label: "Assigner",
       sortable: false,
-      render: (row) => (
+      render: (row) => {
+        const canAssign = canManageClientAssignment(
+          isSuperAdmin,
+          canAssignClients,
+        );
+        return (
         <div className="min-w-[200px]">
           <SearchSelect
             options={assignerOptions}
@@ -123,12 +162,15 @@ export default function ClientsTable({
               row.assignerId ? { id: row.assignerId, name: row.assigner } : null
             }
             onChange={(opt) => {
-              if (opt) onAssignerChange(row.appNo, opt);
+              if (!canAssign) return;
+              onAssignerChange(row.appNo, opt);
             }}
             placeholder="Assigner"
+            disabled={!canAssign}
           />
         </div>
-      ),
+        );
+      },
     },
     {
       id: "status",
@@ -170,7 +212,14 @@ export default function ClientsTable({
       id: "actions",
       label: "Actions",
       sortable: false,
-      render: (row) => (
+      render: (row) => {
+        const canDelete = canDeleteClientRow(
+          row,
+          currentAdminId,
+          isSuperAdmin,
+          canDeleteClients,
+        );
+        return (
         <div className="flex items-center gap-3">
           <Link
             href={`/clients/${row.appNo}`}
@@ -186,15 +235,18 @@ export default function ClientsTable({
           >
             <MessageSquare size={20} />
           </button>
-          <button
-            onClick={() => onDelete(row.appNo)}
-            className="cursor-pointer text-red-600 hover:text-red-800 transition-colors"
-            title="Delete Client"
-          >
-            <Trash2 size={20} />
-          </button>
+          {canDelete ? (
+            <button
+              onClick={() => onDelete(row.appNo)}
+              className="cursor-pointer text-red-600 hover:text-red-800 transition-colors"
+              title="Delete Client"
+            >
+              <Trash2 size={20} />
+            </button>
+          ) : null}
         </div>
-      ),
+        );
+      },
     },
   ];
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Eye, Download, Upload, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "@heroui/react";
 
@@ -10,15 +10,22 @@ import { ShareholderDocument } from "@/types/shareholderDocuments";
 import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import {
+  getShareholderRegularDocumentFields,
+  resolveIsForeignResident,
+  shouldShowShareholderInc9,
+} from "@/utils/stakeholderDocumentFields";
 
 export default function ShareholderDocumentsPage() {
   const { appNo, id } = useParams();
-  const { admin } = usePermissions();
+  const { labels, isLlp, isLoading: isCompanyTypeLoading } = useClientCompanyLabels();
+  const { requireEdit } = useClientTabEdit("shareholder");
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
-  const [documents, setDocuments] = useState<ShareholderDocument[]>([]);
+  const [rawDocumentsData, setRawDocumentsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<ShareholderDocument | null>(
@@ -34,6 +41,14 @@ export default function ShareholderDocumentsPage() {
     uploadedAt?: string;
   } | null>(null);
   const [isRefreshingInc9, setIsRefreshingInc9] = useState(false);
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
+
+  const isLocked = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
 
   // Upload allowed for these doc types (admin can upload INC-9 Shareholder draft)
   const UPLOAD_ALLOWED_DOCS = [
@@ -58,6 +73,53 @@ export default function ShareholderDocumentsPage() {
     return value.split("/").pop();
   };
 
+  const isForeignResident = useMemo(
+    () => resolveIsForeignResident(shareholder as Record<string, unknown> | null),
+    [shareholder],
+  );
+
+  const isDirectorShareholder = useMemo(
+    () =>
+      Boolean(
+        (shareholder as { isDirectorShareholder?: boolean } | null)
+          ?.isDirectorShareholder,
+      ),
+    [shareholder],
+  );
+
+  const showInc9Shareholder = useMemo(
+    () =>
+      shouldShowShareholderInc9({
+        isLlp,
+        isDirectorShareholder,
+      }),
+    [isLlp, isDirectorShareholder],
+  );
+
+  const documents = useMemo((): ShareholderDocument[] => {
+    if (!rawDocumentsData) return [];
+
+    const documentTypes = getShareholderRegularDocumentFields({
+      isForeignResident,
+      isDirectorShareholder,
+      rawDocumentsData,
+    });
+
+    return documentTypes.map((docType, index) => {
+      const doc = rawDocumentsData[docType.key];
+      return {
+        id: `${docType.key}-${index}`,
+        fieldKey: docType.key,
+        shareholderId: id as string,
+        documentType: docType.label,
+        status: doc ? doc.status || "uploaded" : "pending",
+        fileUrl: doc?.url || "",
+        fileName: doc?.name || "",
+        uploadedAt: doc?.uploadedAt || "",
+      };
+    });
+  }, [rawDocumentsData, isForeignResident, isDirectorShareholder, id]);
+
   const refreshInc9Status = async () => {
     if (!appNo || !id) return;
     try {
@@ -77,49 +139,21 @@ export default function ShareholderDocumentsPage() {
     }
   };
 
-  // Transform API data to array
-  const transformDocumentsToArray = (docData: any): ShareholderDocument[] => {
-    const documentTypes = [
-      { key: "adhar", label: "Aadhaar Card" },
-      { key: "panCard", label: "PAN Card" },
-      {
-        key: "passportOrDrivingOrVoter",
-        label: "Passport/Driving License/Voter ID",
-      },
-      // { key: "presentAddressProof", label: "Present Address Proof" },
-      { key: "addressProofIndia", label: "Present Address Proof (India)" },
-      { key: "addressProofForeign", label: "Present Address Proof (Foreign)" },
-
-      { key: "passportForeign", label: "Passport (Foreign)" },
-      { key: "inc9Shareholder", label: "INC-9 Shareholder" },
-    ];
-    return documentTypes.map((docType, index) => {
-      const doc = docData[docType.key];
-      return {
-        id: `${docType.key}-${index}`,
-        shareholderId: id as string,
-        documentType: docType.label,
-        status: doc ? doc.status || "uploaded" : "pending",
-        fileUrl: doc?.url || "",
-        fileName: doc?.name || "",
-        uploadedAt: doc?.uploadedAt || "",
-      };
-    });
-  };
-
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [shareholderData, documentsData, inc9Status] = await Promise.all([
-          clientsApi.getShareholderById(appNo as string, id as string),
-          clientsApi.getShareholderDocuments(appNo as string, id as string),
-          clientsApi.getInc9ShareholderDocStatus(appNo as string, id as string),
-        ]);
+        const [shareholderData, documentsData, trackerResponse] =
+          await Promise.all([
+            clientsApi.getShareholderById(appNo as string, id as string),
+            clientsApi.getShareholderDocuments(appNo as string, id as string),
+            clientsApi.getTrackingStatus(appNo as string).catch(() => null),
+          ]);
         setShareholder(shareholderData);
-        setDocuments(transformDocumentsToArray(documentsData));
-        setInc9AdminFile(inc9Status.adminFile || null);
-        setInc9ClientFile(inc9Status.clientFile || null);
+        setRawDocumentsData(documentsData);
+        if (trackerResponse && trackerResponse.installmentInfo) {
+          setInstallmentInfo(trackerResponse.installmentInfo);
+        }
       } catch (err) {
         console.error("Error loading shareholder documents", err);
       } finally {
@@ -128,6 +162,31 @@ export default function ShareholderDocumentsPage() {
     };
     if (appNo && id) loadData();
   }, [appNo, id]);
+
+  useEffect(() => {
+    if (!appNo || !id || isLoading || isCompanyTypeLoading || !showInc9Shareholder) {
+      setInc9AdminFile(null);
+      setInc9ClientFile(null);
+      return;
+    }
+
+    const loadInc9Status = async () => {
+      try {
+        const inc9Status = await clientsApi.getInc9ShareholderDocStatus(
+          appNo as string,
+          id as string,
+        );
+        setInc9AdminFile(inc9Status.adminFile || null);
+        setInc9ClientFile(inc9Status.clientFile || null);
+      } catch (error) {
+        console.error("Error loading INC-9 shareholder status:", error);
+        setInc9AdminFile(null);
+        setInc9ClientFile(null);
+      }
+    };
+
+    void loadInc9Status();
+  }, [appNo, id, isLoading, isCompanyTypeLoading, showInc9Shareholder]);
 
   const handleView = async (doc: ShareholderDocument) => {
     if (doc.documentType === "INC-9 Shareholder") {
@@ -195,7 +254,12 @@ export default function ShareholderDocumentsPage() {
 
   const handleInc9Delete = async (source: "admin" | "client") => {
     if (!appNo || !id) return;
-    if (!requireClientTabEdit(admin, "shareholder")) return;
+    if (!requireEdit()) return;
+
+    if (isLocked) {
+      toast.danger("Action locked. Installment payment is due.");
+      return;
+    }
 
     const fileSource = source === "admin" ? "Admin Upload" : "Client Upload";
     if (!confirm(`Are you sure you want to delete the ${fileSource}?`)) {
@@ -227,8 +291,12 @@ export default function ShareholderDocumentsPage() {
   };
 
   const handleUpload = (documentType: string) => {
-    if (!requireClientTabEdit(admin, "shareholder")) return;
+    if (!requireEdit()) return;
     if (documentType === "INC-9 Shareholder") {
+      if (isLocked) {
+        toast.danger("Action locked. Installment payment is due.");
+        return;
+      }
       const input = document.createElement("input");
       input.type = "file";
       input.accept = ".pdf,.doc,.docx";
@@ -278,7 +346,7 @@ export default function ShareholderDocumentsPage() {
     (doc) => doc.status === "pending",
   ).length;
 
-  if (isLoading) {
+  if (isLoading || isCompanyTypeLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl text-gray-600">Loading...</div>
@@ -289,7 +357,7 @@ export default function ShareholderDocumentsPage() {
   if (!shareholder) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Shareholder not found</div>
+        <div className="text-xl text-gray-600">{labels.shareholderNotFound}</div>
       </div>
     );
   }
@@ -307,18 +375,29 @@ export default function ShareholderDocumentsPage() {
           )}
         </div>
 
+        {isLocked && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold">
+            <span>⚠️ Stage locked. Outstanding installment payments are due for this client. Document upload actions are disabled.</span>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-6">
           {/* Left: Regular Documents */}
-          <div className="col-span-2">
+          <div className={showInc9Shareholder ? "col-span-2" : "col-span-3"}>
             <div className="bg-white rounded-lg shadow-sm p-8">
               <h2 className="text-xl font-semibold text-secondary mb-6">
                 {shareholder.name} - Documents
               </h2>
 
               <div>
-                {documents
-                  .filter((doc) => doc.documentType !== "INC-9 Shareholder")
-                  .map((document) => (
+                {isDirectorShareholder ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                    This person is the same as a designated partner/director.
+                    Identity documents are managed on the director documents
+                    page — no separate shareholder uploads apply here.
+                  </div>
+                ) : (
+                  documents.map((document) => (
                     <div
                       key={document.id}
                       className="flex items-center justify-between py-4 border-b border-gray-200"
@@ -363,14 +442,28 @@ export default function ShareholderDocumentsPage() {
                             <Upload className="w-5 h-5" />
                           </button>
                         )}
+
+                        <DocumentIssueButton
+                          applicationNo={appNo as string}
+                          target={{
+                            entityType: "shareholder",
+                            entityId: id as string,
+                            entityLabel: `${shareholder.name} ${labels.entityShareholder}`,
+                            fieldKey: document.fieldKey || "",
+                            documentLabel: document.documentType,
+                            clientRoute: "document-upload",
+                          }}
+                        />
                       </div>
                     </div>
-                  ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right: INC-9 Shareholder Section */}
+          {/* Right: INC-9 Shareholder Section (standard company types only) */}
+          {showInc9Shareholder && (
           <div className="col-span-1">
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
@@ -378,6 +471,18 @@ export default function ShareholderDocumentsPage() {
                   INC-9 Shareholder
                 </h2>
                 <div className="flex items-center gap-3">
+                  <DocumentIssueButton
+                    applicationNo={appNo as string}
+                    target={{
+                      entityType: "shareholder",
+                      entityId: id as string,
+                      entityLabel: `${shareholder.name} ${labels.entityShareholder}`,
+                      fieldKey: "inc9Shareholder",
+                      documentLabel: "INC-9 Shareholder",
+                      clientRoute: "document-upload",
+                    }}
+                    className="inline-flex items-center text-primary hover:text-secondary"
+                  />
                   <div title="Refresh status">
                     <RefreshCw
                       size={18}
@@ -385,11 +490,11 @@ export default function ShareholderDocumentsPage() {
                       className={`cursor-pointer text-secondary hover:text-primary ${isRefreshingInc9 ? "animate-spin" : ""}`}
                     />
                   </div>
-                  <div title="Upload INC-9 (Admin)">
+                  <div title={isLocked ? "Locked — installment due" : "Upload INC-9 (Admin)"}>
                     <Upload
                       size={20}
-                      onClick={() => handleUpload("INC-9 Shareholder")}
-                      className="cursor-pointer text-primary hover:text-secondary"
+                      onClick={isLocked ? undefined : () => handleUpload("INC-9 Shareholder")}
+                      className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-primary hover:text-secondary"}
                     />
                   </div>
                 </div>
@@ -418,11 +523,11 @@ export default function ShareholderDocumentsPage() {
                             className="cursor-pointer text-orange-600 hover:text-orange-700"
                           />
                         </div>
-                        <div title="Delete">
+                        <div title={isLocked ? "Locked — installment due" : "Delete"}>
                           <Trash2
                             size={16}
-                            onClick={() => handleInc9Delete("admin")}
-                            className="cursor-pointer text-red-600 hover:text-red-700"
+                            onClick={isLocked ? undefined : () => handleInc9Delete("admin")}
+                            className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-red-600 hover:text-red-700"}
                           />
                         </div>
                       </div>
@@ -464,11 +569,11 @@ export default function ShareholderDocumentsPage() {
                             className="cursor-pointer text-blue-600 hover:text-blue-700"
                           />
                         </div>
-                        <div title="Delete">
+                        <div title={isLocked ? "Locked — installment due" : "Delete"}>
                           <Trash2
                             size={16}
-                            onClick={() => handleInc9Delete("client")}
-                            className="cursor-pointer text-red-600 hover:text-red-700"
+                            onClick={isLocked ? undefined : () => handleInc9Delete("client")}
+                            className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-red-600 hover:text-red-700"}
                           />
                         </div>
                       </div>
@@ -503,6 +608,7 @@ export default function ShareholderDocumentsPage() {
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
 

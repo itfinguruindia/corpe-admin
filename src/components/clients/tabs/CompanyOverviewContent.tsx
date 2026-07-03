@@ -5,8 +5,9 @@ import { CompanyOverview } from "@/types/company";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField } from "@/components/ui";
 import { Chip, Spinner, Switch } from "@heroui/react";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { isLlpCompanyType } from "@/utils/companyTypeLabels";
 
 interface CompanyOverviewContentProps {
   appNo: string;
@@ -15,10 +16,15 @@ interface CompanyOverviewContentProps {
 export default function CompanyOverviewContent({
   appNo,
 }: CompanyOverviewContentProps) {
-  const { admin } = usePermissions();
+  const { requireEdit, canEdit } = useClientTabEdit("company");
+  const { labels } = useClientCompanyLabels();
   const [companyData, setCompanyData] = useState<CompanyOverview | null>(null);
+  const [resolvedCompanyType, setResolvedCompanyType] = useState<string | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [allDocsVerify, setAllDocsVerified] = useState(false);
+
 
   useEffect(() => {
     const loadCompanyData = async () => {
@@ -28,6 +34,17 @@ export default function CompanyOverviewContent({
         if (response && response.data) {
           // Map API response to CompanyOverview type
           const apiData = response.data;
+          // Fetch real payment status
+          let paymentStatus = "Pending";
+          try {
+            const psRes = await clientsApi.getPaymentStatus(appNo);
+            paymentStatus = psRes?.status ?? "Pending";
+          } catch { /* keep default */ }
+
+          const isLlp = isLlpCompanyType(apiData.companyType);
+          const capitalDetails =
+            apiData.corporateStructure?.capitalDetails || {};
+
           const mapped: CompanyOverview = {
             id: apiData._id,
             applicationNo: appNo,
@@ -39,6 +56,9 @@ export default function CompanyOverviewContent({
             pincode:
               apiData.corporateStructure?.registeredOffice?.pincode || "-",
             state: apiData.corporateStructure?.registeredOffice?.state || "-",
+            policeStationJurisdiction:
+              apiData.corporateStructure?.registeredOffice
+                ?.policeStationJurisdiction || "-",
             entityType: apiData.companyType || "-",
             cinLlpin: "-", // Dummy
             isIncorporated: false, // Dummy
@@ -48,21 +68,27 @@ export default function CompanyOverviewContent({
               apiData.corporateStructure?.registeredOffice?.locality || "-",
             branchOffice: "-", // Dummy
             status: apiData.companyStatus,
-            paymentStatus: "Pending", // Dummy
+            paymentStatus,
             planChosen: "-", // Dummy
             contactNo: apiData.client?.phoneNumber || "-",
             contactEmail: apiData.client?.email || "-",
+            officePhone:
+              apiData.corporateStructure?.registeredOffice?.officePhone || "-",
+            officeEmail:
+              apiData.corporateStructure?.registeredOffice?.officeEmail || "-",
             clientName: `${apiData.client?.firstName || "-"} ${apiData.client?.lastName || "-"}`,
-            capitalDetails:
-              apiData.corporateStructure?.capitalDetails?.authorizedCapital ||
-              0,
-            paidUpCapital:
-              apiData.corporateStructure?.capitalDetails?.paidUpCapital || 0,
+            capitalDetails: isLlp
+              ? capitalDetails.obligationOfContribution || 0
+              : capitalDetails.authorizedCapital || 0,
+            paidUpCapital: isLlp
+              ? 0
+              : capitalDetails.paidUpCapital || 0,
             planChoose: "Basic", // Dummy
             packageType: "Full payment", // Dummy
             createdAt: undefined,
             updatedAt: undefined,
           };
+          setResolvedCompanyType(apiData.companyType ?? null);
           setCompanyData(mapped);
           setAllDocsVerified(mapped.allDocsVerify);
         } else {
@@ -80,7 +106,7 @@ export default function CompanyOverviewContent({
   }, [appNo]);
 
   const handleDocsToggle = async (newValue: boolean) => {
-    if (!requireClientTabEdit(admin, "company")) return;
+    if (!requireEdit()) return;
     try {
       await clientsApi.updateAllDocsVerified(appNo, newValue);
       setAllDocsVerified(newValue);
@@ -118,7 +144,7 @@ export default function CompanyOverviewContent({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 space-y-6">
       <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-sm p-8">
         {/* Header */}
         <div className="flex items-start justify-between mb-6 border-b pb-6">
@@ -129,7 +155,11 @@ export default function CompanyOverviewContent({
           </div>
 
           {/* KYC Verified Toggle */}
-          <Switch isSelected={allDocsVerify} onChange={handleDocsToggle}>
+          <Switch
+            isSelected={allDocsVerify}
+            onChange={handleDocsToggle}
+            isDisabled={!canEdit}
+          >
             <Switch.Control>
               <Switch.Thumb />
             </Switch.Control>
@@ -145,7 +175,16 @@ export default function CompanyOverviewContent({
           <InfoField label="District" value={companyData.district} />
           <InfoField label="Pincode" value={companyData.pincode} />
           <InfoField label="State" value={companyData.state} />
-          <InfoField label="Entity Type" value={companyData.entityType} />
+          <InfoField
+            label="Jurisdiction of Police station"
+            value={companyData.policeStationJurisdiction}
+          />
+          <InfoField
+            label="Entity Type"
+            value={labels.formatEntityType(
+              resolvedCompanyType || companyData.entityType,
+            )}
+          />
 
           <InfoField label="Industry" value={companyData.industry} />
 
@@ -161,22 +200,31 @@ export default function CompanyOverviewContent({
           <InfoField label="Plan Choose" value={companyData.planChosen} />
           <InfoField label="Contact No" value={companyData.contactNo} />
           <InfoField label="Contact Email" value={companyData.contactEmail} />
+          <InfoField
+            label="Office Phone Number"
+            value={companyData.officePhone || "-"}
+          />
+          <InfoField
+            label="Office Email"
+            value={companyData.officeEmail || "-"}
+          />
           <InfoField label="Client Name" value={companyData.clientName} />
           <InfoField
-            label="Capital Details"
+            label={labels.capitalDetailsLabel}
             value={formatCurrency(companyData.capitalDetails)}
             sublabel="(Recommendation - Minimum 1 Lakh INR)"
             sublabelColor="text-red-500"
           />
+          {labels.showPaidUpCapital && (
+            <InfoField
+              label={labels.paidUpCapitalLabel}
+              value={formatCurrency(companyData.paidUpCapital)}
+              sublabel="(Recommendation - Minimum 1 Lakh INR)"
+              sublabelColor="text-red-500"
+            />
+          )}
           <InfoField
-            label="Paid up Capital"
-            value={formatCurrency(companyData.paidUpCapital)}
-            sublabel="(Recommendation - Minimum 1 Lakh INR)"
-            sublabelColor="text-red-500"
-          />
-          {/* start here */}
-          <InfoField
-            label="CIN / LLPIN"
+            label={labels.cinLlpinLabel}
             value={companyData.isIncorporated ? companyData.cinLlpin : "-"}
             sublabel={
               !companyData.isIncorporated

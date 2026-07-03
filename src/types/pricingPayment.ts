@@ -5,6 +5,7 @@ export type StepStatus = "Paid" | "Pending" | "Overdue" | "Processing";
 
 export interface PaymentStep {
   step: number;
+  stepNumber: number;
   installmentName: string;
   amount: number;
   triggerGate: string;
@@ -16,11 +17,38 @@ export interface PaymentStep {
   paymentModeCapture: string;
   paymentLinkSent?: boolean;
   paymentLinkSentAt?: string | null;
+  _isActiveAttempt?: boolean;
+  _attemptNumber?: number;
   breakdown?: {
-    rejectionFee: number;
-    installmentBase: number;
-    installmentGST: number;
-    installmentTotal: number;
+    rejectionFee?: number;
+    installmentBase?: number;
+    installmentGST?: number;
+    installmentTotal?: number;
+    indianCount?: number;
+    indianRate?: number;
+    foreignCount?: number;
+    foreignRate?: number;
+    nonShareholderCount?: number;
+    nonShareholderRate?: number;
+    dinCount?: number;
+    dinRate?: number;
+    dinTotal?: number;
+    gstAmount?: number;
+    gstPercentage?: number;
+    currency?: string;
+    attempts?: Array<{
+      attemptNumber: number;
+      status: string;
+      amount: number;
+      windowStartDate?: string;
+      windowEndDate?: string;
+      countdownStartDate?: string;
+      paymentLinkSentAt?: string | null;
+      paidAt?: string | null;
+      markedDoneAt?: string | null;
+      expiredAt?: string | null;
+    }>;
+    currentAttempt?: number;
   };
 }
 
@@ -37,6 +65,7 @@ export interface PricingPayment {
   baseServiceFee: number;
   gst: number; // 18% of base service fee
   finalPaidAmount: number;
+  finalPayableWithGST?: number;
   isLocked: boolean;
   discount?: number;
   paymentSteps: PaymentStep[];

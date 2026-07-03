@@ -51,6 +51,14 @@ export const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     permissions: [PERMISSIONS.ACTIVITY_LOGS_VIEW, PERMISSIONS.AUDIT_VIEW],
   },
   {
+    path: "/compliance-calendar",
+    permissions: [PERMISSIONS.SETTINGS_VIEW],
+  },
+  {
+    path: "/settings/pricing",
+    permissions: [PERMISSIONS.PRICING_EDIT, PERMISSIONS.SETTINGS_VIEW],
+  },
+  {
     path: "/settings",
     prefix: true,
     permissions: [PERMISSIONS.SETTINGS_VIEW],
@@ -104,7 +112,7 @@ export const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
   // Clients list
   { path: "/clients", permissions: [PERMISSIONS.CLIENT_VIEW] },
   {
-    path: "/marketing",
+    path: "/crm",
     prefix: true,
     permissions: [PERMISSIONS.MARKETING_VIEW],
   },
@@ -186,12 +194,12 @@ export const NAV_PERMISSION_ITEMS: NavPermissionItem[] = [
   { href: "/clients", permissions: [PERMISSIONS.CLIENT_VIEW], prefix: true },
   { href: "/feedbacks", permissions: [PERMISSIONS.FEEDBACK_VIEW], prefix: true },
   {
-    href: "/marketing/leads",
+    href: "/crm/leads",
     permissions: [PERMISSIONS.MARKETING_VIEW],
     prefix: true,
   },
   {
-    href: "/marketing/newsletter",
+    href: "/crm/newsletter",
     permissions: [PERMISSIONS.NEWSLETTER_VIEW],
     prefix: true,
   },

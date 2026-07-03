@@ -58,6 +58,10 @@ export function canEditUsers(admin: Admin | null | undefined): boolean {
   return hasPermission(admin, PERMISSIONS.USER_EDIT);
 }
 
+export function canAssignClients(admin: Admin | null | undefined): boolean {
+  return hasPermission(admin, PERMISSIONS.CLIENT_ASSIGN);
+}
+
 export function canViewRoles(admin: Admin | null | undefined): boolean {
   return hasPermission(admin, PERMISSIONS.ROLE_VIEW);
 }

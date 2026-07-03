@@ -58,6 +58,11 @@ export interface DataTableProps<T> {
 
   emptyMessage?: string;
   emptyIcon?: React.ElementType;
+
+  /** Override default min-height on the table container (default: min-h-[70vh]) */
+  tableMinHeight?: string;
+  /** Minimum column width in px (default: 200) */
+  columnMinWidth?: number;
 }
 
 function SortableColumnHeader({
@@ -99,6 +104,8 @@ export function DataTable<T>({
   columnVisibilityStorageKey,
   emptyMessage = "No items found matching criteria.",
   emptyIcon: EmptyIcon = Inbox,
+  tableMinHeight = "min-h-[70vh]",
+  columnMinWidth = 200,
 }: DataTableProps<T>) {
   const [isColumnPanelOpen, setIsColumnPanelOpen] = useState(false);
   const hasLoadedFromStorage = useRef(false);
@@ -238,7 +245,12 @@ export function DataTable<T>({
           </div>
         )}
 
-        <Table className="bg-white border text-sm border-gray-200 rounded-xl shadow-sm w-full p-0 overflow-hidden min-h-[70vh]">
+        <Table
+          className={cn(
+            "bg-white border text-sm border-gray-200 rounded-xl shadow-sm w-full p-0 overflow-hidden",
+            tableMinHeight,
+          )}
+        >
           <Table.ScrollContainer className="w-full overflow-x-auto">
             <Table.Content
               aria-label="Data Table"
@@ -255,7 +267,7 @@ export function DataTable<T>({
                     key={col.id}
                     className="px-5 py-3.5 font-semibold whitespace-nowrap uppercase tracking-wider text-sm"
                     defaultWidth="1fr"
-                    minWidth={200}
+                    minWidth={columnMinWidth}
                   >
                     {({ sortDirection }) => (
                       <SortableColumnHeader sortDirection={sortDirection}>
@@ -320,7 +332,7 @@ export function DataTable<T>({
                           {visibleColumns.map((col) => (
                             <Table.Cell
                               key={col.id}
-                              className="px-5 py-4 align-middle text-gray-800"
+                              className="px-5 py-4 align-top text-gray-800"
                             >
                               {col.render
                                 ? col.render(row, index)

@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
 import { Card, Spinner } from "@heroui/react";
+import { Chip } from "@/components/ui";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import { toStakeholderId } from "@/utils/stakeholderIds";
 
 interface DirectorsContentProps {
   appNo: string;
@@ -12,6 +15,7 @@ interface DirectorsContentProps {
 
 export default function DirectorsContent({ appNo }: DirectorsContentProps) {
   const router = useRouter();
+  const { labels } = useClientCompanyLabels();
   const [directors, setDirectors] = useState<Director[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -19,7 +23,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
     const loadDirectors = async () => {
       try {
         setIsLoading(true);
-        const response = await clientsApi.getDirectorAndShareHolders(appNo);
+        const response = await clientsApi.getDirectorAndShareHolders(appNo, false);
         if (
           response &&
           response.data &&
@@ -27,7 +31,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
         ) {
           const mappedDirectors: Director[] = response.data.directors.map(
             (d: any, idx: number) => ({
-              id: d.directorId || `${idx}`,
+              id: toStakeholderId(d, idx),
               applicationNo: appNo,
               directorNumber: idx + 1,
               hasDIN: d.hasDIN || false,
@@ -54,8 +58,9 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
               shareholdingPercentage: d.proposedShareholdingPercentage
                 ? Number(d.proposedShareholdingPercentage)
                 : 0,
-              kycVerified: false,
-              dscApplication: false,
+              kycVerified: d.kycVerified ?? false,
+              dscApplication: d.dscApplication ?? false,
+              isBankSigningAuthority: d.isBankSigningAuthority ?? false,
               createdAt: undefined,
               updatedAt: undefined,
             }),
@@ -93,7 +98,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-secondary">
-              Total Directors: {directors.length}
+              {labels.totalDirectors(directors.length)}
             </h2>
           </div>
 
@@ -106,15 +111,25 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-semibold text-gray-900">
-                      Director {director.directorNumber}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-900">
+                        {labels.directorWithNumber(director.directorNumber)}
+                      </h3>
+                      {director.isBankSigningAuthority && (
+                        <Chip
+                          label="Bank Signing Authority"
+                          variant="blue"
+                          className="text-xs"
+                        />
+                      )}
+                    </div>
                     <p className="text-sm text-gray-600 mt-1">
                       {director.directorName}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
                       {director.email} • {director.phoneNo}
-                      {(director as { isForeignResident?: boolean }).isForeignResident && (
+                      {(director as { isForeignResident?: boolean })
+                        .isForeignResident && (
                         <span className="ml-2 text-xs font-medium text-[#3D63A4]">
                           • NRI / Foreign Resident
                         </span>

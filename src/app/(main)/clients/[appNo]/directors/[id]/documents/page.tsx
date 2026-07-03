@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Eye, Download, Upload, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "@heroui/react";
 
@@ -10,32 +10,26 @@ import { DirectorDocument } from "@/types/directorDocuments";
 import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
-import { usePermissions } from "@/hooks/usePermissions";
-import { requireClientTabEdit } from "@/utils/clientPermissions";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import {
+  getDirectorDualSourceDocumentFields,
+  getDirectorRegularDocumentFields,
+  resolveIsForeignResident,
+} from "@/utils/stakeholderDocumentFields";
 
 /* =======================
    CONFIG / RULES
 ======================= */
 
-// Document types with dual-source uploads
-const DUAL_SOURCE_DOCS = [
-  "DIR-2",
-  "INC-9",
-  "No PAN Declaration",
-  "Miscellaneous 1",
-  "Miscellaneous 2",
-  "Miscellaneous 3",
-];
-
-// Upload allowed only for dual-source docs (admin can upload drafts)
-const UPLOAD_ALLOWED_DOCS = DUAL_SOURCE_DOCS;
-
-const canUpload = (documentType: string) =>
-  UPLOAD_ALLOWED_DOCS.includes(documentType);
-
-const canPreviewOrDownload = (status: string, documentType: string) => {
-  if (DUAL_SOURCE_DOCS.includes(documentType)) {
+const canPreviewOrDownload = (
+  status: string,
+  documentType: string,
+  dualSourceLabels: string[],
+) => {
+  if (dualSourceLabels.includes(documentType)) {
     return false; // Dual-source docs use separate section
   }
   return status !== "pending";
@@ -62,11 +56,18 @@ type DualSourceState = {
 
 export default function DirectorDocumentsPage() {
   const { appNo, id } = useParams();
-  const { admin } = usePermissions();
+  const { requireEdit } = useClientTabEdit("director");
+  const { labels, isLlp, isLoading: isCompanyTypeLoading } = useClientCompanyLabels();
 
   const [director, setDirector] = useState<Director | null>(null);
-  const [documents, setDocuments] = useState<DirectorDocument[]>([]);
+  const [rawDocumentsData, setRawDocumentsData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [installmentInfo, setInstallmentInfo] = useState<{
+    firstInstallmentDue: boolean;
+    firstInstallmentPaid: boolean;
+    secondInstallmentDue: boolean;
+    secondInstallmentPaid: boolean;
+  } | null>(null);
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<DirectorDocument | null>(null);
@@ -109,76 +110,70 @@ export default function DirectorDocumentsPage() {
     miscellaneous3: false,
   });
 
+  const isForeignResident = useMemo(
+    () => resolveIsForeignResident(director as Record<string, unknown> | null),
+    [director],
+  );
+
+  const dualSourceDocumentFields = useMemo(
+    () =>
+      getDirectorDualSourceDocumentFields({
+        isForeignResident,
+        isLlp,
+        labels,
+      }),
+    [isForeignResident, isLlp, labels],
+  );
+
+  const dualSourceDocLabels = useMemo(
+    () => dualSourceDocumentFields.map((field) => field.label),
+    [dualSourceDocumentFields],
+  );
+
+  const primaryDualSourceFields = useMemo(
+    () =>
+      dualSourceDocumentFields.filter(
+        (field) => !field.key.startsWith("miscellaneous"),
+      ),
+    [dualSourceDocumentFields],
+  );
+
+  const miscDualSourceFields = useMemo(
+    () =>
+      dualSourceDocumentFields.filter((field) =>
+        field.key.startsWith("miscellaneous"),
+      ),
+    [dualSourceDocumentFields],
+  );
+
   /* =======================
      DATA TRANSFORM
   ======================= */
 
-  const transformDocumentsToArray = (docData: any): DirectorDocument[] => {
-    const addressProofKeys = [
-      { key: "addressProofIndia", label: "Address Proof (India)" },
-      { key: "addressProof", label: "Address Proof" },
-      { key: "addressProofForeign", label: "Address Proof (Foreign)" },
-    ];
+  const documents = useMemo((): DirectorDocument[] => {
+    if (!rawDocumentsData) return [];
 
-    let addressProofToShow = null;
-    for (const ap of addressProofKeys) {
-      if (docData[ap.key]) {
-        addressProofToShow = ap;
-        break;
-      }
-    }
+    const documentTypes = getDirectorRegularDocumentFields({
+      isForeignResident,
+      isLlp,
+      labels,
+      rawDocumentsData,
+    });
 
-    const documentTypes = [
-      { key: "adhar", label: "Aadhaar Card" },
-      { key: "panCard", label: "PAN Card" },
-      { key: "otherGovtDocs", label: "Other Government Documents" },
-      ...(addressProofToShow ? [addressProofToShow] : []),
-      {
-        key: "passportOrDrivingOrVoter",
-        label: "Passport/Driving License/Voter ID",
-      },
-      { key: "passportForeign", label: "Passport (Foreign)" },
-      { key: "otherIDForeign", label: "Other ID (Foreign)" },
-      { key: "presentAddressProof", label: "Present Address Proof" },
-      { key: "photo", label: "Photo" },
-      { key: "signature", label: "Signature" },
-      { key: "consentToAct", label: "Consent to Act" },
-      { key: "dir2", label: "DIR-2" },
-      { key: "inc9Director", label: "INC-9" },
-      { key: "noPanDeclaration", label: "No PAN Declaration" },
-      { key: "miscellaneous1", label: "Miscellaneous 1" },
-      { key: "miscellaneous2", label: "Miscellaneous 2" },
-      { key: "miscellaneous3", label: "Miscellaneous 3" },
-    ];
-
-    return documentTypes
-      .map((docType, index) => {
-        const doc = docData[docType.key];
-        return {
-          id: `${docType.key}-${index}`,
-          directorId: id as string,
-          documentType: docType.label,
-          status: doc ? doc.status || "uploaded" : "pending",
-          fileUrl: doc?.url || "",
-          fileName: doc?.name || "",
-          uploadedAt: doc?.uploadedAt || "",
-        };
-      })
-      .filter((doc) => {
-        if (
-          [
-            "Address Proof (India)",
-            "Address Proof",
-            "Address Proof (Foreign)",
-          ].includes(doc.documentType)
-        ) {
-          return (
-            addressProofToShow && doc.documentType === addressProofToShow.label
-          );
-        }
-        return true;
-      });
-  };
+    return documentTypes.map((docType, index) => {
+      const doc = rawDocumentsData[docType.key];
+      return {
+        id: `${docType.key}-${index}`,
+        fieldKey: docType.key,
+        directorId: id as string,
+        documentType: docType.label,
+        status: doc ? doc.status || "uploaded" : "pending",
+        fileUrl: doc?.url || "",
+        fileName: doc?.name || "",
+        uploadedAt: doc?.uploadedAt || "",
+      };
+    });
+  }, [rawDocumentsData, labels, isLlp, isForeignResident, id]);
 
   /* =======================
      HELPER FUNCTIONS
@@ -190,15 +185,19 @@ export default function DirectorDocumentsPage() {
   };
 
   const getDocTypeKey = (documentType: string): string => {
-    const map: Record<string, string> = {
-      "DIR-2": "dir2",
-      "INC-9": "inc9Director",
-      "No PAN Declaration": "noPanDeclaration",
-      "Miscellaneous 1": "miscellaneous1",
-      "Miscellaneous 2": "miscellaneous2",
-      "Miscellaneous 3": "miscellaneous3",
-    };
-    return map[documentType] || "";
+    const fromDualSource = dualSourceDocumentFields.find(
+      (field) => field.label === documentType,
+    );
+    if (fromDualSource) return fromDualSource.key;
+
+    const fromRegular = getDirectorRegularDocumentFields({
+      isForeignResident,
+      isLlp,
+      labels,
+      rawDocumentsData,
+    }).find((field) => field.label === documentType);
+
+    return fromRegular?.key || "";
   };
 
   const getSetterForDocType = (docType: string) => {
@@ -245,21 +244,28 @@ export default function DirectorDocumentsPage() {
     }
   };
 
-  const loadAllDualSourceDocs = async (isForeignResident?: boolean) => {
+  const getDualSourceFiles = (docTypeKey: string): DualSourceState => {
+    const map: Record<string, DualSourceState> = {
+      dir2: dir2Files,
+      inc9Director: inc9Files,
+      noPanDeclaration: noPanFiles,
+      miscellaneous1: misc1Files,
+      miscellaneous2: misc2Files,
+      miscellaneous3: misc3Files,
+    };
+    return map[docTypeKey] ?? { adminFile: null, clientFile: null };
+  };
+
+  const loadAllDualSourceDocs = async () => {
     if (!appNo || !id) return;
 
-    const docTypes = [
-      { key: "dir2", setter: setDir2Files },
-      { key: "inc9Director", setter: setInc9Files },
-      ...(isForeignResident
-        ? [{ key: "noPanDeclaration", setter: setNoPanFiles }]
-        : []),
-      { key: "miscellaneous1", setter: setMisc1Files },
-      { key: "miscellaneous2", setter: setMisc2Files },
-      { key: "miscellaneous3", setter: setMisc3Files },
-    ];
+    const docTypes = dualSourceDocumentFields.map((field) => ({
+      key: field.key,
+      setter: getSetterForDocType(field.key),
+    }));
 
     const promises = docTypes.map(async ({ key, setter }) => {
+      if (!setter) return;
       try {
         const status = await clientsApi.getDirectorDocStatus(
           appNo as string,
@@ -284,18 +290,18 @@ export default function DirectorDocumentsPage() {
       try {
         setIsLoading(true);
 
-        const [directorData, documentsData] = await Promise.all([
+        const [directorData, documentsData, trackerResponse] = await Promise.all([
           clientsApi.getDirectorById(appNo as string, id as string),
           clientsApi.getDirectorDocuments(appNo as string, id as string),
+          clientsApi.getTrackingStatus(appNo as string).catch(() => null),
         ]);
 
         setDirector(directorData);
-        setDocuments(transformDocumentsToArray(documentsData));
+        setRawDocumentsData(documentsData);
 
-        // Load dual-source document statuses
-        await loadAllDualSourceDocs(
-          Boolean((directorData as { isForeignResident?: boolean })?.isForeignResident),
-        );
+        if (trackerResponse && trackerResponse.installmentInfo) {
+          setInstallmentInfo(trackerResponse.installmentInfo);
+        }
       } catch (err) {
         console.error("Error loading director documents", err);
       } finally {
@@ -306,12 +312,26 @@ export default function DirectorDocumentsPage() {
     if (appNo && id) loadData();
   }, [appNo, id]);
 
+  useEffect(() => {
+    if (!appNo || !id || isLoading || isCompanyTypeLoading || !director) {
+      return;
+    }
+    void loadAllDualSourceDocs();
+  }, [
+    appNo,
+    id,
+    director,
+    isLoading,
+    isCompanyTypeLoading,
+    dualSourceDocumentFields,
+  ]);
+
   /* =======================
      ACTIONS
   ======================= */
 
   const handleView = (doc: DirectorDocument) => {
-    if (DUAL_SOURCE_DOCS.includes(doc.documentType)) {
+    if (dualSourceDocLabels.includes(doc.documentType)) {
       return; // Handled in separate section
     }
     if (!doc.fileUrl) return;
@@ -320,7 +340,7 @@ export default function DirectorDocumentsPage() {
   };
 
   const handleDownload = (doc: DirectorDocument) => {
-    if (DUAL_SOURCE_DOCS.includes(doc.documentType)) {
+    if (dualSourceDocLabels.includes(doc.documentType)) {
       return; // Handled in separate section
     }
     if (!doc.fileUrl || !doc.fileName) return;
@@ -388,7 +408,7 @@ export default function DirectorDocumentsPage() {
     source: "admin" | "client",
   ) => {
     if (!appNo || !id) return;
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!requireEdit()) return;
 
     const fileSource = source === "admin" ? "Admin Upload" : "Client Upload";
     if (!confirm(`Are you sure you want to delete the ${fileSource}?`)) {
@@ -416,7 +436,7 @@ export default function DirectorDocumentsPage() {
   };
 
   const handleUpload = (documentType: string) => {
-    if (!requireClientTabEdit(admin, "director")) return;
+    if (!requireEdit()) return;
     const docTypeKey = getDocTypeKey(documentType);
     if (!docTypeKey) return;
 
@@ -460,6 +480,19 @@ export default function DirectorDocumentsPage() {
     const { adminFile, clientFile } = files;
     const isRefreshingDoc =
       isRefreshing[docTypeKey as keyof typeof isRefreshing];
+    const isStage3Gated = !!(
+      installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid
+    );
+    const isClientUploadLocked =
+      isStage3Gated &&
+      [
+        "dir2",
+        "inc9Director",
+        "noPanDeclaration",
+        "miscellaneous1",
+        "miscellaneous2",
+        "miscellaneous3",
+      ].includes(docTypeKey);
 
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
@@ -468,6 +501,18 @@ export default function DirectorDocumentsPage() {
             {documentType}
           </h2>
           <div className="flex items-center gap-3">
+            <DocumentIssueButton
+              applicationNo={appNo as string}
+              target={{
+                entityType: "director",
+                entityId: id as string,
+                entityLabel: `${director?.name || labels.director} ${labels.entityDirector}`,
+                fieldKey: docTypeKey,
+                documentLabel: documentType,
+                clientRoute: "document-upload",
+              }}
+              className="inline-flex items-center text-primary hover:text-secondary"
+            />
             <div title="Refresh status">
               <RefreshCw
                 size={18}
@@ -475,7 +520,7 @@ export default function DirectorDocumentsPage() {
                 className={`cursor-pointer text-secondary hover:text-primary ${isRefreshingDoc ? "animate-spin" : ""}`}
               />
             </div>
-            <div title={`Upload ${documentType} (Admin)`}>
+            <div title={`Upload ${documentType} template (Admin)`}>
               <Upload
                 size={20}
                 onClick={() => handleUpload(documentType)}
@@ -517,7 +562,7 @@ export default function DirectorDocumentsPage() {
                       className="cursor-pointer text-orange-600 hover:text-orange-700"
                     />
                   </div>
-                  <div title="Delete">
+                  <div title="Delete template">
                     <Trash2
                       size={16}
                       onClick={() =>
@@ -572,13 +617,30 @@ export default function DirectorDocumentsPage() {
                       className="cursor-pointer text-blue-600 hover:text-blue-700"
                     />
                   </div>
-                  <div title="Delete">
+                  <div
+                    title={
+                      isClientUploadLocked
+                        ? "Locked — installment due"
+                        : "Delete"
+                    }
+                  >
                     <Trash2
                       size={16}
-                      onClick={() =>
-                        handleDocDelete(documentType, docTypeKey, "client")
+                      onClick={
+                        isClientUploadLocked
+                          ? undefined
+                          : () =>
+                              handleDocDelete(
+                                documentType,
+                                docTypeKey,
+                                "client",
+                              )
                       }
-                      className="cursor-pointer text-red-600 hover:text-red-700"
+                      className={
+                        isClientUploadLocked
+                          ? "text-gray-300 cursor-not-allowed"
+                          : "cursor-pointer text-red-600 hover:text-red-700"
+                      }
                     />
                   </div>
                 </div>
@@ -613,7 +675,7 @@ export default function DirectorDocumentsPage() {
      UI STATES
   ======================= */
 
-  if (isLoading) {
+  if (isLoading || isCompanyTypeLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-xl text-gray-600">Loading...</div>
@@ -624,7 +686,7 @@ export default function DirectorDocumentsPage() {
   if (!director) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Director not found</div>
+        <div className="text-xl text-gray-600">{labels.directorNotFound}</div>
       </div>
     );
   }
@@ -646,6 +708,19 @@ export default function DirectorDocumentsPage() {
           )}
         </div>
 
+        {!!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue) && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-900 text-sm">
+            <p className="font-semibold">
+              Outstanding installment payments are due for this client.
+            </p>
+            <p className="mt-1">
+              Client document actions are locked, but you can still upload
+              templates on the right (Admin Upload) so the client can download,
+              sign, and return them.
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-6">
           {/* Left: Regular Documents */}
           <div className="col-span-2">
@@ -656,7 +731,9 @@ export default function DirectorDocumentsPage() {
 
               <div>
                 {documents
-                  .filter((doc) => !DUAL_SOURCE_DOCS.includes(doc.documentType))
+                  .filter(
+                    (doc) => !dualSourceDocLabels.includes(doc.documentType),
+                  )
                   .map((document) => (
                     <div
                       key={document.id}
@@ -674,12 +751,14 @@ export default function DirectorDocumentsPage() {
                             !canPreviewOrDownload(
                               document.status,
                               document.documentType,
+                              dualSourceDocLabels,
                             )
                           }
                           className={
                             canPreviewOrDownload(
                               document.status,
                               document.documentType,
+                              dualSourceDocLabels,
                             )
                               ? "text-primary hover:text-secondary"
                               : "text-gray-300 cursor-not-allowed"
@@ -695,12 +774,14 @@ export default function DirectorDocumentsPage() {
                             !canPreviewOrDownload(
                               document.status,
                               document.documentType,
+                              dualSourceDocLabels,
                             )
                           }
                           className={
                             canPreviewOrDownload(
                               document.status,
                               document.documentType,
+                              dualSourceDocLabels,
                             )
                               ? "text-primary hover:text-secondary"
                               : "text-gray-300 cursor-not-allowed"
@@ -708,6 +789,18 @@ export default function DirectorDocumentsPage() {
                         >
                           <Download className="w-5 h-5" />
                         </button>
+
+                        <DocumentIssueButton
+                          applicationNo={appNo as string}
+                          target={{
+                            entityType: "director",
+                            entityId: id as string,
+                            entityLabel: `${director.name} ${labels.entityDirector}`,
+                            fieldKey: document.fieldKey || "",
+                            documentLabel: document.documentType,
+                            clientRoute: "document-upload",
+                          }}
+                        />
                       </div>
                     </div>
                   ))}
@@ -715,37 +808,30 @@ export default function DirectorDocumentsPage() {
             </div>
           </div>
 
-          {/* Right: Dual-Source Documents (DIR-2, INC-9, No PAN) */}
+          {/* Right: Dual-Source Documents */}
           <div className="col-span-1 space-y-4">
-            {renderDualSourceCard("DIR-2", "dir2", dir2Files)}
-            {renderDualSourceCard("INC-9", "inc9Director", inc9Files)}
-            {(director as { isForeignResident?: boolean }).isForeignResident &&
+            {primaryDualSourceFields.map((field) =>
               renderDualSourceCard(
-                "No PAN Declaration",
-                "noPanDeclaration",
-                noPanFiles,
-              )}
+                field.label,
+                field.key,
+                getDualSourceFiles(field.key),
+              ),
+            )}
           </div>
         </div>
 
-        {/* Bottom: Miscellaneous Documents (Side by Side) */}
+        {/* Bottom: Miscellaneous Documents (standard company types only) */}
+        {miscDualSourceFields.length > 0 && (
         <div className="grid grid-cols-3 gap-6 mt-6">
-          {renderDualSourceCard(
-            "Miscellaneous 1",
-            "miscellaneous1",
-            misc1Files,
-          )}
-          {renderDualSourceCard(
-            "Miscellaneous 2",
-            "miscellaneous2",
-            misc2Files,
-          )}
-          {renderDualSourceCard(
-            "Miscellaneous 3",
-            "miscellaneous3",
-            misc3Files,
+          {miscDualSourceFields.map((field) =>
+            renderDualSourceCard(
+              field.label,
+              field.key,
+              getDualSourceFiles(field.key),
+            ),
           )}
         </div>
+        )}
       </div>
 
       {/* Preview Modal */}

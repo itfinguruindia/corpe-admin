@@ -45,6 +45,12 @@ export const adminApi = {
     return response.data.data.admin;
   },
 
+  // Delete admin user
+  deleteAdmin: async (adminId: string) => {
+    const response = await axiosInstance.delete(`/admin/${adminId}`);
+    return response.data;
+  },
+
   // Register new admin
   registerAdmin: async (adminData: {
     name: string;
