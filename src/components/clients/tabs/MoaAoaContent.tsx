@@ -342,7 +342,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
               <div
                 title={
                   isLocked
-                    ? "Locked — installment due"
+                    ? "Locked - installment due"
                     : `Upload ${section.label} (Admin)`
                 }
               >

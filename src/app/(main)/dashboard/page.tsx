@@ -21,7 +21,7 @@ export default function Dashboard() {
         <DashboardWelcome />
       </div>
 
-      {/* Stats — slightly overlap hero for depth */}
+      {/* Stats - slightly overlap hero for depth */}
       <div className="relative z-10 -mt-2 animate-fade-slide-up">
         <DashboardSection
           title="Overview"
@@ -32,10 +32,7 @@ export default function Dashboard() {
       </div>
 
       <div className="animate-fade-slide-up space-y-10">
-        <DashboardSection
-          title="Quick Access"
-          description="All admin sections"
-        >
+        <DashboardSection title="Quick Access" description="All admin sections">
           <DashboardQuickLinks />
         </DashboardSection>
 

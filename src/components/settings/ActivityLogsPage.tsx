@@ -261,7 +261,10 @@ export default function ActivityLogsPage() {
       setIsLoading(false);
       return;
     }
-    activityLogsApi.getFilterOptions().then(setFilterOptions).catch(() => {});
+    activityLogsApi
+      .getFilterOptions()
+      .then(setFilterOptions)
+      .catch(() => {});
   }, [canView]);
 
   useEffect(() => {
@@ -340,7 +343,11 @@ export default function ActivityLogsPage() {
         page: currentPage,
         limit: ITEMS_PER_PAGE,
         search: searchDebounced || undefined,
-        preset: (preset || undefined) as "today" | "last7" | "last30" | undefined,
+        preset: (preset || undefined) as
+          | "today"
+          | "last7"
+          | "last30"
+          | undefined,
         status: statusFilter || undefined,
         activityType: activityTypeFilter || undefined,
         module: moduleFilter || undefined,
@@ -371,7 +378,11 @@ export default function ActivityLogsPage() {
     try {
       const data = await activityLogsApi.exportLogs({
         search: searchDebounced || undefined,
-        preset: (preset || undefined) as "today" | "last7" | "last30" | undefined,
+        preset: (preset || undefined) as
+          | "today"
+          | "last7"
+          | "last30"
+          | undefined,
         status: statusFilter || undefined,
         activityType: activityTypeFilter || undefined,
         module: moduleFilter || undefined,
@@ -556,7 +567,7 @@ export default function ActivityLogsPage() {
               </p>
               <p className="mt-0.5 text-xl font-bold text-secondary tabular-nums">
                 {isLoading && totalItems === 0
-                  ? "—"
+                  ? "-"
                   : totalItems.toLocaleString()}
               </p>
             </div>

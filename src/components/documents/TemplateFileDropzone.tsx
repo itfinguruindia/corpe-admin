@@ -62,7 +62,7 @@ export default function TemplateFileDropzone({
         Drag and drop your template here
       </p>
       <p className="mt-1 text-xs text-gray-500">
-        PDF, DOCX, XLSX, PPTX — max {maxMb} MB
+        PDF, DOCX, XLSX, PPTX - max {maxMb} MB
       </p>
       <button
         type="button"

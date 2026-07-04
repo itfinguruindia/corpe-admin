@@ -68,11 +68,11 @@ function formatDate(day: number, month: number) {
 
 function safePenalty(penalty?: CompliancePenalty | null): CompliancePenalty {
   return {
-    title: penalty?.title ?? "—",
-    rate: penalty?.rate ?? "—",
-    maximum: penalty?.maximum ?? "—",
-    interest: penalty?.interest ?? "—",
-    section: penalty?.section ?? "—",
+    title: penalty?.title ?? "-",
+    rate: penalty?.rate ?? "-",
+    maximum: penalty?.maximum ?? "-",
+    interest: penalty?.interest ?? "-",
+    section: penalty?.section ?? "-",
   };
 }
 
@@ -126,7 +126,9 @@ export default function ComplianceCalendarPage() {
   const [companyTypeFilter, setCompanyTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<ComplianceEntry | null>(null);
+  const [editingEntry, setEditingEntry] = useState<ComplianceEntry | null>(
+    null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -200,7 +202,7 @@ export default function ComplianceCalendarPage() {
     }
   }, []);
 
-  // Single fetch effect — debounce search, immediate for filters/pagination
+  // Single fetch effect - debounce search, immediate for filters/pagination
   useEffect(() => {
     const delay = search ? 300 : 0;
     const timer = setTimeout(() => fetchEntries(1), delay);
@@ -208,7 +210,15 @@ export default function ComplianceCalendarPage() {
       clearTimeout(timer);
       abortRef.current?.abort();
     };
-  }, [search, filterMonth, filterDay, category, companyTypeFilter, statusFilter, fetchEntries]);
+  }, [
+    search,
+    filterMonth,
+    filterDay,
+    category,
+    companyTypeFilter,
+    statusFilter,
+    fetchEntries,
+  ]);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
@@ -355,7 +365,9 @@ export default function ComplianceCalendarPage() {
         id: "formName",
         label: "Form Name",
         render: (row) => (
-          <span className="block font-medium text-gray-900">{row.formName}</span>
+          <span className="block font-medium text-gray-900">
+            {row.formName}
+          </span>
         ),
       },
       {
@@ -366,7 +378,7 @@ export default function ComplianceCalendarPage() {
             className="block text-gray-700 line-clamp-2"
             title={row.description}
           >
-            {row.description || "—"}
+            {row.description || "-"}
           </span>
         ),
       },
@@ -389,9 +401,7 @@ export default function ComplianceCalendarPage() {
       {
         id: "penaltyRate",
         label: "Penalty Rate",
-        render: (row) => (
-          <PenaltyCell value={safePenalty(row.penalty).rate} />
-        ),
+        render: (row) => <PenaltyCell value={safePenalty(row.penalty).rate} />,
       },
       {
         id: "penaltyMaximum",
@@ -502,7 +512,11 @@ export default function ComplianceCalendarPage() {
           <div className="flex flex-1 min-w-0 items-center gap-2">
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-gray-400 size-4" />
-              <TextField value={search} onChange={setSearch} name="searchCompliance">
+              <TextField
+                value={search}
+                onChange={setSearch}
+                name="searchCompliance"
+              >
                 <Label className="sr-only">Search</Label>
                 <Input
                   placeholder="Search form, description, period, penalty..."
@@ -526,7 +540,9 @@ export default function ComplianceCalendarPage() {
               value={companyTypeFilter}
               options={[
                 { id: "", label: "All Companies" },
-                ...COMPLIANCE_COMPANY_TYPE_OPTIONS.filter((c) => c.id !== "all"),
+                ...COMPLIANCE_COMPANY_TYPE_OPTIONS.filter(
+                  (c) => c.id !== "all",
+                ),
               ]}
               onChange={setCompanyTypeFilter}
             />
@@ -536,21 +552,23 @@ export default function ComplianceCalendarPage() {
             <CustomSelect
               ariaLabel="Filter by category"
               value={category ? categoryToSelectId(category) : ""}
-            options={[
-              { id: "", label: "All Categories" },
-              ...COMPLIANCE_CATEGORY_OPTIONS.map((c) => ({
-                id: c.id,
-                label: c.label,
-              })),
-            ]}
-            onChange={(id) => {
-              if (!id) {
-                setCategory("");
-                return;
-              }
-              const match = COMPLIANCE_CATEGORY_OPTIONS.find((c) => c.id === id);
-              setCategory(match?.label ?? "");
-            }}
+              options={[
+                { id: "", label: "All Categories" },
+                ...COMPLIANCE_CATEGORY_OPTIONS.map((c) => ({
+                  id: c.id,
+                  label: c.label,
+                })),
+              ]}
+              onChange={(id) => {
+                if (!id) {
+                  setCategory("");
+                  return;
+                }
+                const match = COMPLIANCE_CATEGORY_OPTIONS.find(
+                  (c) => c.id === id,
+                );
+                setCategory(match?.label ?? "");
+              }}
             />
           </div>
 

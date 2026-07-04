@@ -33,9 +33,24 @@ type HeroStat = {
 };
 
 const QUICK_CHIPS = [
-  { href: "/clients", label: "Clients", icon: Users, permission: PERMISSIONS.CLIENT_VIEW },
-  { href: "/messages", label: "Messages", icon: MessageSquare, permission: PERMISSIONS.MSG_VIEW },
-  { href: "/tickets", label: "Tickets", icon: Ticket, permission: PERMISSIONS.TICKET_VIEW },
+  {
+    href: "/clients",
+    label: "Clients",
+    icon: Users,
+    permission: PERMISSIONS.CLIENT_VIEW,
+  },
+  {
+    href: "/messages",
+    label: "Messages",
+    icon: MessageSquare,
+    permission: PERMISSIONS.MSG_VIEW,
+  },
+  {
+    href: "/tickets",
+    label: "Tickets",
+    icon: Ticket,
+    permission: PERMISSIONS.TICKET_VIEW,
+  },
 ] as const;
 
 export default function DashboardWelcome() {
@@ -101,8 +116,14 @@ export default function DashboardWelcome() {
     <section className="relative">
       {/* Main hero card */}
       <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#1a3260] via-[#2d4a8a] to-[#3d5f9a] shadow-[0_20px_60px_-12px_rgba(45,74,138,0.45)]">
-        <div className="dashboard-hero-grid pointer-events-none absolute inset-0" aria-hidden />
-        <div className="dashboard-hero-glow pointer-events-none absolute inset-0" aria-hidden />
+        <div
+          className="dashboard-hero-grid pointer-events-none absolute inset-0"
+          aria-hidden
+        />
+        <div
+          className="dashboard-hero-glow pointer-events-none absolute inset-0"
+          aria-hidden
+        />
         <div
           className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-[#FF6A3D]/10 blur-3xl"
           aria-hidden
@@ -116,7 +137,7 @@ export default function DashboardWelcome() {
         <div className="pointer-events-none absolute inset-0 rounded-[28px] ring-1 ring-inset ring-white/10" />
 
         <div className="relative grid gap-8 p-7 md:p-9 lg:grid-cols-[1fr_auto] lg:items-center lg:gap-12">
-          {/* Left — copy */}
+          {/* Left - copy */}
           <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/15 px-3.5 py-1.5 text-xs font-medium text-white/90 backdrop-blur-md">
@@ -144,7 +165,7 @@ export default function DashboardWelcome() {
 
             <p className="max-w-lg text-sm leading-relaxed text-blue-100/75 md:text-[15px] md:leading-relaxed">
               Track applications, manage clients, and stay on top of your
-              team&apos;s workflow — all from one place.
+              team&apos;s workflow - all from one place.
             </p>
 
             {visibleChips.length > 0 && (
@@ -157,7 +178,10 @@ export default function DashboardWelcome() {
                       href={chip.href}
                       className="group inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:border-white/30 hover:bg-white/20"
                     >
-                      <Icon className="h-4 w-4 text-[#FFB89E]" strokeWidth={2.25} />
+                      <Icon
+                        className="h-4 w-4 text-[#FFB89E]"
+                        strokeWidth={2.25}
+                      />
                       {chip.label}
                       <ArrowUpRight className="h-3.5 w-3.5 opacity-50 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" />
                     </Link>
@@ -167,7 +191,7 @@ export default function DashboardWelcome() {
             )}
           </div>
 
-          {/* Right — live stat cards */}
+          {/* Right - live stat cards */}
           {heroStats.length > 0 && (
             <div className="flex flex-col gap-3 lg:min-w-[280px]">
               {heroStats.map((stat, i) => {

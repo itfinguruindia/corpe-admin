@@ -57,7 +57,11 @@ type DualSourceState = {
 export default function DirectorDocumentsPage() {
   const { appNo, id } = useParams();
   const { requireEdit } = useClientTabEdit("director");
-  const { labels, isLlp, isLoading: isCompanyTypeLoading } = useClientCompanyLabels();
+  const {
+    labels,
+    isLlp,
+    isLoading: isCompanyTypeLoading,
+  } = useClientCompanyLabels();
 
   const [director, setDirector] = useState<Director | null>(null);
   const [rawDocumentsData, setRawDocumentsData] = useState<any>(null);
@@ -290,11 +294,12 @@ export default function DirectorDocumentsPage() {
       try {
         setIsLoading(true);
 
-        const [directorData, documentsData, trackerResponse] = await Promise.all([
-          clientsApi.getDirectorById(appNo as string, id as string),
-          clientsApi.getDirectorDocuments(appNo as string, id as string),
-          clientsApi.getTrackingStatus(appNo as string).catch(() => null),
-        ]);
+        const [directorData, documentsData, trackerResponse] =
+          await Promise.all([
+            clientsApi.getDirectorById(appNo as string, id as string),
+            clientsApi.getDirectorDocuments(appNo as string, id as string),
+            clientsApi.getTrackingStatus(appNo as string).catch(() => null),
+          ]);
 
         setDirector(directorData);
         setRawDocumentsData(documentsData);
@@ -481,7 +486,8 @@ export default function DirectorDocumentsPage() {
     const isRefreshingDoc =
       isRefreshing[docTypeKey as keyof typeof isRefreshing];
     const isStage3Gated = !!(
-      installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid
+      installmentInfo?.firstInstallmentDue ||
+      !installmentInfo?.secondInstallmentPaid
     );
     const isClientUploadLocked =
       isStage3Gated &&
@@ -620,7 +626,7 @@ export default function DirectorDocumentsPage() {
                   <div
                     title={
                       isClientUploadLocked
-                        ? "Locked — installment due"
+                        ? "Locked - installment due"
                         : "Delete"
                     }
                   >
@@ -708,7 +714,10 @@ export default function DirectorDocumentsPage() {
           )}
         </div>
 
-        {!!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue) && (
+        {!!(
+          installmentInfo?.firstInstallmentDue ||
+          installmentInfo?.secondInstallmentDue
+        ) && (
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-900 text-sm">
             <p className="font-semibold">
               Outstanding installment payments are due for this client.
@@ -822,15 +831,15 @@ export default function DirectorDocumentsPage() {
 
         {/* Bottom: Miscellaneous Documents (standard company types only) */}
         {miscDualSourceFields.length > 0 && (
-        <div className="grid grid-cols-3 gap-6 mt-6">
-          {miscDualSourceFields.map((field) =>
-            renderDualSourceCard(
-              field.label,
-              field.key,
-              getDualSourceFiles(field.key),
-            ),
-          )}
-        </div>
+          <div className="grid grid-cols-3 gap-6 mt-6">
+            {miscDualSourceFields.map((field) =>
+              renderDualSourceCard(
+                field.label,
+                field.key,
+                getDualSourceFiles(field.key),
+              ),
+            )}
+          </div>
         )}
       </div>
 

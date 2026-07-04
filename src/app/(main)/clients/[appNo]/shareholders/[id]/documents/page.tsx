@@ -22,7 +22,11 @@ import {
 
 export default function ShareholderDocumentsPage() {
   const { appNo, id } = useParams();
-  const { labels, isLlp, isLoading: isCompanyTypeLoading } = useClientCompanyLabels();
+  const {
+    labels,
+    isLlp,
+    isLoading: isCompanyTypeLoading,
+  } = useClientCompanyLabels();
   const { requireEdit } = useClientTabEdit("shareholder");
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
   const [rawDocumentsData, setRawDocumentsData] = useState<any>(null);
@@ -48,7 +52,10 @@ export default function ShareholderDocumentsPage() {
     secondInstallmentPaid: boolean;
   } | null>(null);
 
-  const isLocked = !!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid);
+  const isLocked = !!(
+    installmentInfo?.firstInstallmentDue ||
+    !installmentInfo?.secondInstallmentPaid
+  );
 
   // Upload allowed for these doc types (admin can upload INC-9 Shareholder draft)
   const UPLOAD_ALLOWED_DOCS = [
@@ -74,7 +81,8 @@ export default function ShareholderDocumentsPage() {
   };
 
   const isForeignResident = useMemo(
-    () => resolveIsForeignResident(shareholder as Record<string, unknown> | null),
+    () =>
+      resolveIsForeignResident(shareholder as Record<string, unknown> | null),
     [shareholder],
   );
 
@@ -164,7 +172,13 @@ export default function ShareholderDocumentsPage() {
   }, [appNo, id]);
 
   useEffect(() => {
-    if (!appNo || !id || isLoading || isCompanyTypeLoading || !showInc9Shareholder) {
+    if (
+      !appNo ||
+      !id ||
+      isLoading ||
+      isCompanyTypeLoading ||
+      !showInc9Shareholder
+    ) {
       setInc9AdminFile(null);
       setInc9ClientFile(null);
       return;
@@ -357,7 +371,9 @@ export default function ShareholderDocumentsPage() {
   if (!shareholder) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">{labels.shareholderNotFound}</div>
+        <div className="text-xl text-gray-600">
+          {labels.shareholderNotFound}
+        </div>
       </div>
     );
   }
@@ -377,7 +393,10 @@ export default function ShareholderDocumentsPage() {
 
         {isLocked && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold">
-            <span>⚠️ Stage locked. Outstanding installment payments are due for this client. Document upload actions are disabled.</span>
+            <span>
+              ⚠️ Stage locked. Outstanding installment payments are due for this
+              client. Document upload actions are disabled.
+            </span>
           </div>
         )}
 
@@ -394,7 +413,7 @@ export default function ShareholderDocumentsPage() {
                   <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                     This person is the same as a designated partner/director.
                     Identity documents are managed on the director documents
-                    page — no separate shareholder uploads apply here.
+                    page - no separate shareholder uploads apply here.
                   </div>
                 ) : (
                   documents.map((document) => (
@@ -464,150 +483,188 @@ export default function ShareholderDocumentsPage() {
 
           {/* Right: INC-9 Shareholder Section (standard company types only) */}
           {showInc9Shareholder && (
-          <div className="col-span-1">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-secondary">
-                  INC-9 Shareholder
-                </h2>
-                <div className="flex items-center gap-3">
-                  <DocumentIssueButton
-                    applicationNo={appNo as string}
-                    target={{
-                      entityType: "shareholder",
-                      entityId: id as string,
-                      entityLabel: `${shareholder.name} ${labels.entityShareholder}`,
-                      fieldKey: "inc9Shareholder",
-                      documentLabel: "INC-9 Shareholder",
-                      clientRoute: "document-upload",
-                    }}
-                    className="inline-flex items-center text-primary hover:text-secondary"
-                  />
-                  <div title="Refresh status">
-                    <RefreshCw
-                      size={18}
-                      onClick={refreshInc9Status}
-                      className={`cursor-pointer text-secondary hover:text-primary ${isRefreshingInc9 ? "animate-spin" : ""}`}
+            <div className="col-span-1">
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-secondary">
+                    INC-9 Shareholder
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    <DocumentIssueButton
+                      applicationNo={appNo as string}
+                      target={{
+                        entityType: "shareholder",
+                        entityId: id as string,
+                        entityLabel: `${shareholder.name} ${labels.entityShareholder}`,
+                        fieldKey: "inc9Shareholder",
+                        documentLabel: "INC-9 Shareholder",
+                        clientRoute: "document-upload",
+                      }}
+                      className="inline-flex items-center text-primary hover:text-secondary"
                     />
-                  </div>
-                  <div title={isLocked ? "Locked — installment due" : "Upload INC-9 (Admin)"}>
-                    <Upload
-                      size={20}
-                      onClick={isLocked ? undefined : () => handleUpload("INC-9 Shareholder")}
-                      className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-primary hover:text-secondary"}
-                    />
+                    <div title="Refresh status">
+                      <RefreshCw
+                        size={18}
+                        onClick={refreshInc9Status}
+                        className={`cursor-pointer text-secondary hover:text-primary ${isRefreshingInc9 ? "animate-spin" : ""}`}
+                      />
+                    </div>
+                    <div
+                      title={
+                        isLocked
+                          ? "Locked - installment due"
+                          : "Upload INC-9 (Admin)"
+                      }
+                    >
+                      <Upload
+                        size={20}
+                        onClick={
+                          isLocked
+                            ? undefined
+                            : () => handleUpload("INC-9 Shareholder")
+                        }
+                        className={
+                          isLocked
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "cursor-pointer text-primary hover:text-secondary"
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-3">
-                {/* Admin Upload */}
-                {inc9AdminFile ? (
-                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold text-orange-700">
+                <div className="space-y-3">
+                  {/* Admin Upload */}
+                  {inc9AdminFile ? (
+                    <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-orange-700">
+                          📤 Admin Upload
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div title="Preview">
+                            <Eye
+                              size={16}
+                              onClick={() => handleInc9Preview("admin")}
+                              className="cursor-pointer text-orange-600 hover:text-orange-700"
+                            />
+                          </div>
+                          <div title="Download">
+                            <Download
+                              size={16}
+                              onClick={() => handleInc9Download("admin")}
+                              className="cursor-pointer text-orange-600 hover:text-orange-700"
+                            />
+                          </div>
+                          <div
+                            title={
+                              isLocked ? "Locked - installment due" : "Delete"
+                            }
+                          >
+                            <Trash2
+                              size={16}
+                              onClick={
+                                isLocked
+                                  ? undefined
+                                  : () => handleInc9Delete("admin")
+                              }
+                              className={
+                                isLocked
+                                  ? "text-gray-300 cursor-not-allowed"
+                                  : "cursor-pointer text-red-600 hover:text-red-700"
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-secondary truncate">
+                        {getFileName(inc9AdminFile.name)}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
+                      <div className="text-xs font-medium text-gray-400 mb-1">
                         📤 Admin Upload
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <div title="Preview">
-                          <Eye
-                            size={16}
-                            onClick={() => handleInc9Preview("admin")}
-                            className="cursor-pointer text-orange-600 hover:text-orange-700"
-                          />
-                        </div>
-                        <div title="Download">
-                          <Download
-                            size={16}
-                            onClick={() => handleInc9Download("admin")}
-                            className="cursor-pointer text-orange-600 hover:text-orange-700"
-                          />
-                        </div>
-                        <div title={isLocked ? "Locked — installment due" : "Delete"}>
-                          <Trash2
-                            size={16}
-                            onClick={isLocked ? undefined : () => handleInc9Delete("admin")}
-                            className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-red-600 hover:text-red-700"}
-                          />
-                        </div>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        No file uploaded
                       </div>
                     </div>
-                    <div className="text-sm text-secondary truncate">
-                      {getFileName(inc9AdminFile.name)}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
-                    <div className="text-xs font-medium text-gray-400 mb-1">
-                      📤 Admin Upload
-                    </div>
-                    <div className="text-sm text-gray-400">
-                      No file uploaded
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Client Upload */}
-                {inc9ClientFile ? (
-                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold text-blue-700">
+                  {/* Client Upload */}
+                  {inc9ClientFile ? (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold text-blue-700">
+                          👤 Client Upload
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div title="Preview">
+                            <Eye
+                              size={16}
+                              onClick={() => handleInc9Preview("client")}
+                              className="cursor-pointer text-blue-600 hover:text-blue-700"
+                            />
+                          </div>
+                          <div title="Download">
+                            <Download
+                              size={16}
+                              onClick={() => handleInc9Download("client")}
+                              className="cursor-pointer text-blue-600 hover:text-blue-700"
+                            />
+                          </div>
+                          <div
+                            title={
+                              isLocked ? "Locked - installment due" : "Delete"
+                            }
+                          >
+                            <Trash2
+                              size={16}
+                              onClick={
+                                isLocked
+                                  ? undefined
+                                  : () => handleInc9Delete("client")
+                              }
+                              className={
+                                isLocked
+                                  ? "text-gray-300 cursor-not-allowed"
+                                  : "cursor-pointer text-red-600 hover:text-red-700"
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-secondary truncate">
+                        {getFileName(inc9ClientFile.name)}
+                      </div>
+                      {inc9ClientFile.uploadedAt && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          {new Date(
+                            inc9ClientFile.uploadedAt,
+                          ).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
+                      <div className="text-xs font-medium text-gray-400 mb-1">
                         👤 Client Upload
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <div title="Preview">
-                          <Eye
-                            size={16}
-                            onClick={() => handleInc9Preview("client")}
-                            className="cursor-pointer text-blue-600 hover:text-blue-700"
-                          />
-                        </div>
-                        <div title="Download">
-                          <Download
-                            size={16}
-                            onClick={() => handleInc9Download("client")}
-                            className="cursor-pointer text-blue-600 hover:text-blue-700"
-                          />
-                        </div>
-                        <div title={isLocked ? "Locked — installment due" : "Delete"}>
-                          <Trash2
-                            size={16}
-                            onClick={isLocked ? undefined : () => handleInc9Delete("client")}
-                            className={isLocked ? "text-gray-300 cursor-not-allowed" : "cursor-pointer text-red-600 hover:text-red-700"}
-                          />
-                        </div>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        No file uploaded
                       </div>
                     </div>
-                    <div className="text-sm text-secondary truncate">
-                      {getFileName(inc9ClientFile.name)}
-                    </div>
-                    {inc9ClientFile.uploadedAt && (
-                      <div className="text-xs text-blue-600 mt-1">
-                        {new Date(
-                          inc9ClientFile.uploadedAt,
-                        ).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
-                    <div className="text-xs font-medium text-gray-400 mb-1">
-                      👤 Client Upload
-                    </div>
-                    <div className="text-sm text-gray-400">
-                      No file uploaded
-                    </div>
+                  )}
+                </div>
+
+                {(inc9AdminFile || inc9ClientFile) && (
+                  <div className="mt-4 p-2 rounded bg-gray-50 text-xs text-gray-600">
+                    💡 Tip: Use eye icon to preview, download icon to save file
                   </div>
                 )}
               </div>
-
-              {(inc9AdminFile || inc9ClientFile) && (
-                <div className="mt-4 p-2 rounded bg-gray-50 text-xs text-gray-600">
-                  💡 Tip: Use eye icon to preview, download icon to save file
-                </div>
-              )}
             </div>
-          </div>
           )}
         </div>
       </div>
