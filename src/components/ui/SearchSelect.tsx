@@ -279,7 +279,7 @@ export function SearchSelect(props: SearchSelectProps) {
         </span>
       </button>
 
-      {/* Portal dropdown — escapes overflow:hidden parents */}
+      {/* Portal dropdown - escapes overflow:hidden parents */}
       {typeof document !== "undefined" &&
         createPortal(dropdownContent, document.body)}
     </div>

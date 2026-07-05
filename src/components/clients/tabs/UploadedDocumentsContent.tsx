@@ -65,11 +65,13 @@ export default function UploadedDocumentsContent({
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [response, overviewResponse, trackerResponse] = await Promise.all([
-          clientsApi.getDirectorAndShareHolders(appNo, false),
-          clientsApi.getCompanyOverview(appNo),
-          clientsApi.getTrackingStatus(appNo).catch(() => null),
-        ]);
+        const [response, overviewResponse, trackerResponse] = await Promise.all(
+          [
+            clientsApi.getDirectorAndShareHolders(appNo, false),
+            clientsApi.getCompanyOverview(appNo),
+            clientsApi.getTrackingStatus(appNo).catch(() => null),
+          ],
+        );
 
         if (response && response.data) {
           // Map directors
@@ -362,7 +364,8 @@ export default function UploadedDocumentsContent({
     // client can download and upload signed copy.
     const lockAdminTemplate = false;
     const lockClientSignedCopy = !!(
-      installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid
+      installmentInfo?.firstInstallmentDue ||
+      !installmentInfo?.secondInstallmentPaid
     );
 
     return (
@@ -402,8 +405,10 @@ export default function UploadedDocumentsContent({
                 </span>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={lockAdminTemplate ? undefined : () =>
-                      handleDocUpload(docTypeAdmin, "Admin Template")
+                    onClick={
+                      lockAdminTemplate
+                        ? undefined
+                        : () => handleDocUpload(docTypeAdmin, "Admin Template")
                     }
                     disabled={lockAdminTemplate}
                     title={lockAdminTemplate ? "Locked" : "Upload template"}
@@ -417,8 +422,11 @@ export default function UploadedDocumentsContent({
                   </button>
                   {adminFile && (
                     <button
-                      onClick={lockAdminTemplate ? undefined : () =>
-                        handleDocDelete(docTypeAdmin, "Admin Template")
+                      onClick={
+                        lockAdminTemplate
+                          ? undefined
+                          : () =>
+                              handleDocDelete(docTypeAdmin, "Admin Template")
                       }
                       disabled={lockAdminTemplate}
                       title={lockAdminTemplate ? "Locked" : "Delete template"}
@@ -487,13 +495,19 @@ export default function UploadedDocumentsContent({
                 <div className="flex items-center gap-2">
                   {clientFile && (
                     <button
-                      onClick={lockClientSignedCopy ? undefined : () =>
-                        handleDocDelete(docTypeClient, "Client Signed Copy")
+                      onClick={
+                        lockClientSignedCopy
+                          ? undefined
+                          : () =>
+                              handleDocDelete(
+                                docTypeClient,
+                                "Client Signed Copy",
+                              )
                       }
                       disabled={lockClientSignedCopy}
                       title={
                         lockClientSignedCopy
-                          ? "Locked — installment due"
+                          ? "Locked - installment due"
                           : "Delete client copy"
                       }
                       className={`p-1.5 rounded-lg transition-colors ${
@@ -573,9 +587,15 @@ export default function UploadedDocumentsContent({
           </p>
         </div>
 
-        {!!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid) && (
+        {!!(
+          installmentInfo?.firstInstallmentDue ||
+          !installmentInfo?.secondInstallmentPaid
+        ) && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold max-w-5xl">
-            <span>⚠️ Stage locked. Outstanding installment payments are due for this client. Document actions are disabled.</span>
+            <span>
+              ⚠️ Stage locked. Outstanding installment payments are due for this
+              client. Document actions are disabled.
+            </span>
           </div>
         )}
 
@@ -586,7 +606,9 @@ export default function UploadedDocumentsContent({
               <div className="bg-primary/10 p-2 rounded-lg">
                 <UserCheck className="text-primary w-6 h-6" />
               </div>
-              <h2 className="text-2xl font-bold text-secondary">{labels.directors}</h2>
+              <h2 className="text-2xl font-bold text-secondary">
+                {labels.directors}
+              </h2>
               <span className="bg-gray-200 text-gray-700 px-3 py-0.5 rounded-full text-sm font-medium ml-auto">
                 {directors.length}
               </span>
@@ -627,7 +649,9 @@ export default function UploadedDocumentsContent({
                 {shareholders.map((shareholder) => (
                   <TabCard
                     key={shareholder.id}
-                    label={labels.shareholderWithNumber(shareholder.shareholderNumber)}
+                    label={labels.shareholderWithNumber(
+                      shareholder.shareholderNumber,
+                    )}
                     onClick={() => handleShareholderClick(shareholder)}
                     className="text-left hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
                   />

@@ -243,7 +243,7 @@ button:hover {
     margin-left: 0 !important;
   }
 
-  /* On mobile, don't collapse the grid rows — always show labels */
+  /* On mobile, don't collapse the grid rows - always show labels */
   .sidebar-row[data-collapsed="true"] {
     grid-template-columns: 20px 1fr;
   }
@@ -353,7 +353,7 @@ button:hover {
   animation: fadeSlideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Staggered children — apply to parent, children get delayed entrance */
+/* Staggered children - apply to parent, children get delayed entrance */
 .stagger-children > * {
   animation: fadeSlideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -480,7 +480,11 @@ button:hover {
     linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
   background-size: 28px 28px;
-  mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, black 20%, transparent 100%);
+  mask-image: radial-gradient(
+    ellipse 80% 70% at 50% 50%,
+    black 20%,
+    transparent 100%
+  );
 }
 
 .dashboard-hero-glow {

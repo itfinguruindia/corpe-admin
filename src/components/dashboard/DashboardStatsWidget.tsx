@@ -78,7 +78,7 @@ export default function DashboardStatsWidget() {
   }, [canViewDashboard]);
 
   const formatValue = (value: number | undefined) =>
-    canViewDashboard && stats ? String(value ?? 0) : "—";
+    canViewDashboard && stats ? String(value ?? 0) : "-";
 
   if (loading) {
     return (

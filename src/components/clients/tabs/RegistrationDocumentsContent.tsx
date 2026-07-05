@@ -8,7 +8,10 @@ import { toast } from "@heroui/react";
 import { clientsApi } from "@/lib/api/clients";
 import CustomSelect from "@/components/ui/CustomSelect";
 import Modal from "@/components/ui/Modal";
-import { RegistrationData, LlpAgreementStatus } from "@/types/registrationDocuments";
+import {
+  RegistrationData,
+  LlpAgreementStatus,
+} from "@/types/registrationDocuments";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { getFileType } from "@/utils/helpers";
@@ -446,7 +449,7 @@ export default function RegistrationDocumentsContent({
                 }}
                 className="disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#F46A45] focus:outline-none focus:ring-2 focus:ring-[#F46A45]/20 scheme-light"
                 placeholder={
-                  isLocked ? "Locked — installment due" : "Enter 21 digit CIN"
+                  isLocked ? "Locked - installment due" : "Enter 21 digit CIN"
                 }
               />
               <button
@@ -457,7 +460,7 @@ export default function RegistrationDocumentsContent({
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-[#F46A45] text-white hover:bg-[#d55a39]"
                 }`}
-                title={isLocked ? "Locked — installment due" : "Submit"}
+                title={isLocked ? "Locked - installment due" : "Submit"}
               >
                 Submit
               </button>
@@ -472,7 +475,7 @@ export default function RegistrationDocumentsContent({
                     ? "border-gray-200 text-gray-300 cursor-not-allowed"
                     : "text-primary border-[#F46A45] hover:bg-orange-50 cursor-pointer"
                 }`}
-                title={isLocked ? "Locked — installment due" : "Edit CIN"}
+                title={isLocked ? "Locked - installment due" : "Edit CIN"}
               >
                 <Edit size={18} />
               </button>
@@ -559,7 +562,7 @@ export default function RegistrationDocumentsContent({
                       }`}
                       title={
                         doc.name === "COI" && isLocked
-                          ? "Locked — installment due"
+                          ? "Locked - installment due"
                           : "Upload"
                       }
                       disabled={!data?.cin || (doc.name === "COI" && isLocked)}

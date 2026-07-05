@@ -61,9 +61,7 @@ export default function TicketDetailsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="p-6 text-sm text-slate-500">Loading ticket…</div>
-    );
+    return <div className="p-6 text-sm text-slate-500">Loading ticket…</div>;
   }
 
   if (!ticket) {
@@ -83,7 +81,7 @@ export default function TicketDetailsPage() {
         <div>
           <h1 className="text-2xl font-bold text-secondary">Ticket Details</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Created on {ticket.createdOn ? formatDate(ticket.createdOn) : "—"}
+            Created on {ticket.createdOn ? formatDate(ticket.createdOn) : "-"}
           </p>
         </div>
         <Button variant="ghost" onPress={() => router.push("/tickets")}>
@@ -97,7 +95,9 @@ export default function TicketDetailsPage() {
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
               Subject
             </h3>
-            <p className="text-lg font-medium text-gray-900">{ticket.subject}</p>
+            <p className="text-lg font-medium text-gray-900">
+              {ticket.subject}
+            </p>
           </div>
 
           <div>
@@ -163,4 +163,3 @@ export default function TicketDetailsPage() {
     </div>
   );
 }
-

@@ -112,7 +112,7 @@ export default function MessagesPage() {
     <div className="flex h-[calc(100dvh-7.5rem)] min-h-0 flex-col overflow-hidden md:h-[calc(100dvh-10rem)]">
       {/* Split pane layout */}
       <div className="flex min-h-0 flex-1 overflow-hidden md:mx-6 md:mb-6 md:rounded-xl border-t md:border border-gray-200 bg-white md:shadow-sm">
-        {/* Left pane — Conversation list */}
+        {/* Left pane - Conversation list */}
         <div
           className={`${activeRoom ? "hidden md:block" : "w-full"} md:w-[340px] shrink-0 border-r border-gray-100 h-full min-h-0`}
         >
@@ -131,7 +131,7 @@ export default function MessagesPage() {
           />
         </div>
 
-        {/* Right pane — Chat window */}
+        {/* Right pane - Chat window */}
         <div
           className={`${!activeRoom ? "hidden md:flex" : "flex"} flex-1 flex-col min-h-0 min-w-0`}
         >
