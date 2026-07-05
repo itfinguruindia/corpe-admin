@@ -42,6 +42,8 @@ export default function UploadedDocumentsContent({
   const [officeDocs, setOfficeDocs] = useState<{
     proofOfOffice?: { name: string; path: string } | null;
     proofOfOfficeAddress?: { name: string; path: string } | null;
+    proofOfOfficeNoc?: { name: string; path: string } | null;
+    proofOfOfficeNocAdminDraft?: { name: string; path: string } | null;
     proofOfOfficeAddressAdminDraft?: { name: string; path: string } | null;
   }>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -99,6 +101,9 @@ export default function UploadedDocumentsContent({
             proofOfOffice: registeredOffice?.proofOfOffice ?? null,
             proofOfOfficeAddress:
               registeredOffice?.proofOfOfficeAddress ?? null,
+            proofOfOfficeNoc: registeredOffice?.proofOfOfficeNoc ?? null,
+            proofOfOfficeNocAdminDraft:
+              registeredOffice?.proofOfOfficeNocAdminDraft ?? null,
             proofOfOfficeAddressAdminDraft:
               registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
           });
@@ -187,6 +192,9 @@ export default function UploadedDocumentsContent({
             proofOfOffice: registeredOffice?.proofOfOffice ?? null,
             proofOfOfficeAddress:
               registeredOffice?.proofOfOfficeAddress ?? null,
+            proofOfOfficeNoc: registeredOffice?.proofOfOfficeNoc ?? null,
+            proofOfOfficeNocAdminDraft:
+              registeredOffice?.proofOfOfficeNocAdminDraft ?? null,
             proofOfOfficeAddressAdminDraft:
               registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
           });
@@ -217,6 +225,9 @@ export default function UploadedDocumentsContent({
         setOfficeDocs({
           proofOfOffice: registeredOffice?.proofOfOffice ?? null,
           proofOfOfficeAddress: registeredOffice?.proofOfOfficeAddress ?? null,
+          proofOfOfficeNoc: registeredOffice?.proofOfOfficeNoc ?? null,
+          proofOfOfficeNocAdminDraft:
+            registeredOffice?.proofOfOfficeNocAdminDraft ?? null,
           proofOfOfficeAddressAdminDraft:
             registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
         });
@@ -235,6 +246,9 @@ export default function UploadedDocumentsContent({
       setOfficeDocs({
         proofOfOffice: registeredOffice?.proofOfOffice ?? null,
         proofOfOfficeAddress: registeredOffice?.proofOfOfficeAddress ?? null,
+        proofOfOfficeNoc: registeredOffice?.proofOfOfficeNoc ?? null,
+        proofOfOfficeNocAdminDraft:
+          registeredOffice?.proofOfOfficeNocAdminDraft ?? null,
         proofOfOfficeAddressAdminDraft:
           registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
       });
@@ -667,12 +681,18 @@ export default function UploadedDocumentsContent({
               officeDocs.proofOfOffice,
               false,
             )}
-            {renderDualOfficeDocCard(
-              "Proof of office address along with NOC, if applicable (Conveyance/ Lease deed/ Rent Agreement along with rent receipts)",
+            {renderOfficeDocCard(
+              "Proof of Office Address (Conveyance Deed / Lease Deed / Rent Agreement, etc.)",
               "proofOfOfficeAddress",
-              "proofOfOfficeAddressAdminDraft",
               officeDocs.proofOfOfficeAddress,
-              officeDocs.proofOfOfficeAddressAdminDraft,
+              false,
+            )}
+            {renderDualOfficeDocCard(
+              "NOC (No Objection Certificate)",
+              "proofOfOfficeNoc",
+              "proofOfOfficeNocAdminDraft",
+              officeDocs.proofOfOfficeNoc,
+              officeDocs.proofOfOfficeNocAdminDraft,
               refreshOfficeDocs,
               isRefreshing,
             )}
@@ -682,7 +702,8 @@ export default function UploadedDocumentsContent({
         {directors.length === 0 &&
           shareholders.length === 0 &&
           !officeDocs.proofOfOffice &&
-          !officeDocs.proofOfOfficeAddress && (
+          !officeDocs.proofOfOfficeAddress &&
+          !officeDocs.proofOfOfficeNoc && (
             <div className="mt-20">
               <EmptyState message="No entities or registered office documents found. Please check the application status." />
             </div>
