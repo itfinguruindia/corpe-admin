@@ -220,7 +220,7 @@ export default function Sidebar() {
               )}
             </div>
 
-            {/* Role label — clip with overflow */}
+            {/* Role label - clip with overflow */}
             <div
               className="overflow-hidden transition-all duration-300"
               style={{
@@ -676,7 +676,7 @@ function SubItem({
   active: boolean;
   collapsed: boolean;
 }) {
-  /* Inside a flyout (collapsed) — render as a simple styled link */
+  /* Inside a flyout (collapsed) - render as a simple styled link */
   if (collapsed) {
     return (
       <Link

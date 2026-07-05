@@ -128,7 +128,7 @@ export default function PendingRegistrationsPage() {
         label: "Name",
         render: (row) => (
           <span className="font-semibold text-gray-900 whitespace-nowrap">
-            {[row.firstName, row.lastName].filter(Boolean).join(" ") || "—"}
+            {[row.firstName, row.lastName].filter(Boolean).join(" ") || "-"}
           </span>
         ),
       },
@@ -137,7 +137,7 @@ export default function PendingRegistrationsPage() {
         label: "Email",
         render: (row) => (
           <span className="text-gray-700 whitespace-nowrap">
-            {row.email || "—"}
+            {row.email || "-"}
           </span>
         ),
       },
@@ -156,7 +156,7 @@ export default function PendingRegistrationsPage() {
             className="text-gray-700 max-w-[180px] truncate block"
             title={row.companyType || row.companyName || ""}
           >
-            {row.companyType || row.companyName || "—"}
+            {row.companyType || row.companyName || "-"}
           </span>
         ),
       },
@@ -185,7 +185,7 @@ export default function PendingRegistrationsPage() {
           <span className="text-gray-700 whitespace-nowrap">
             {row.lastActivityAt
               ? new Date(row.lastActivityAt).toLocaleString()
-              : "—"}
+              : "-"}
           </span>
         ),
       },
@@ -194,7 +194,7 @@ export default function PendingRegistrationsPage() {
         label: "Started",
         render: (row) => (
           <span className="text-gray-700 whitespace-nowrap">
-            {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
+            {row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}
           </span>
         ),
       },
@@ -245,7 +245,11 @@ export default function PendingRegistrationsPage() {
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <div className="relative w-full sm:w-80">
               <Search className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-gray-400 size-5" />
-              <TextField value={search} onChange={setSearch} name="searchPending">
+              <TextField
+                value={search}
+                onChange={setSearch}
+                name="searchPending"
+              >
                 <Label className="sr-only">Search pending registrations</Label>
                 <Input
                   aria-label="Search pending registrations"

@@ -47,7 +47,8 @@ export default function PricingManagementSection({
 
       <p className="text-sm text-gray-600 mb-4">
         Edit incorporation pricing for all company types. Changes apply to new
-        registrations only — existing clients keep their frozen pricing snapshot.
+        registrations only - existing clients keep their frozen pricing
+        snapshot.
       </p>
 
       <div className="flex items-center gap-2 text-[#FF6A3D] text-sm font-medium group-hover:gap-3 transition-all">

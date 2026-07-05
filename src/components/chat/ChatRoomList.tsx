@@ -86,19 +86,23 @@ export default function ChatRoomList({
               />
             )}
             <Button
-            type="button"
-            onClick={onNewChat}
-            className="rounded-lg bg-[#FF6A3D] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#e55a2f] active:scale-95 h-auto min-h-0"
-          >
-            + New Chat
-          </Button>
+              type="button"
+              onClick={onNewChat}
+              className="rounded-lg bg-[#FF6A3D] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-[#e55a2f] active:scale-95 h-auto min-h-0"
+            >
+              + New Chat
+            </Button>
           </div>
         </div>
 
         {/* Search */}
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <TextField value={searchQuery} onChange={onSearchChange} name="searchRooms">
+          <TextField
+            value={searchQuery}
+            onChange={onSearchChange}
+            name="searchRooms"
+          >
             <Label className="sr-only">Search conversations</Label>
             <Input
               type="text"
@@ -139,7 +143,7 @@ export default function ChatRoomList({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-bold text-[#FF6A3D] truncate">
-                      {room.applicationNo || "—"}
+                      {room.applicationNo || "-"}
                     </p>
                     {room.unreadByAdmin > 0 && (
                       <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FF6A3D] px-1.5 text-[10px] font-bold text-white">

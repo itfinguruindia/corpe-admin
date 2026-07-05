@@ -29,7 +29,7 @@ export default function ClientsPage() {
   const { admin, isSuperAdmin, hasPermission } = usePermissions();
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
 
-  // Debounced search handler — fires API call with current filters
+  // Debounced search handler - fires API call with current filters
   const handleSearch = useDebouncedCallback((currentFilters: Filters) => {
     fetchClients(1, currentFilters);
   }, 400);
@@ -55,7 +55,7 @@ export default function ClientsPage() {
     [],
   );
 
-  // Store filters state — initialised from URL so a page reload re-applies them
+  // Store filters state - initialised from URL so a page reload re-applies them
   const [filters, setFilters] = useState<Filters>(() =>
     buildFiltersFromParams(searchParams),
   );
@@ -110,7 +110,7 @@ export default function ClientsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update search in filters when input changes — debounced refetch
+  // Update search in filters when input changes - debounced refetch
   const handleSearchInputChange = (value: string) => {
     setSearch(value);
     const newFilters = { ...filters, search: value };
@@ -259,7 +259,10 @@ export default function ClientsPage() {
       if (withDateRange && (dateFrom || dateTo)) {
         const { dateRange, ...rest } = exportFilters;
         void dateRange;
-        exportFilters = rest as Filters & { dateFrom?: string; dateTo?: string };
+        exportFilters = rest as Filters & {
+          dateFrom?: string;
+          dateTo?: string;
+        };
       }
 
       let page = 1;
@@ -303,7 +306,10 @@ export default function ClientsPage() {
       const ws = XLSX.utils.aoa_to_sheet(worksheetRows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Clients");
-      XLSX.writeFile(wb, `clients-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      XLSX.writeFile(
+        wb,
+        `clients-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      );
     } catch (err) {
       console.error("Error exporting clients:", err);
       await swal({

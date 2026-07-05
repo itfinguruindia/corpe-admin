@@ -117,8 +117,14 @@ export default function NewChatModal({
               <div className="space-y-4">
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <TextField value={search} onChange={setSearch} name="searchClients">
-                    <Label className="sr-only">Search by application number</Label>
+                  <TextField
+                    value={search}
+                    onChange={setSearch}
+                    name="searchClients"
+                  >
+                    <Label className="sr-only">
+                      Search by application number
+                    </Label>
                     <Input
                       type="text"
                       placeholder="Search by application number..."
@@ -152,7 +158,7 @@ export default function NewChatModal({
                       >
                         <div>
                           <p className="text-sm font-bold text-[#FF6A3D]">
-                            {client.appNo || "—"}
+                            {client.appNo || "-"}
                           </p>
                           <p className="text-xs text-gray-500 mt-0.5">
                             {client.client || "Unknown"} · {client.entity || ""}

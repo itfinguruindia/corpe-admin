@@ -630,7 +630,7 @@ export default function ChatWindow({
     }, 2000);
   };
 
-  // Empty state — no room selected
+  // Empty state - no room selected
   if (!room) {
     return (
       <div className="flex h-full w-full flex-1 flex-col items-center justify-center bg-[#FAFBFD] text-center px-8">
