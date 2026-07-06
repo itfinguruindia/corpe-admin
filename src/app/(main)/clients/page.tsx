@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, Archive } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
@@ -365,6 +365,14 @@ export default function ClientsPage() {
                 onSearchChange={handleSearchInputChange}
                 filters={filters}
               />
+
+              <button
+                onClick={() => router.push("/clients/archived")}
+                className="h-11 px-4 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl shadow-sm flex items-center gap-2 transition-all hover:border-gray-300 active:bg-gray-100"
+              >
+                <Archive className="size-4 text-gray-500" />
+                Archived
+              </button>
             </div>
           </div>
 
