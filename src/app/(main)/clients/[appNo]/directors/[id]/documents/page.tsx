@@ -819,26 +819,30 @@ export default function DirectorDocumentsPage() {
 
           {/* Right: Dual-Source Documents */}
           <div className="col-span-1 space-y-4">
-            {primaryDualSourceFields.map((field) =>
-              renderDualSourceCard(
-                field.label,
-                field.key,
-                getDualSourceFiles(field.key),
-              ),
-            )}
+            {primaryDualSourceFields.map((field) => (
+              <div key={field.key}>
+                {renderDualSourceCard(
+                  field.label,
+                  field.key,
+                  getDualSourceFiles(field.key),
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Bottom: Miscellaneous Documents (standard company types only) */}
         {miscDualSourceFields.length > 0 && (
           <div className="grid grid-cols-3 gap-6 mt-6">
-            {miscDualSourceFields.map((field) =>
-              renderDualSourceCard(
-                field.label,
-                field.key,
-                getDualSourceFiles(field.key),
-              ),
-            )}
+            {miscDualSourceFields.map((field) => (
+              <div key={field.key}>
+                {renderDualSourceCard(
+                  field.label,
+                  field.key,
+                  getDualSourceFiles(field.key),
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>

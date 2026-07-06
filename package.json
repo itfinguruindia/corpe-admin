@@ -10,8 +10,8 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@heroui/react": "^3.0.3",
-    "@heroui/styles": "^3.0.3",
+    "@heroui/react": "^3.2.1",
+    "@heroui/styles": "^3.2.1",
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.16.0",
     "clsx": "^2.1.1",
