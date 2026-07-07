@@ -106,9 +106,7 @@ export default function FileUploadComponent({
           enableExistingDocuments={enableExistingDocuments}
           maxSizeBytes={maxSizeBytes}
           validateFile={validateFile}
-          onFileSelect={(file, meta) => {
-            void handleFileSelect(file, meta);
-          }}
+          onFileSelect={handleFileSelect}
           onError={handleError}
         />
       ) : null}
