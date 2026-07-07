@@ -1,5 +1,8 @@
 "use client";
+
+import { useState } from "react";
 import { FileText, Download } from "lucide-react";
+import ImagePreviewModal from "@/components/chat/ImagePreviewModal";
 
 interface MessageBubbleProps {
   content: string;
@@ -22,6 +25,8 @@ export default function MessageBubble({
   fileUrl,
   fileName,
 }: MessageBubbleProps) {
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
+
   // System messages render centered
   if (messageType === "system") {
     return (
@@ -76,14 +81,28 @@ export default function MessageBubble({
               <span className="text-[10px] opacity-70">Voice message</span>
             </div>
           ) : messageType === "image" && fileUrl && fileName ? (
-            <div className="flex flex-col gap-1">
-              <img
-                src={fileUrl}
+            <>
+              <div className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={() => setIsImagePreviewOpen(true)}
+                  className="block cursor-zoom-in border-0 bg-transparent p-0"
+                  aria-label={`Preview image ${fileName}`}
+                >
+                  <img
+                    src={fileUrl}
+                    alt={fileName}
+                    className="max-h-[300px] max-w-full rounded-lg object-contain transition-transform hover:scale-[1.02]"
+                  />
+                </button>
+              </div>
+              <ImagePreviewModal
+                isOpen={isImagePreviewOpen}
+                onClose={() => setIsImagePreviewOpen(false)}
+                imageUrl={fileUrl}
                 alt={fileName}
-                className="max-w-full rounded-lg max-h-[300px] object-contain cursor-pointer transition-transform hover:scale-[1.02]"
-                onClick={() => window.open(fileUrl, "_blank")}
               />
-            </div>
+            </>
           ) : messageType === "document" && fileUrl ? (
             <a
               href={fileUrl}
