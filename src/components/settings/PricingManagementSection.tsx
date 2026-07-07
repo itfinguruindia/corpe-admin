@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { IndianRupee, ChevronRight } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
-import { PERMISSIONS } from "@/utils/permissions";
+import { canViewPricingPlans } from "@/utils/pricingPermissions";
 
 interface PricingManagementSectionProps {
   id?: string;
@@ -13,13 +13,9 @@ export default function PricingManagementSection({
   id,
 }: PricingManagementSectionProps) {
   const router = useRouter();
-  const { hasPermission, isSuperAdmin } = usePermissions();
+  const { admin } = usePermissions();
 
-  const canView =
-    isSuperAdmin ||
-    hasPermission(PERMISSIONS.PRICING_VIEW) ||
-    hasPermission(PERMISSIONS.PRICING_EDIT) ||
-    hasPermission(PERMISSIONS.PRICING_EXPORT);
+  const canView = canViewPricingPlans(admin);
 
   if (!canView) return null;
 

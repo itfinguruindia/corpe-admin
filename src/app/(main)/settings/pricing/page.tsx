@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Download, Eye, Loader2, Save } from "lucide-react";
 import { toast } from "@heroui/react";
 import { pricingPlansService } from "@/services/pricingPlans.service";
 import type {
@@ -12,7 +12,15 @@ import type {
   PricingStageAmount,
 } from "@/types/pricingPlans";
 import { usePermissions } from "@/hooks/usePermissions";
-import { PERMISSIONS } from "@/utils/permissions";
+import { notifyApiError } from "@/utils/apiErrors";
+import {
+  canEditPricingPlans,
+  canExportPricingPlans,
+  canViewPricingPlans,
+  PRICING_VIEW_DENIED_MESSAGE,
+  requirePricingEdit,
+  requirePricingExport,
+} from "@/utils/pricingPermissions";
 
 function isRateStageAmount(
   amount: AdminPricingStage["amount"],
@@ -108,10 +116,12 @@ function exportPricingPlansToCsv(plans: AdminPricingPlan[]) {
 function PlanEditor({
   plan,
   readOnly = false,
+  requireEdit,
   onSaved,
 }: {
   plan: AdminPricingPlan;
   readOnly?: boolean;
+  requireEdit?: () => boolean;
   onSaved: (updated: AdminPricingPlan) => void;
 }) {
   const [draft, setDraft] = useState<AdminPricingPlan>(plan);
@@ -180,7 +190,7 @@ function PlanEditor({
   };
 
   const handleSave = async () => {
-    if (readOnly) return;
+    if (readOnly || (requireEdit && !requireEdit())) return;
 
     if (Math.abs(draft.finalPrice - coreTotal) > 1) {
       toast.danger(
@@ -223,12 +233,11 @@ function PlanEditor({
         ),
       });
       toast.success(`${draft.planName} updated successfully.`);
-    } catch (error: any) {
-      toast.danger(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to update pricing plan.",
-      );
+    } catch (error) {
+      notifyApiError(error, {
+        fallback: "Failed to update pricing plan.",
+        actionLabel: "edit pricing plans",
+      });
     } finally {
       setSaving(false);
     }
@@ -456,14 +465,11 @@ function PlanEditor({
 }
 
 export default function PricingSettingsPage() {
-  const { hasPermission, isSuperAdmin } = usePermissions();
-  const canView =
-    isSuperAdmin ||
-    hasPermission(PERMISSIONS.PRICING_VIEW) ||
-    hasPermission(PERMISSIONS.PRICING_EDIT) ||
-    hasPermission(PERMISSIONS.PRICING_EXPORT);
-  const canEdit = isSuperAdmin || hasPermission(PERMISSIONS.PRICING_EDIT);
-  const canExport = isSuperAdmin || hasPermission(PERMISSIONS.PRICING_EXPORT);
+  const { admin } = usePermissions();
+  const canView = canViewPricingPlans(admin);
+  const canEdit = canEditPricingPlans(admin);
+  const canExport = canExportPricingPlans(admin);
+  const requireEdit = () => requirePricingEdit(admin);
   const [plans, setPlans] = useState<AdminPricingPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<string>("");
@@ -476,12 +482,11 @@ export default function PricingSettingsPage() {
       if (!selectedType && data.length > 0) {
         setSelectedType(data[0].companyType);
       }
-    } catch (error: any) {
-      toast.danger(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to load pricing plans.",
-      );
+    } catch (error) {
+      notifyApiError(error, {
+        fallback: "Failed to load pricing plans.",
+        actionLabel: "view pricing plans",
+      });
     } finally {
       setLoading(false);
     }
@@ -511,19 +516,37 @@ export default function PricingSettingsPage() {
   if (!canView) {
     return (
       <div className="rounded-xl bg-white p-8 shadow-sm text-center text-gray-600">
-        You do not have permission to view pricing plans.
+        {PRICING_VIEW_DENIED_MESSAGE}
       </div>
     );
   }
 
   const handleExport = () => {
-    if (!canExport || plans.length === 0) return;
+    if (!requirePricingExport(admin) || plans.length === 0) return;
     exportPricingPlansToCsv(plans);
     toast.success("Pricing plans exported.");
   };
 
   return (
     <div className="space-y-6 pb-8">
+      {!canEdit && (
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm"
+        >
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+            <Eye size={18} aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">View only</p>
+            <p className="mt-0.5 text-sm leading-relaxed text-amber-900/90">
+              Your role allows viewing pricing plans only. Edit and save actions
+              are disabled. Contact your administrator if you need edit access.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <Link
@@ -594,6 +617,7 @@ export default function PricingSettingsPage() {
                   key={plan._id}
                   plan={plan}
                   readOnly={!canEdit}
+                  requireEdit={requireEdit}
                   onSaved={(updated) => {
                     setPlans((current) =>
                       current.map((item) =>
