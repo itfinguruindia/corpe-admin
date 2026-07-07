@@ -10,7 +10,7 @@ import {
 } from "@/redux/slices/notificationSlice";
 import { connectSocket } from "@/lib/socket";
 import notificationService from "@/services/notification.service";
-import { toast } from "@heroui/react";
+import { safeToast } from "@/utils/safeToast";
 
 /**
  * Hook to manage real-time notification listeners and global notification state.
@@ -47,15 +47,11 @@ export function useNotifications() {
         dispatch(addNotification(notification));
       });
 
-      // Defer toast to the next task so root Toast.Provider re-renders don't
-      // collide with router transition state (InvalidStateError).
-      setTimeout(() => {
-        toast(notification.title, {
-          description: notification.body,
-          variant: notification.severity === "critical" ? "danger" : "accent",
-          timeout: 5000,
-        });
-      }, 0);
+      safeToast.default(notification.title, {
+        description: notification.body,
+        variant: notification.severity === "critical" ? "danger" : "accent",
+        timeout: 5000,
+      });
 
       playNotificationSound();
     },

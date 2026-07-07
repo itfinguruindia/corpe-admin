@@ -20,6 +20,7 @@ import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import { FileUploadComponent } from "@/components/upload";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { toStakeholderId } from "@/utils/stakeholderIds";
 
@@ -170,41 +171,19 @@ export default function UploadedDocumentsContent({
     }
   };
 
-  const handleDocUpload = (docType: string, label: string) => {
-    if (!requireEdit()) return;
-
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".pdf,.jpg,.jpeg,.png";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-
-      try {
-        await clientsApi.uploadCorporateStructureDocument(appNo, docType, file);
-        toast.success(`${label} uploaded successfully.`);
-        // Reload data to reflect the changes
-        const overviewResponse = await clientsApi.getCompanyOverview(appNo);
-        if (overviewResponse && overviewResponse.data) {
-          const registeredOffice =
-            overviewResponse.data.corporateStructure?.registeredOffice;
-          setOfficeDocs({
-            proofOfOffice: registeredOffice?.proofOfOffice ?? null,
-            proofOfOfficeAddress:
-              registeredOffice?.proofOfOfficeAddress ?? null,
-            proofOfOfficeNoc: registeredOffice?.proofOfOfficeNoc ?? null,
-            proofOfOfficeNocAdminDraft:
-              registeredOffice?.proofOfOfficeNocAdminDraft ?? null,
-            proofOfOfficeAddressAdminDraft:
-              registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
-          });
-        }
-      } catch (error) {
-        console.error("Error uploading document:", error);
-        toast.danger(`Failed to upload ${label}.`);
-      }
-    };
-    input.click();
+  const uploadOfficeDocument = async (
+    docType: string,
+    label: string,
+    file: File,
+  ) => {
+    try {
+      await clientsApi.uploadCorporateStructureDocument(appNo, docType, file);
+      toast.success(`${label} uploaded successfully.`);
+      await loadOfficeDocs();
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      toast.danger(`Failed to upload ${label}.`);
+    }
   };
 
   const handleDocDelete = async (docType: string, label: string) => {
@@ -281,13 +260,26 @@ export default function UploadedDocumentsContent({
             <h3 className="text-base font-bold text-secondary">{label}</h3>
             <div className="flex items-center gap-2 shrink-0">
               {allowUpload && (
-                <button
-                  onClick={() => handleDocUpload(docType, label)}
-                  title="Upload document"
-                  className="p-1.5 text-gray-500 hover:text-primary hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-                >
-                  <Upload className="w-4 h-4" />
-                </button>
+                <FileUploadComponent
+                  context="clients"
+                  allowedFileTypes=".pdf,.jpg,.jpeg,.png"
+                  title={`Upload ${label}`}
+                  subtitle="Upload from your computer, Google Drive, or existing documents."
+                  onBeforeOpen={() => requireEdit()}
+                  onFileSelect={(file) =>
+                    uploadOfficeDocument(docType, label, file)
+                  }
+                  renderTrigger={(openPicker) => (
+                    <button
+                      type="button"
+                      onClick={openPicker}
+                      title="Upload document"
+                      className="p-1.5 text-gray-500 hover:text-primary hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Upload className="w-4 h-4" />
+                    </button>
+                  )}
+                />
               )}
               {fileObj && (
                 <button
@@ -404,22 +396,32 @@ export default function UploadedDocumentsContent({
                   📤 ADMIN TEMPLATE
                 </span>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={
-                      lockAdminTemplate
-                        ? undefined
-                        : () => handleDocUpload(docTypeAdmin, "Admin Template")
-                    }
+                  <FileUploadComponent
+                    context="clients"
+                    allowedFileTypes=".pdf,.jpg,.jpeg,.png"
+                    title="Upload Admin Template"
+                    subtitle="Upload from your computer, Google Drive, or existing documents."
                     disabled={lockAdminTemplate}
-                    title={lockAdminTemplate ? "Locked" : "Upload template"}
-                    className={`p-1.5 rounded-lg transition-colors ${
-                      lockAdminTemplate
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-gray-500 hover:text-primary hover:bg-orange-50 cursor-pointer"
-                    }`}
-                  >
-                    <Upload className="w-4 h-4" />
-                  </button>
+                    onBeforeOpen={() => requireEdit()}
+                    onFileSelect={(file) =>
+                      uploadOfficeDocument(docTypeAdmin, "Admin Template", file)
+                    }
+                    renderTrigger={(openPicker) => (
+                      <button
+                        type="button"
+                        onClick={lockAdminTemplate ? undefined : openPicker}
+                        disabled={lockAdminTemplate}
+                        title={lockAdminTemplate ? "Locked" : "Upload template"}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          lockAdminTemplate
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-gray-500 hover:text-primary hover:bg-orange-50 cursor-pointer"
+                        }`}
+                      >
+                        <Upload className="w-4 h-4" />
+                      </button>
+                    )}
+                  />
                   {adminFile && (
                     <button
                       onClick={

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ChevronRight,
@@ -43,7 +43,10 @@ interface FileUploadPickerModalProps {
   maxSizeBytes?: number;
   dropLabel?: string;
   validateFile?: FileValidator;
-  onFileSelect: (file: File, meta: FileUploadSelectMeta) => void;
+  onFileSelect: (
+    file: File,
+    meta: FileUploadSelectMeta,
+  ) => void | Promise<void>;
   onError?: (message: string) => void;
 }
 
@@ -101,6 +104,9 @@ export default function FileUploadPickerModal({
   const [resolvingTemplateId, setResolvingTemplateId] = useState<string | null>(
     null,
   );
+  const [hideModalForDrivePicker, setHideModalForDrivePicker] =
+    useState(false);
+  const drivePickInFlightRef = useRef(false);
 
   const driveConfigured = isGoogleDriveConfigured();
   const acceptHint = formatAcceptHint(allowedFileTypes, maxSizeBytes);
@@ -112,12 +118,14 @@ export default function FileUploadPickerModal({
       setIsExistingLoading,
       setResolvingTemplateId,
     });
+    setHideModalForDrivePicker(false);
   }, []);
 
   const overlay = useOverlayState({
     isOpen,
     onOpenChange: (open) => {
       if (!open) {
+        if (drivePickInFlightRef.current) return;
         abortDrivePick();
         resetState();
         onClose();
@@ -126,7 +134,7 @@ export default function FileUploadPickerModal({
   });
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen && !drivePickInFlightRef.current) {
       abortDrivePick();
       resetState();
     }
@@ -154,7 +162,7 @@ export default function FileUploadPickerModal({
   );
 
   const emitSelection = useCallback(
-    (
+    async (
       file: File,
       source: FileUploadSource,
       meta?: Partial<FileUploadSelectMeta>,
@@ -165,29 +173,44 @@ export default function FileUploadPickerModal({
         return;
       }
 
-      onFileSelect(file, { source, ...meta });
-      overlay.close();
+      try {
+        await onFileSelect(file, { source, ...meta });
+      } finally {
+        drivePickInFlightRef.current = false;
+        overlay.close();
+      }
     },
     [onError, onFileSelect, overlay, runValidation],
   );
 
   const handleLocalFile = (file: File) => {
-    emitSelection(file, "local");
+    void emitSelection(file, "local");
   };
 
   const handleDriveUpload = async () => {
+    drivePickInFlightRef.current = true;
+    // Hide our modal while the Google Picker is open. Modal overlays mark the
+    // rest of the page inert, which blocks clicks inside the picker iframe.
+    setHideModalForDrivePicker(true);
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
     try {
       const { file, driveFileId } = await pickFromDrive({
         mimeTypes: acceptToDriveMimeTypes(allowedFileTypes),
         validateFile: (file) => runValidation(file),
       });
-      emitSelection(file, "drive", { driveFileId });
+      await emitSelection(file, "drive", { driveFileId });
     } catch (error) {
       reportError(error);
+      setHideModalForDrivePicker(false);
+    } finally {
+      drivePickInFlightRef.current = false;
     }
   };
 
   const handleClose = () => {
+    if (drivePickInFlightRef.current) return;
     abortDrivePick();
     overlay.close();
   };
@@ -215,7 +238,7 @@ export default function FileUploadPickerModal({
         );
         return;
       }
-      emitSelection(file, "existing", { templateId: template.id });
+      await emitSelection(file, "existing", { templateId: template.id });
     } catch (error) {
       reportError(error);
     } finally {
@@ -224,11 +247,18 @@ export default function FileUploadPickerModal({
   };
 
   const formLocked =
-    isExistingLoading || resolvingTemplateId !== null;
+    isDriveLoading || isExistingLoading || resolvingTemplateId !== null;
+
+  if (hideModalForDrivePicker) {
+    return null;
+  }
 
   return (
     <Modal state={overlay}>
-      <Modal.Backdrop className="bg-black/50 backdrop-blur-sm">
+      <Modal.Backdrop
+        className="bg-black/50 backdrop-blur-sm"
+        isDismissable={!formLocked}
+      >
         <Modal.Container placement="center" className="p-4">
           <Modal.Dialog className="flex w-full max-w-lg flex-col rounded-xl bg-white shadow-2xl outline-none">
             <Modal.Header className="relative border-b border-gray-200 px-6 py-4 pr-12">
@@ -241,8 +271,9 @@ export default function FileUploadPickerModal({
                   : subtitle}
               </p>
               <Modal.CloseTrigger
-                className="absolute right-4 top-4 shrink-0 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                className="absolute right-4 top-4 shrink-0 rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 disabled:pointer-events-none disabled:opacity-40"
                 aria-label="Close"
+                isDisabled={formLocked}
               >
                 <X className="h-5 w-5" />
               </Modal.CloseTrigger>
@@ -398,7 +429,8 @@ export default function FileUploadPickerModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                disabled={formLocked}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>

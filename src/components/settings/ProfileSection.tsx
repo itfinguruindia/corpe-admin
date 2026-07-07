@@ -6,6 +6,7 @@ import { Upload, Edit2, Trash2, Loader2 } from "lucide-react";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { Button, Input, Label, TextField } from "@heroui/react";
+import { FileUploadComponent } from "@/components/upload";
 
 interface ProfileSectionProps {
   profileData: {
@@ -23,7 +24,7 @@ interface ProfileSectionProps {
   isEditingProfile: boolean;
   setIsEditingProfile: React.Dispatch<React.SetStateAction<boolean>>;
   profileImage: string | null;
-  handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onProfileImageSelect: (file: File) => void;
   handleRemoveProfilePicture?: () => void;
   handleProfileSave: () => void;
   isLoading?: boolean;
@@ -37,7 +38,7 @@ export default function ProfileSection({
   isEditingProfile,
   setIsEditingProfile,
   profileImage,
-  handleImageUpload,
+  onProfileImageSelect,
   handleRemoveProfilePicture,
   handleProfileSave,
   isLoading = false,
@@ -65,19 +66,26 @@ export default function ProfileSection({
               <Upload className="h-12 w-12 text-[#FFD54F]" />
             )}
           </div>
-          <label
-            htmlFor="profile-upload"
-            className={`absolute bottom-0 right-0 h-10 w-10 rounded-full bg-[#FF6A3D] flex items-center justify-center cursor-pointer hover:bg-[#e55a2d] transition-colors ${isUploadingImage ? "opacity-50 pointer-events-none" : ""}`}
-          >
-            <Upload className="h-5 w-5 text-white" />
-            <input
-              id="profile-upload"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleImageUpload}
-            />
-          </label>
+          <FileUploadComponent
+            context="general"
+            allowedFileTypes="image/jpeg,image/png,image/webp"
+            enableExistingDocuments={false}
+            disabled={isUploadingImage}
+            title="Upload profile photo"
+            subtitle="Upload from your computer or import from Google Drive."
+            onFileSelect={onProfileImageSelect}
+            renderTrigger={(openPicker) => (
+              <label
+                className={`absolute bottom-0 right-0 h-10 w-10 rounded-full bg-[#FF6A3D] flex items-center justify-center cursor-pointer hover:bg-[#e55a2d] transition-colors ${isUploadingImage ? "opacity-50 pointer-events-none" : ""}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  openPicker();
+                }}
+              >
+                <Upload className="h-5 w-5 text-white" />
+              </label>
+            )}
+          />
           {/* Remove picture button */}
           {profileImage && handleRemoveProfilePicture && !isUploadingImage && (
             <span title="Remove photo" className="absolute top-0 right-0 inline-flex">

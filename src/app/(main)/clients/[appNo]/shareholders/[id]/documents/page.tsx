@@ -13,6 +13,7 @@ import { getFileType } from "@/utils/helpers";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import { FileUploadComponent } from "@/components/upload";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import {
   getShareholderRegularDocumentFields,
@@ -304,56 +305,39 @@ export default function ShareholderDocumentsPage() {
     }
   };
 
-  const handleUpload = (documentType: string) => {
+  const handleAdminFileUpload = async (documentType: string, file: File) => {
     if (!requireEdit()) return;
     if (documentType === "INC-9 Shareholder") {
       if (isLocked) {
         toast.danger("Action locked. Installment payment is due.");
         return;
       }
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".pdf,.doc,.docx";
-      input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (!file || !appNo || !id) return;
-        try {
-          await clientsApi.uploadInc9ShareholderDocument(
-            appNo as string,
-            id as string,
-            file,
-          );
-          toast.success(
-            "INC-9 Shareholder draft uploaded. Client will see it in the Download button.",
-          );
-          const inc9Status = await clientsApi.getInc9ShareholderDocStatus(
-            appNo as string,
-            id as string,
-          );
-          setInc9AdminFile(inc9Status.adminFile || null);
-          setInc9ClientFile(inc9Status.clientFile || null);
-        } catch (error) {
-          notifyApiError(error, {
-            fallback: "Could not upload INC-9 Shareholder document.",
-            actionLabel: "upload shareholder documents",
-          });
-        }
-      };
-      input.click();
+      if (!appNo || !id) return;
+      try {
+        await clientsApi.uploadInc9ShareholderDocument(
+          appNo as string,
+          id as string,
+          file,
+        );
+        toast.success(
+          "INC-9 Shareholder draft uploaded. Client will see it in the Download button.",
+        );
+        const inc9Status = await clientsApi.getInc9ShareholderDocStatus(
+          appNo as string,
+          id as string,
+        );
+        setInc9AdminFile(inc9Status.adminFile || null);
+        setInc9ClientFile(inc9Status.clientFile || null);
+      } catch (error) {
+        notifyApiError(error, {
+          fallback: "Could not upload INC-9 Shareholder document.",
+          actionLabel: "upload shareholder documents",
+        });
+      }
       return;
     }
 
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".pdf,.jpg,.jpeg,.png";
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        console.log("Uploading:", file.name, "for", documentType);
-        // TODO: API upload logic for other doc types
-      }
-    };
-    input.click();
+    console.log("Uploading:", file.name, "for", documentType);
   };
 
   const pendingCount = documents.filter(
@@ -454,12 +438,25 @@ export default function ShareholderDocumentsPage() {
 
                         {/* Upload */}
                         {canUpload(document.documentType) && (
-                          <button
-                            onClick={() => handleUpload(document.documentType)}
-                            className="text-primary hover:text-secondary"
-                          >
-                            <Upload className="w-5 h-5" />
-                          </button>
+                          <FileUploadComponent
+                            context="clients"
+                            allowedFileTypes=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            title={`Upload ${document.documentType}`}
+                            subtitle="Upload from your computer, Google Drive, or existing documents."
+                            onBeforeOpen={() => requireEdit()}
+                            onFileSelect={(file) =>
+                              handleAdminFileUpload(document.documentType, file)
+                            }
+                            renderTrigger={(openPicker) => (
+                              <button
+                                type="button"
+                                onClick={openPicker}
+                                className="text-primary hover:text-secondary"
+                              >
+                                <Upload className="w-5 h-5" />
+                              </button>
+                            )}
+                          />
                         )}
 
                         <DocumentIssueButton
@@ -509,27 +506,44 @@ export default function ShareholderDocumentsPage() {
                         className={`cursor-pointer text-secondary hover:text-primary ${isRefreshingInc9 ? "animate-spin" : ""}`}
                       />
                     </div>
-                    <div
-                      title={
-                        isLocked
-                          ? "Locked - installment due"
-                          : "Upload INC-9 (Admin)"
+                    <FileUploadComponent
+                      context="clients"
+                      allowedFileTypes=".pdf,.doc,.docx"
+                      title="Upload INC-9 Shareholder"
+                      subtitle="Upload from your computer, Google Drive, or existing documents."
+                      disabled={isLocked}
+                      onBeforeOpen={() => {
+                        if (isLocked) {
+                          toast.danger(
+                            "Action locked. Installment payment is due.",
+                          );
+                          return false;
+                        }
+                        return requireEdit();
+                      }}
+                      onFileSelect={(file) =>
+                        handleAdminFileUpload("INC-9 Shareholder", file)
                       }
-                    >
-                      <Upload
-                        size={20}
-                        onClick={
-                          isLocked
-                            ? undefined
-                            : () => handleUpload("INC-9 Shareholder")
-                        }
-                        className={
-                          isLocked
-                            ? "text-gray-300 cursor-not-allowed"
-                            : "cursor-pointer text-primary hover:text-secondary"
-                        }
-                      />
-                    </div>
+                      renderTrigger={(openPicker) => (
+                        <div
+                          title={
+                            isLocked
+                              ? "Locked - installment due"
+                              : "Upload INC-9 (Admin)"
+                          }
+                        >
+                          <Upload
+                            size={20}
+                            onClick={isLocked ? undefined : openPicker}
+                            className={
+                              isLocked
+                                ? "text-gray-300 cursor-not-allowed"
+                                : "cursor-pointer text-primary hover:text-secondary"
+                            }
+                          />
+                        </div>
+                      )}
+                    />
                   </div>
                 </div>
 

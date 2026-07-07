@@ -1,4 +1,4 @@
-import { toast } from "@heroui/react";
+import { safeToast } from "@/utils/safeToast";
 import {
   RBAC_ROUTE_DENIED_STORAGE_KEY,
   ROUTE_ACCESS_DENIED_MESSAGE,
@@ -6,9 +6,7 @@ import {
 
 /** Toast for in-page actions (no navigation). */
 export function showRouteAccessDeniedToast(message = ROUTE_ACCESS_DENIED_MESSAGE): void {
-  queueMicrotask(() => {
-    toast.danger(message);
-  });
+  safeToast.danger(message);
 }
 
 /** Persist denial so the toast can show after redirect completes. */

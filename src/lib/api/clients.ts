@@ -688,6 +688,7 @@ export const clientsApi = {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        timeout: 120_000,
       },
     );
     return response.data?.data ?? response.data;

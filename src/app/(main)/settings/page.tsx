@@ -309,10 +309,7 @@ export default function SettingPage() {
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const handleProfileImageSelect = async (file: File) => {
     // Client-side validation
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
@@ -535,7 +532,7 @@ export default function SettingPage() {
             isEditingProfile={isEditingProfile}
             setIsEditingProfile={setIsEditingProfile}
             profileImage={reduxProfileImage || null}
-            handleImageUpload={handleImageUpload}
+            onProfileImageSelect={handleProfileImageSelect}
             handleRemoveProfilePicture={handleRemoveProfilePicture}
             handleProfileSave={handleProfileSave}
             isLoading={isSavingProfile}

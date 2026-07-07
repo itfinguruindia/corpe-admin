@@ -22,6 +22,43 @@ const DEFAULT_DRIVE_MIME_TYPES = [
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 ].join(",");
 
+const GOOGLE_NATIVE_MIME_BY_ACCEPT: Array<{
+  acceptMime: string;
+  googleNative: string;
+}> = [
+  {
+    acceptMime:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    googleNative: "application/vnd.google-apps.document",
+  },
+  {
+    acceptMime: "application/msword",
+    googleNative: "application/vnd.google-apps.document",
+  },
+  {
+    acceptMime:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    googleNative: "application/vnd.google-apps.spreadsheet",
+  },
+  {
+    acceptMime: "application/vnd.ms-excel",
+    googleNative: "application/vnd.google-apps.spreadsheet",
+  },
+  {
+    acceptMime:
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    googleNative: "application/vnd.google-apps.presentation",
+  },
+  {
+    acceptMime: "application/vnd.ms-powerpoint",
+    googleNative: "application/vnd.google-apps.presentation",
+  },
+  {
+    acceptMime: "application/pdf",
+    googleNative: "application/vnd.google-apps.document",
+  },
+];
+
 /** Maps an HTML accept attribute to Google Picker mimeTypes string */
 export function acceptToDriveMimeTypes(accept?: string): string {
   if (!accept) return DEFAULT_DRIVE_MIME_TYPES;
@@ -33,6 +70,12 @@ export function acceptToDriveMimeTypes(accept?: string): string {
       mimeSet.add(EXTENSION_MIME_MAP[part]);
     } else if (part.includes("/")) {
       mimeSet.add(part);
+    }
+  }
+
+  for (const mapping of GOOGLE_NATIVE_MIME_BY_ACCEPT) {
+    if (mimeSet.has(mapping.acceptMime)) {
+      mimeSet.add(mapping.googleNative);
     }
   }
 

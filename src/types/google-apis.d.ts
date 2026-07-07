@@ -3,6 +3,7 @@ declare namespace google {
     enum Action {
       PICKED = "picked",
       CANCEL = "cancel",
+      LOADED = "loaded",
     }
 
     enum ViewId {
@@ -22,6 +23,7 @@ declare namespace google {
       setOAuthToken(token: string): PickerBuilder;
       addView(view: DocsView): PickerBuilder;
       setTitle(title: string): PickerBuilder;
+      setSelectableMimeTypes(mimeTypes: string): PickerBuilder;
       setCallback(
         callback: (data: {
           action: string;
