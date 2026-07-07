@@ -17,8 +17,9 @@ export default function PricingManagementSection({
 
   const canView =
     isSuperAdmin ||
+    hasPermission(PERMISSIONS.PRICING_VIEW) ||
     hasPermission(PERMISSIONS.PRICING_EDIT) ||
-    hasPermission(PERMISSIONS.SETTINGS_VIEW);
+    hasPermission(PERMISSIONS.PRICING_EXPORT);
 
   if (!canView) return null;
 
