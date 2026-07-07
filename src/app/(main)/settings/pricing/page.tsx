@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Download, Eye, Loader2, Save } from "lucide-react";
 import { toast } from "@heroui/react";
 import { pricingPlansService } from "@/services/pricingPlans.service";
 import type {
@@ -12,7 +12,15 @@ import type {
   PricingStageAmount,
 } from "@/types/pricingPlans";
 import { usePermissions } from "@/hooks/usePermissions";
-import { PERMISSIONS } from "@/utils/permissions";
+import { notifyApiError } from "@/utils/apiErrors";
+import {
+  canEditPricingPlans,
+  canExportPricingPlans,
+  canViewPricingPlans,
+  PRICING_VIEW_DENIED_MESSAGE,
+  requirePricingEdit,
+  requirePricingExport,
+} from "@/utils/pricingPermissions";
 
 function isRateStageAmount(
   amount: AdminPricingStage["amount"],
@@ -40,11 +48,80 @@ function getCoreInstallmentTotal(stages: AdminPricingStage[]): number {
     .reduce((sum, s) => sum + (typeof s.amount === "number" ? s.amount : 0), 0);
 }
 
+function formatStageAmount(amount: PricingStageAmount): string {
+  if (typeof amount === "number") return String(amount);
+  if (isAttemptStageAmount(amount)) {
+    return `Attempt 1: ${amount.attempt1}, Attempt 2: ${amount.attempt2}`;
+  }
+  if (isRateStageAmount(amount)) {
+    return `Indian: ${amount.extraDirectorIndian}, Foreign: ${amount.extraDirectorForeign}, Non-shareholder: ${amount.nonShareholder}`;
+  }
+  return "";
+}
+
+function exportPricingPlansToCsv(plans: AdminPricingPlan[]) {
+  const headers = [
+    "Company Type",
+    "Plan Name",
+    "Original Price",
+    "Discount Amount",
+    "Final Price",
+    "GST %",
+    "Currency",
+    "Stage Number",
+    "Stage Name",
+    "Stage Amount",
+    "Taxable",
+    "Payment Trigger",
+  ];
+
+  const rows = plans.flatMap((plan) =>
+    plan.stages.map((stage) => [
+      plan.companyTypeLabel,
+      plan.planName,
+      plan.originalPrice,
+      plan.discount?.amount ?? 0,
+      plan.finalPrice,
+      plan.gstPercentage,
+      plan.currency,
+      stage.stageNumber,
+      stage.stage,
+      formatStageAmount(stage.amount),
+      stage.taxable !== false ? "Yes" : "No",
+      stage.paymentTrigger,
+    ]),
+  );
+
+  const escape = (value: string | number) => {
+    const text = String(value);
+    if (text.includes(",") || text.includes('"') || text.includes("\n")) {
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
+  };
+
+  const csv = [headers, ...rows]
+    .map((row) => row.map(escape).join(","))
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `pricing-plans-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function PlanEditor({
   plan,
+  readOnly = false,
+  requireEdit,
   onSaved,
 }: {
   plan: AdminPricingPlan;
+  readOnly?: boolean;
+  requireEdit?: () => boolean;
   onSaved: (updated: AdminPricingPlan) => void;
 }) {
   const [draft, setDraft] = useState<AdminPricingPlan>(plan);
@@ -113,6 +190,8 @@ function PlanEditor({
   };
 
   const handleSave = async () => {
+    if (readOnly || (requireEdit && !requireEdit())) return;
+
     if (Math.abs(draft.finalPrice - coreTotal) > 1) {
       toast.danger(
         `Stage 1 + Stage 4 + Stage 6 must equal final price (${coreTotal} ≠ ${draft.finalPrice}).`,
@@ -154,12 +233,11 @@ function PlanEditor({
         ),
       });
       toast.success(`${draft.planName} updated successfully.`);
-    } catch (error: any) {
-      toast.danger(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to update pricing plan.",
-      );
+    } catch (error) {
+      notifyApiError(error, {
+        fallback: "Failed to update pricing plan.",
+        actionLabel: "edit pricing plans",
+      });
     } finally {
       setSaving(false);
     }
@@ -174,19 +252,21 @@ function PlanEditor({
           </h3>
           <p className="text-sm text-gray-500">{draft.companyTypeLabel}</p>
         </div>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className="inline-flex items-center gap-2 rounded-lg bg-[#FF6A3D] px-4 py-2 text-sm font-medium text-white hover:bg-[#e55a2d] disabled:opacity-60"
-        >
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          Save plan
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-lg bg-[#FF6A3D] px-4 py-2 text-sm font-medium text-white hover:bg-[#e55a2d] disabled:opacity-60"
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            Save plan
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 p-6 border-b border-slate-100">
@@ -207,7 +287,8 @@ function PlanEditor({
                 finalPrice: Math.max(0, originalPrice - discountAmount),
               }));
             }}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-50 disabled:text-gray-600"
+            disabled={readOnly}
           />
         </label>
 
@@ -222,7 +303,8 @@ function PlanEditor({
             onChange={(e) =>
               handleDiscountAmountChange(Number(e.target.value) || 0)
             }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-50 disabled:text-gray-600"
+            disabled={readOnly}
           />
         </label>
 
@@ -253,7 +335,8 @@ function PlanEditor({
                 gstPercentage: Number(e.target.value) || 0,
               }))
             }
-            className="w-full rounded-lg border border-gray-300 px-3 py-2"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-50 disabled:text-gray-600"
+            disabled={readOnly}
           />
         </label>
       </div>
@@ -286,6 +369,7 @@ function PlanEditor({
                         taxable: e.target.checked,
                       })
                     }
+                    disabled={readOnly}
                   />
                   Taxable (GST applies)
                 </label>
@@ -305,7 +389,8 @@ function PlanEditor({
                         amount: Number(e.target.value) || 0,
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-50 disabled:text-gray-600"
+                    disabled={readOnly}
                   />
                 </label>
               )}
@@ -334,7 +419,8 @@ function PlanEditor({
                             Number(e.target.value) || 0,
                           )
                         }
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-50 disabled:text-gray-600"
+                        disabled={readOnly}
                       />
                     </label>
                   ))}
@@ -364,7 +450,8 @@ function PlanEditor({
                             Number(e.target.value) || 0,
                           )
                         }
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-50 disabled:text-gray-600"
+                        disabled={readOnly}
                       />
                     </label>
                   ))}
@@ -378,8 +465,11 @@ function PlanEditor({
 }
 
 export default function PricingSettingsPage() {
-  const { hasPermission, isSuperAdmin } = usePermissions();
-  const canEdit = isSuperAdmin || hasPermission(PERMISSIONS.PRICING_EDIT);
+  const { admin } = usePermissions();
+  const canView = canViewPricingPlans(admin);
+  const canEdit = canEditPricingPlans(admin);
+  const canExport = canExportPricingPlans(admin);
+  const requireEdit = () => requirePricingEdit(admin);
   const [plans, setPlans] = useState<AdminPricingPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<string>("");
@@ -392,12 +482,11 @@ export default function PricingSettingsPage() {
       if (!selectedType && data.length > 0) {
         setSelectedType(data[0].companyType);
       }
-    } catch (error: any) {
-      toast.danger(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to load pricing plans.",
-      );
+    } catch (error) {
+      notifyApiError(error, {
+        fallback: "Failed to load pricing plans.",
+        actionLabel: "view pricing plans",
+      });
     } finally {
       setLoading(false);
     }
@@ -424,16 +513,40 @@ export default function PricingSettingsPage() {
     [plans, selectedType],
   );
 
-  if (!canEdit) {
+  if (!canView) {
     return (
       <div className="rounded-xl bg-white p-8 shadow-sm text-center text-gray-600">
-        You do not have permission to edit pricing plans.
+        {PRICING_VIEW_DENIED_MESSAGE}
       </div>
     );
   }
 
+  const handleExport = () => {
+    if (!requirePricingExport(admin) || plans.length === 0) return;
+    exportPricingPlansToCsv(plans);
+    toast.success("Pricing plans exported.");
+  };
+
   return (
     <div className="space-y-6 pb-8">
+      {!canEdit && (
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm"
+        >
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+            <Eye size={18} aria-hidden />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">View only</p>
+            <p className="mt-0.5 text-sm leading-relaxed text-amber-900/90">
+              Your role allows viewing pricing plans only. Edit and save actions
+              are disabled. Contact your administrator if you need edit access.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <Link
@@ -447,11 +560,21 @@ export default function PricingSettingsPage() {
             Pricing Management
           </h1>
           <p className="mt-2 text-base text-gray-600 max-w-3xl">
-            Edit live pricing for new registrations. Existing clients continue
-            using their frozen pricing snapshot from when they paid the signing
-            fee.
+            {canEdit
+              ? "Edit live pricing for new registrations. Existing clients continue using their frozen pricing snapshot from when they paid the signing fee."
+              : "View live pricing for new registrations. You have read-only access."}
           </p>
         </div>
+        {canExport && !loading && plans.length > 0 && (
+          <button
+            type="button"
+            onClick={handleExport}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -493,6 +616,8 @@ export default function PricingSettingsPage() {
                 <PlanEditor
                   key={plan._id}
                   plan={plan}
+                  readOnly={!canEdit}
+                  requireEdit={requireEdit}
                   onSaved={(updated) => {
                     setPlans((current) =>
                       current.map((item) =>
