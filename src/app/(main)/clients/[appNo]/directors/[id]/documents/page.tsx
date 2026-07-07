@@ -831,7 +831,7 @@ export default function DirectorDocumentsPage() {
           </div>
         </div>
 
-        {/* Bottom: Miscellaneous Documents (standard company types only) */}
+        {/* Bottom: Miscellaneous Documents */}
         {miscDualSourceFields.length > 0 && (
           <div className="grid grid-cols-3 gap-6 mt-6">
             {miscDualSourceFields.map((field) => (
