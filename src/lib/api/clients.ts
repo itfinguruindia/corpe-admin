@@ -1065,4 +1065,35 @@ export const clientsApi = {
     );
     return response.data as Blob;
   },
+
+  getArchivedClients: async (
+    page = 1,
+    limit = 10,
+    search = "",
+  ): Promise<{
+    clients: Array<{
+      orgId: string;
+      appNo: string;
+      companyType: string;
+      clientName: string;
+      clientEmail: string;
+      archivedAt: string;
+      archivedByName: string;
+      archiveReason: string;
+    }>;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> => {
+    const response = await axiosInstance.get("/admin/clients/archived", {
+      params: { page, limit, search },
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  getArchivedClientDetails: async (orgId: string): Promise<any> => {
+    const response = await axiosInstance.get(`/admin/clients/archived/${orgId}`);
+    return response.data?.data ?? response.data;
+  },
 };
