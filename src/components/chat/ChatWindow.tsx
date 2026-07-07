@@ -30,6 +30,7 @@ import Link from "next/link";
 import { Socket } from "socket.io-client";
 import MessageBubble from "./MessageBubble";
 import chatService from "@/services/chat.service";
+import { FileUploadComponent } from "@/components/upload";
 import { Button, Card, EmptyState, Spinner } from "@heroui/react";
 
 const EmojiPicker = lazy(() => import("emoji-picker-react"));
@@ -86,9 +87,6 @@ const formatTime = (seconds: number) => {
 const InputArea = (props: InputAreaProps) => {
   const { textareaRef, inputValue, onInputChange, handleSend, isSending } =
     props;
-
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const documentInputRef = useRef<HTMLInputElement>(null);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [audioRecorder, setAudioRecorder] = useState<MediaRecorder | null>(
@@ -334,44 +332,42 @@ const InputArea = (props: InputAreaProps) => {
                     <Smile className="size-5 text-secondary" />
                   </Button>
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => imageInputRef.current?.click()}
-                    className="min-w-0 h-auto p-1"
-                  >
-                    <ImageIcon className="size-5 text-secondary" />
-                  </Button>
-                  <input
-                    type="file"
-                    ref={imageInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleSend(file, "image");
-                      e.target.value = "";
-                    }}
+                  <FileUploadComponent
+                    context="general"
+                    allowedFileTypes="image/*"
+                    enableExistingDocuments={false}
+                    title="Send image"
+                    subtitle="Upload from your computer or import from Google Drive."
+                    onFileSelect={(file) => handleSend(file, "image")}
+                    renderTrigger={(openPicker) => (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={openPicker}
+                        className="min-w-0 h-auto p-1"
+                      >
+                        <ImageIcon className="size-5 text-secondary" />
+                      </Button>
+                    )}
                   />
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => documentInputRef.current?.click()}
-                    className="min-w-0 h-auto p-1"
-                  >
-                    <Paperclip className="size-5 text-secondary" />
-                  </Button>
-                  <input
-                    type="file"
-                    ref={documentInputRef}
-                    className="hidden"
-                    accept=".pdf,.doc,.docx,.txt,.csv"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleSend(file, "document");
-                      e.target.value = "";
-                    }}
+                  <FileUploadComponent
+                    context="general"
+                    allowedFileTypes=".pdf,.doc,.docx,.txt,.csv"
+                    enableExistingDocuments={false}
+                    title="Send document"
+                    subtitle="Upload from your computer or import from Google Drive."
+                    onFileSelect={(file) => handleSend(file, "document")}
+                    renderTrigger={(openPicker) => (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={openPicker}
+                        className="min-w-0 h-auto p-1"
+                      >
+                        <Paperclip className="size-5 text-secondary" />
+                      </Button>
+                    )}
                   />
 
                   <Button

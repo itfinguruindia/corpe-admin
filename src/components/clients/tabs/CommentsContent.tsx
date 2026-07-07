@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Eye, Download, Paperclip, Trash2, X } from "lucide-react";
 import { Spinner, toast } from "@heroui/react";
 
@@ -15,6 +15,7 @@ import { getFileType } from "@/utils/helpers";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { getCommentAreaDisplayLabel } from "@/utils/companyTypeLabels";
+import { FileUploadComponent } from "@/components/upload";
 
 interface CommentsContentProps {
   appNo: string;
@@ -40,7 +41,6 @@ const formatCommentDate = (value: string) =>
 export default function CommentsContent({ appNo }: CommentsContentProps) {
   const { requireEdit } = useClientTabEdit("comments");
   const { companyType } = useClientCompanyLabels();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [comments, setComments] = useState<GlobalCommentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,7 +96,6 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
       });
       setNewMessage("");
       setSelectedFiles([]);
-      if (fileInputRef.current) fileInputRef.current.value = "";
       toast("Comment posted", { variant: "success" });
       await loadComments();
     } catch (error) {
@@ -194,26 +193,24 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
             Attachments
           </label>
           <div className="flex flex-wrap items-center gap-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                const picked = Array.from(e.target.files || []);
-                if (picked.length === 0) return;
-                setSelectedFiles((prev) => [...prev, ...picked]);
-                if (fileInputRef.current) fileInputRef.current.value = "";
-              }}
+            <FileUploadComponent
+              context="clients"
+              enableExistingDocuments={false}
+              onBeforeOpen={() => requireEdit()}
+              onFileSelect={(file) =>
+                setSelectedFiles((prev) => [...prev, file])
+              }
+              renderTrigger={(openPicker) => (
+                <button
+                  type="button"
+                  onClick={openPicker}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  <Paperclip size={16} />
+                  Attach files
+                </button>
+              )}
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              <Paperclip size={16} />
-              Attach files
-            </button>
             {selectedFiles.length > 0 && (
               <span className="text-xs text-slate-500">
                 {selectedFiles.length} file

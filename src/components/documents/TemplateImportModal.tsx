@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { HardDrive, Loader2 } from "lucide-react";
+import { CloudUpload } from "lucide-react";
 import {
   Input,
   Label,
@@ -9,10 +9,12 @@ import {
   TextField,
   useOverlayState,
 } from "@heroui/react";
-import TemplateFileDropzone from "@/components/documents/TemplateFileDropzone";
-import { isGoogleDriveConfigured } from "@/lib/google/drivePicker";
+import { FileUploadComponent } from "@/components/upload";
+import {
+  FILE_TYPE_ACCEPT,
+  MAX_TEMPLATE_FILE_SIZE_BYTES,
+} from "@/lib/templates/constants";
 import { validateTemplateFile } from "@/lib/templates/templateValidation";
-import { useGoogleDrivePick } from "@/hooks/useGoogleDrivePick";
 import type { TemplateUploadSource } from "@/types/documentTemplate";
 
 interface TemplateImportModalProps {
@@ -38,19 +40,11 @@ export default function TemplateImportModal({
   isSubmitting = false,
 }: TemplateImportModalProps) {
   const [templateName, setTemplateName] = useState("");
-  const driveConfigured = isGoogleDriveConfigured();
-  const {
-    isDriveLoading,
-    pickFromDrive,
-    abortDrivePick,
-    isGoogleDriveAbortError,
-  } = useGoogleDrivePick();
 
   const overlay = useOverlayState({
     isOpen,
     onOpenChange: (open) => {
       if (!open) {
-        abortDrivePick();
         setTemplateName("");
         onOpenChange(false);
         return;
@@ -61,7 +55,6 @@ export default function TemplateImportModal({
 
   const reportError = useCallback(
     (error: unknown) => {
-      if (isGoogleDriveAbortError(error)) return;
       const message =
         error instanceof Error
           ? error.message
@@ -69,7 +62,7 @@ export default function TemplateImportModal({
       if (message.toLowerCase().includes("cancelled")) return;
       onError?.(message);
     },
-    [isGoogleDriveAbortError, onError],
+    [onError],
   );
 
   const processFile = useCallback(
@@ -96,25 +89,7 @@ export default function TemplateImportModal({
     [onImport, onError, overlay, templateName],
   );
 
-  const handleLocalFile = async (file: File) => {
-    try {
-      await processFile(file, "local");
-    } catch (error) {
-      reportError(error);
-    }
-  };
-
-  const handleGoogleDrive = async () => {
-    try {
-      const { file, driveFileId } = await pickFromDrive();
-      await processFile(file, "drive", driveFileId);
-    } catch (error) {
-      reportError(error);
-    }
-  };
-
   const handleClose = () => {
-    abortDrivePick();
     overlay.close();
   };
 
@@ -128,7 +103,7 @@ export default function TemplateImportModal({
                 Import Template
               </Modal.Heading>
               <p className="mt-1 text-sm text-gray-500">
-                Upload from your computer or import from Google Drive.
+                Upload from your computer, Google Drive, or existing documents.
               </p>
             </Modal.Header>
 
@@ -146,59 +121,47 @@ export default function TemplateImportModal({
                 />
               </TextField>
 
-              <TemplateFileDropzone
+              <FileUploadComponent
+                context="templates"
+                allowedFileTypes={FILE_TYPE_ACCEPT}
+                maxSizeBytes={MAX_TEMPLATE_FILE_SIZE_BYTES}
+                validateFile={(file) => validateTemplateFile(file)}
                 disabled={isSubmitting}
-                onFileSelected={(file) => {
-                  void handleLocalFile(file);
+                title="Import Template"
+                subtitle="Upload from your computer, Google Drive, or existing documents."
+                dropLabel="Drag and drop your template here"
+                onFileSelect={(file, meta) => {
+                  void processFile(
+                    file,
+                    meta?.source === "drive" ? "drive" : "local",
+                    meta?.driveFileId,
+                  ).catch(reportError);
                 }}
-              />
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center" aria-hidden>
-                  <span className="w-full border-t border-gray-200" />
-                </div>
-                <span className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">or</span>
-                </span>
-              </div>
-
-              <button
-                type="button"
-                disabled={isSubmitting || isDriveLoading || !driveConfigured}
-                onClick={() => {
-                  void handleGoogleDrive();
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isDriveLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <HardDrive className="h-4 w-4" />
+                onError={onError}
+                renderTrigger={(openPicker) => (
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={openPicker}
+                    className="flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center transition-colors hover:border-primary-400 hover:bg-primary-50/40 disabled:pointer-events-none disabled:opacity-60"
+                  >
+                    <CloudUpload className="mb-3 h-10 w-10 text-primary-600" />
+                    <p className="text-sm font-medium text-gray-900">
+                      Choose a template file
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      PDF, DOCX, XLSX, PPTX - local, Drive, or existing docs
+                    </p>
+                  </button>
                 )}
-                Import from Google Drive
-              </button>
-
-              {!driveConfigured && (
-                <p className="text-xs text-amber-700">
-                  Google Drive import requires{" "}
-                  <code className="rounded bg-amber-50 px-1">
-                    NEXT_PUBLIC_GOOGLE_CLIENT_ID
-                  </code>{" "}
-                  and{" "}
-                  <code className="rounded bg-amber-50 px-1">
-                    NEXT_PUBLIC_GOOGLE_API_KEY
-                  </code>{" "}
-                  in your environment.
-                </p>
-              )}
+              />
             </Modal.Body>
 
             <Modal.Footer className="flex justify-end border-t border-gray-200 px-6 py-4">
               <button
                 type="button"
-                disabled={isSubmitting}
                 onClick={handleClose}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
               >
                 Cancel
               </button>

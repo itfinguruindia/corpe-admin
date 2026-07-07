@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 import { Edit, Upload, Download, Eye } from "lucide-react";
 import { toast } from "@heroui/react";
@@ -17,6 +17,7 @@ import { notifyApiError } from "@/utils/apiErrors";
 import { getFileType } from "@/utils/helpers";
 import { PanTanEmailDisclaimer } from "./PanTanEmailDisclaimer";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import { FileUploadComponent } from "@/components/upload";
 
 const REGISTRATION_FIELD_KEYS: Record<string, string> = {
   PAN: "panDocument",
@@ -57,10 +58,6 @@ export default function RegistrationDocumentsContent({
   const [isCinEditable, setIsCinEditable] = useState(true);
   const [cinError, setCinError] = useState("");
   const [companyStatus, setCompanyStatus] = useState<string>("pending");
-  const [activeUploadDocType, setActiveUploadDocType] = useState<string | null>(
-    null,
-  );
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -74,7 +71,6 @@ export default function RegistrationDocumentsContent({
   } | null>(null);
   const [llpAgreementStatus, setLlpAgreementStatus] =
     useState<LlpAgreementStatus | null>(null);
-  const llpAgreementInputRef = useRef<HTMLInputElement>(null);
 
   const isLlpCompany =
     data?.companyType?.toLowerCase() === "llp" ||
@@ -167,43 +163,31 @@ export default function RegistrationDocumentsContent({
     }
   };
 
-  const handleUploadClick = (docType: string) => {
-    if (!requireEdit()) return;
-    if (docType === "COI" && isLocked) {
-      toast.danger("Action locked. Installment payment is due.");
-      return;
-    }
+  const canUploadRegistrationDoc = (docName: string) => {
     if (!data?.cin) {
       toast.warning(
         "Please submit a valid CIN first to unlock document uploads.",
       );
-      return;
+      return false;
     }
-    setActiveUploadDocType(docType);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-      fileInputRef.current.click();
+    if (docName === "COI" && isLocked) {
+      toast.danger("Action locked. Installment payment is due.");
+      return false;
     }
+    return true;
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0 || !activeUploadDocType) return;
-    if (activeUploadDocType === "COI" && isLocked) {
+  const handleRegistrationDocUpload = async (docType: string, file: File) => {
+    if (docType === "COI" && isLocked) {
       toast.danger("Action locked. Installment payment is due.");
       return;
     }
 
-    const file = files[0];
     try {
       setIsLoading(true);
-      await clientsApi.uploadRegistrationDocument(
-        appNo,
-        activeUploadDocType,
-        file,
-      );
+      await clientsApi.uploadRegistrationDocument(appNo, docType, file);
       toast.success(
-        `${activeUploadDocType.toUpperCase()} document uploaded successfully!`,
+        `${docType.toUpperCase()} document uploaded successfully!`,
       );
       loadData();
     } catch (error) {
@@ -263,27 +247,7 @@ export default function RegistrationDocumentsContent({
     }
   };
 
-  const handleLlpAgreementUploadClick = () => {
-    if (!requireEdit()) return;
-    if (!data?.cin) {
-      toast.warning(
-        "Please submit a valid CIN first to unlock document uploads.",
-      );
-      return;
-    }
-    if (llpAgreementInputRef.current) {
-      llpAgreementInputRef.current.value = "";
-      llpAgreementInputRef.current.click();
-    }
-  };
-
-  const handleLlpAgreementFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const file = files[0];
+  const handleLlpAgreementUpload = async (file: File) => {
     try {
       setIsLoading(true);
       await clientsApi.uploadLlpAgreementDocument(appNo, file);
@@ -358,22 +322,6 @@ export default function RegistrationDocumentsContent({
   return (
     <div className="min-h-screen bg-gray-50 font-sans p-6">
       <div className="max-w-full">
-        {/* Hidden Input for S3 upload */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          className="hidden"
-          accept=".pdf,.png,.jpg,.jpeg"
-        />
-        <input
-          type="file"
-          ref={llpAgreementInputRef}
-          onChange={handleLlpAgreementFileChange}
-          className="hidden"
-          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-        />
-
         <div className="flex items-center justify-between mb-8">
           <div className="relative">
             <div className="bg-linear-to-r from-orange-50 to-white px-6 py-3 rounded-xl border-l-4 border-orange-200 shadow-sm">
@@ -549,32 +497,49 @@ export default function RegistrationDocumentsContent({
                       <Download size={24} />
                     </button>
                     {/* Edit / Upload */}
-                    <button
-                      onClick={
-                        doc.name === "COI" && isLocked
-                          ? undefined
-                          : () => handleUploadClick(doc.name)
-                      }
-                      className={`transition-colors p-1 ${
-                        doc.name === "COI" && isLocked
-                          ? "text-gray-300 cursor-not-allowed"
-                          : "text-primary hover:text-[#d55a39] cursor-pointer"
-                      }`}
-                      title={
-                        doc.name === "COI" && isLocked
-                          ? "Locked - installment due"
-                          : "Upload"
-                      }
+                    <FileUploadComponent
+                      context="clients"
+                      allowedFileTypes=".pdf,.png,.jpg,.jpeg"
+                      title={`Upload ${doc.name}`}
+                      subtitle="Upload from your computer, Google Drive, or existing documents."
                       disabled={!data?.cin || (doc.name === "COI" && isLocked)}
-                      style={{
-                        opacity:
-                          !data?.cin || (doc.name === "COI" && isLocked)
-                            ? 0.3
-                            : 1,
+                      onBeforeOpen={() => {
+                        if (!requireEdit()) return false;
+                        return canUploadRegistrationDoc(doc.name);
                       }}
-                    >
-                      <Upload size={24} />
-                    </button>
+                      onFileSelect={(file) =>
+                        handleRegistrationDocUpload(doc.name, file)
+                      }
+                      renderTrigger={(openPicker) => (
+                        <button
+                          type="button"
+                          onClick={
+                            !data?.cin || (doc.name === "COI" && isLocked)
+                              ? undefined
+                              : openPicker
+                          }
+                          className={`transition-colors p-1 ${
+                            doc.name === "COI" && isLocked
+                              ? "text-gray-300 cursor-not-allowed"
+                              : "text-primary hover:text-[#d55a39] cursor-pointer"
+                          }`}
+                          title={
+                            doc.name === "COI" && isLocked
+                              ? "Locked - installment due"
+                              : "Upload"
+                          }
+                          disabled={!data?.cin || (doc.name === "COI" && isLocked)}
+                          style={{
+                            opacity:
+                              !data?.cin || (doc.name === "COI" && isLocked)
+                                ? 0.3
+                                : 1,
+                          }}
+                        >
+                          <Upload size={24} />
+                        </button>
+                      )}
+                    />
                     <DocumentIssueButton
                       applicationNo={appNo}
                       target={{
@@ -604,15 +569,36 @@ export default function RegistrationDocumentsContent({
                   re-upload after signing.
                 </p>
               </div>
-              <button
-                onClick={handleLlpAgreementUploadClick}
+              <FileUploadComponent
+                context="clients"
+                allowedFileTypes=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                title="Upload LLP Agreement"
+                subtitle="Upload from your computer, Google Drive, or existing documents."
                 disabled={!data?.cin}
-                className="inline-flex items-center gap-2 rounded-lg border border-[#F46A45] px-4 py-2 text-sm font-medium text-[#F46A45] transition-colors hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40"
-                title="Upload LLP Agreement (Admin)"
-              >
-                <Upload size={18} />
-                Upload Draft
-              </button>
+                onBeforeOpen={() => {
+                  if (!requireEdit()) return false;
+                  if (!data?.cin) {
+                    toast.warning(
+                      "Please submit a valid CIN first to unlock document uploads.",
+                    );
+                    return false;
+                  }
+                  return true;
+                }}
+                onFileSelect={handleLlpAgreementUpload}
+                renderTrigger={(openPicker) => (
+                  <button
+                    type="button"
+                    onClick={data?.cin ? openPicker : undefined}
+                    disabled={!data?.cin}
+                    className="inline-flex items-center gap-2 rounded-lg border border-[#F46A45] px-4 py-2 text-sm font-medium text-[#F46A45] transition-colors hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    title="Upload LLP Agreement (Admin)"
+                  >
+                    <Upload size={18} />
+                    Upload Draft
+                  </button>
+                )}
+              />
             </div>
 
             <div className="space-y-3">

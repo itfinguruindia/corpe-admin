@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import CustomSelect from "@/components/ui/CustomSelect";
+import { FileUploadComponent } from "@/components/upload";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 
 // Types matching updated backend application tracker
@@ -1451,15 +1452,34 @@ export default function TrackingStatusContent({
                                                     <label className="block text-xs font-semibold text-slate-600">
                                                       Rejection Document (optional)
                                                     </label>
-                                                    <input
-                                                      type="file"
-                                                      onChange={(e) =>
-                                                        setRejectionFile(
-                                                          e.target.files?.[0] || null,
-                                                        )
-                                                      }
-                                                      className="w-full text-xs text-slate-600 file:mr-2 file:py-1 file:px-3 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 file:border file:border-red-200 file:rounded-lg hover:file:bg-red-100 cursor-pointer"
-                                                    />
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                      <FileUploadComponent
+                                                        context="clients"
+                                                        allowedFileTypes=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                                                        enableExistingDocuments={false}
+                                                        title="Attach rejection document"
+                                                        subtitle="Upload from your computer or import from Google Drive."
+                                                        onFileSelect={(file) =>
+                                                          setRejectionFile(file)
+                                                        }
+                                                        renderTrigger={(
+                                                          openPicker,
+                                                        ) => (
+                                                          <button
+                                                            type="button"
+                                                            onClick={openPicker}
+                                                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
+                                                          >
+                                                            Choose file
+                                                          </button>
+                                                        )}
+                                                      />
+                                                      {rejectionFile && (
+                                                        <span className="text-xs text-slate-600 truncate max-w-[200px]">
+                                                          {rejectionFile.name}
+                                                        </span>
+                                                      )}
+                                                    </div>
                                                   </div>
 
                                                   <div className="flex gap-2">
