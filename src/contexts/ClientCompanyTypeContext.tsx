@@ -12,12 +12,14 @@ import { clientsApi } from "@/lib/api/clients";
 import {
   getStakeholderLabels,
   isLlpCompanyType,
+  isOpcCompanyType,
   type StakeholderLabels,
 } from "@/utils/companyTypeLabels";
 
 type ClientCompanyTypeContextValue = {
   companyType: string | null;
   isLlp: boolean;
+  isOpc: boolean;
   labels: StakeholderLabels;
   isLoading: boolean;
 };
@@ -67,6 +69,7 @@ export function ClientCompanyTypeProvider({
     () => ({
       companyType,
       isLlp: isLlpCompanyType(companyType),
+      isOpc: isOpcCompanyType(companyType),
       labels: getStakeholderLabels(companyType),
       isLoading,
     }),
@@ -86,6 +89,7 @@ export function useClientCompanyLabels(): ClientCompanyTypeContextValue {
     return {
       companyType: null,
       isLlp: false,
+      isOpc: false,
       labels: getStakeholderLabels(null),
       isLoading: false,
     };

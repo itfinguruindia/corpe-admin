@@ -1,7 +1,7 @@
 import axiosInstance from "@/lib/axios";
 import type { NameStatus } from "@/types/company";
 
-export type MoaAoaDocType = "moa" | "aoa";
+export type MoaAoaDocType = "moa" | "aoa" | "consentToAct";
 
 type MoaAoaStatus = "open" | "clientUpload" | "TeamUpload";
 

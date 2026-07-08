@@ -10,6 +10,18 @@ export function isLlpCompanyType(
   );
 }
 
+export function isOpcCompanyType(
+  companyType: string | null | undefined,
+): boolean {
+  if (!companyType) return false;
+  const normalized = companyType.toLowerCase().trim();
+  return (
+    normalized === "one-person-company" ||
+    normalized === "one person company" ||
+    normalized === "opc"
+  );
+}
+
 export type StakeholderLabels = {
   director: string;
   directors: string;
@@ -130,10 +142,32 @@ const LLP_LABELS: StakeholderLabels = {
   showPaidUpCapital: false,
 };
 
+const OPC_LABELS: StakeholderLabels = {
+  ...DEFAULT_LABELS,
+  shareholder: "Nominee",
+  shareholders: "Nominee",
+  shareholderWithNumber: (n) => `Nominee ${n}`,
+  shareholdersTab: "Nominee",
+  directorShareholdersStep: "Director & Nominee",
+  totalShareholders: (count) => `Nominee ${count}`,
+  alsoADirector: "Also a director",
+  shareholdingLabel: "Shareholding",
+  viewMoreShareholders: "View more Nominees",
+  shareholderNotFound: "Nominee not found",
+  noShareholdersListed: "No nominee listed for this application.",
+  shareholderName: "Nominee Name",
+  entityShareholder: "(Nominee)",
+  consentToAct: "Consent to Act as Nominee",
+  uploadedDocsDescription:
+    "Manage and view uploaded documents for directors, nominee, and registered office proofs.",
+};
+
 export function getStakeholderLabels(
   companyType: string | null | undefined,
 ): StakeholderLabels {
-  return isLlpCompanyType(companyType) ? LLP_LABELS : DEFAULT_LABELS;
+  if (isLlpCompanyType(companyType)) return LLP_LABELS;
+  if (isOpcCompanyType(companyType)) return OPC_LABELS;
+  return DEFAULT_LABELS;
 }
 
 export function getCommentAreaDisplayLabel(
