@@ -86,22 +86,40 @@ function ClientDetailsTabs() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { labels } = useClientCompanyLabels();
+  const { labels, isLlp } = useClientCompanyLabels();
   const appNoStr = appNo ? String(appNo) : "";
+
+  const visibleTabs = React.useMemo(
+    () => TABS.filter((t) => !(isLlp && t.key === "moa-aoa")),
+    [isLlp],
+  );
 
   const tabFromUrl = searchParams.get("tab") ?? "";
   const [activeTab, setActiveTab] = React.useState<TabKey>(
-    isTabKey(tabFromUrl) ? tabFromUrl : "company-overview",
+    isTabKey(tabFromUrl) && !(isLlp && tabFromUrl === "moa-aoa")
+      ? tabFromUrl
+      : "company-overview",
   );
 
   // Keep state in sync if the URL ?tab= changes from elsewhere (back/forward nav).
   React.useEffect(() => {
     const next = searchParams.get("tab") ?? "";
-    if (isTabKey(next) && next !== activeTab) {
+    if (isTabKey(next) && !(isLlp && next === "moa-aoa") && next !== activeTab) {
       setActiveTab(next);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, isLlp]);
+
+  React.useEffect(() => {
+    if (isLlp && activeTab === "moa-aoa") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tab", "company-overview");
+      safeRouterReplace(router, `${pathname}?${params.toString()}`, {
+        scroll: false,
+      });
+      setActiveTab("company-overview");
+    }
+  }, [isLlp, activeTab, pathname, router, searchParams]);
 
   const handleTabChange = (key: React.Key) => {
     const keyStr = String(key);
@@ -128,7 +146,7 @@ function ClientDetailsTabs() {
       >
         <Tabs.ListContainer>
           <Tabs.List className="overflow-x-auto bg-white shadow *:text-sm *:data-[selected=true]:text-white">
-            {TABS.map((t, idx) => (
+            {visibleTabs.map((t, idx) => (
               <Tabs.Tab key={t.key} id={t.key} className="w-max">
                 {idx > 0 && <Tabs.Separator />}
                 <span className="w-max">{getTabLabel(t.key, t.label, labels)}</span>
@@ -138,7 +156,7 @@ function ClientDetailsTabs() {
           </Tabs.List>
         </Tabs.ListContainer>
 
-        {TABS.map((tab) => (
+        {visibleTabs.map((tab) => (
           <Tabs.Panel key={tab.key} id={tab.key}>
             {tab.component && <tab.component appNo={appNoStr} />}
           </Tabs.Panel>

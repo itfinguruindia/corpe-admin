@@ -9,6 +9,22 @@ export const SPICE_PART_B_STEP_CANONICAL_DESCRIPTION = "Form preparation & check
 export const FILLIP_FORM_TITLE = "FiLLiP Form";
 export const FILLIP_FORM_DESCRIPTION = "Form preparation & check";
 
+export const AGILE_PRO_S_STEP_TITLE = "AGILE-PRO-S form";
+export const AGILE_PRO_S_STEP_DESCRIPTION =
+  "GSTIN, EPFO, ESIC, Bank account details";
+export const INC_FORMS_STEP_TITLE = "INC-9, INC-33, INC-34";
+export const INC_FORMS_STEP_DESCRIPTION = "eMoA and eAoA checking";
+
+export const CONSENT_FORM_9_DIGITAL_TITLE = "Consent Form 9 (digital copy)";
+export const CONSENT_FORM_9_DIGITAL_DESCRIPTION =
+  "Digital consent form signed and verified";
+export const CONSENT_FORM_9_PHYSICAL_TITLE = "Consent Form 9 (physical copy)";
+export const CONSENT_FORM_9_PHYSICAL_DESCRIPTION =
+  "Signed physical consent form received";
+export const SUBSCRIBER_SHEET_TITLE = "Subscriber sheet";
+export const SUBSCRIBER_SHEET_DESCRIPTION =
+  "Subscriber sheet preparation & verification";
+
 export const isLlpCompanyType = (
   companyType: string | null | undefined,
 ): boolean => {
@@ -17,7 +33,9 @@ export const isLlpCompanyType = (
   return (
     normalized === "limited-liability-partnership" ||
     normalized === "limited liability partnership" ||
-    normalized === "llp"
+    normalized === "limited liability partnership incorporation" ||
+    normalized === "llp" ||
+    normalized.includes("limited liability partnership")
   );
 };
 
@@ -38,6 +56,33 @@ export const isSpicePartBStepTitle = (title: string): boolean => {
   );
 };
 
+export const isAgileProSStepTitle = (title: string): boolean => {
+  const normalized = title.trim();
+  return (
+    normalized === AGILE_PRO_S_STEP_TITLE ||
+    normalized === CONSENT_FORM_9_PHYSICAL_TITLE
+  );
+};
+
+export const isIncFormsStepTitle = (title: string): boolean => {
+  const normalized = title.trim();
+  return (
+    normalized === INC_FORMS_STEP_TITLE || normalized === SUBSCRIBER_SHEET_TITLE
+  );
+};
+
+export const isConsentForm9DigitalStepTitle = (title: string): boolean =>
+  title.trim() === CONSENT_FORM_9_DIGITAL_TITLE;
+
+export const isConsentForm9PhysicalStepTitle = (title: string): boolean =>
+  isAgileProSStepTitle(title);
+
+export const isManualIndependentTrackerStep = (
+  title: string,
+  companyType?: string | null,
+): boolean =>
+  isLlpCompanyType(companyType) && isConsentForm9PhysicalStepTitle(title);
+
 export const getFormFilingProseLabel = (
   companyType?: string | null,
 ): string =>
@@ -52,6 +97,12 @@ export const getTrackerStepDisplayTitle = (
   }
   if (isLlpCompanyType(companyType) && isSpicePartBStepTitle(title)) {
     return FILLIP_FORM_TITLE;
+  }
+  if (isLlpCompanyType(companyType) && isAgileProSStepTitle(title)) {
+    return CONSENT_FORM_9_PHYSICAL_TITLE;
+  }
+  if (isLlpCompanyType(companyType) && isIncFormsStepTitle(title)) {
+    return SUBSCRIBER_SHEET_TITLE;
   }
   return title;
 };
@@ -74,6 +125,19 @@ export const getTrackerStepDisplayDescription = (
       description.trim() === SPICE_PART_B_STEP_CANONICAL_DESCRIPTION)
   ) {
     return FILLIP_FORM_DESCRIPTION;
+  }
+  if (isLlpCompanyType(companyType) && isConsentForm9DigitalStepTitle(stepTitle)) {
+    return CONSENT_FORM_9_DIGITAL_DESCRIPTION;
+  }
+  if (isLlpCompanyType(companyType) && isAgileProSStepTitle(stepTitle)) {
+    return CONSENT_FORM_9_PHYSICAL_DESCRIPTION;
+  }
+  if (
+    isLlpCompanyType(companyType) &&
+    (isIncFormsStepTitle(stepTitle) ||
+      description.trim() === INC_FORMS_STEP_DESCRIPTION)
+  ) {
+    return SUBSCRIBER_SHEET_DESCRIPTION;
   }
   return description;
 };
