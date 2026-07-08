@@ -438,6 +438,44 @@ export const clientsApi = {
     return response.data as Blob;
   },
 
+  getForm3Status: async (applicationNo: string) => {
+    try {
+      const response = await axiosInstance.get(
+        `/admin/clients/${applicationNo}/form3/status`,
+      );
+      return response.data?.data ?? response.data;
+    } catch {
+      return { status: "pending", adminFile: null };
+    }
+  },
+
+  uploadForm3Document: async (applicationNo: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/form3`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return response.data?.data ?? response.data;
+  },
+
+  downloadForm3Document: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/form3/download`,
+      {
+        responseType: "blob",
+      },
+    );
+    return response.data as Blob;
+  },
+
   getMcaQueryStatus: async (applicationNo: string) => {
     const response = await axiosInstance.get(
       `/admin/clients/${applicationNo}/mca-query/status`,
