@@ -83,7 +83,7 @@ const DEFAULT_LABELS: StakeholderLabels = {
   inc9Director: "INC-9",
   subscriberSheet: "Subscriber Sheet",
   formatEntityType: (raw) => raw,
-  cinLlpinLabel: "CIN / LLPIN",
+  cinLlpinLabel: "CIN",
   capitalDetailsLabel: "Capital Details",
   paidUpCapitalLabel: "Paid up Capital",
   showPaidUpCapital: true,

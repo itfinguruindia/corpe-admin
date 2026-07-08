@@ -15,6 +15,7 @@ import {
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { getFileType } from "@/utils/helpers";
+import { getStakeholderLabels } from "@/utils/companyTypeLabels";
 import { PanTanEmailDisclaimer } from "./PanTanEmailDisclaimer";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 import { FileUploadComponent } from "@/components/upload";
@@ -125,19 +126,25 @@ export default function RegistrationDocumentsContent({
       return;
     }
     if (!CIN_REGEX.test(cinInput)) {
-      setCinError("Please enter a valid CIN (e.g. L12345AB1234DEF123456)");
+      const registrationIdLabel = getStakeholderLabels(data?.companyType)
+        .cinLlpinLabel;
+      setCinError(
+        `Please enter a valid ${registrationIdLabel} (e.g. L12345AB1234DEF123456)`,
+      );
       return;
     }
     setCinError("");
     setIsCinEditable(false);
     try {
       await clientsApi.updateCinAndStatus(appNo, cinInput, companyStatus);
-      toast.success("CIN updated successfully!");
+      toast.success(
+        `${getStakeholderLabels(data?.companyType).cinLlpinLabel} updated successfully!`,
+      );
       loadData();
     } catch (error) {
       console.error("Failed to update CIN:", error);
       notifyApiError(error, {
-        fallback: "Failed to update CIN.",
+        fallback: `Failed to update ${getStakeholderLabels(data?.companyType).cinLlpinLabel}.`,
         actionLabel: "update registration details",
       });
     }
@@ -166,7 +173,7 @@ export default function RegistrationDocumentsContent({
   const canUploadRegistrationDoc = (docName: string) => {
     if (!data?.cin) {
       toast.warning(
-        "Please submit a valid CIN first to unlock document uploads.",
+        `Please submit a valid ${getStakeholderLabels(data?.companyType).cinLlpinLabel} first to unlock document uploads.`,
       );
       return false;
     }
@@ -319,6 +326,9 @@ export default function RegistrationDocumentsContent({
     );
   }
 
+  const labels = getStakeholderLabels(data.companyType);
+  const registrationIdLabel = labels.cinLlpinLabel;
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans p-6">
       <div className="max-w-full">
@@ -355,7 +365,7 @@ export default function RegistrationDocumentsContent({
                 toast.danger("Action locked. Installment payment is due.");
               } else if (!data?.cin) {
                 toast.warning(
-                  "Please submit a valid CIN first to unlock company status updates.",
+                  `Please submit a valid ${registrationIdLabel} first to unlock company status updates.`,
                 );
               }
             }}
@@ -376,16 +386,18 @@ export default function RegistrationDocumentsContent({
           </div>
           {!data?.cin && (
             <p className="mt-2 text-xs font-medium text-amber-600">
-              * Please enter and submit the CIN first to unlock company status
-              updates.
+              * Please enter and submit the {registrationIdLabel} first to unlock
+              company status updates.
             </p>
           )}
         </div>
 
-        {/* CIN Section */}
+        {/* CIN / LLPIN Section */}
         <div className="flex flex-col gap-y-4 border-b border-gray-200 pb-8">
           <div className="flex items-center">
-            <label className="text-lg font-bold text-black min-w-20">CIN</label>
+            <label className="text-lg font-bold text-black min-w-20">
+              {registrationIdLabel}
+            </label>
             <div className="flex items-center gap-4 flex-1 max-w-xl">
               <input
                 type="text"
@@ -397,7 +409,9 @@ export default function RegistrationDocumentsContent({
                 }}
                 className="disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#F46A45] focus:outline-none focus:ring-2 focus:ring-[#F46A45]/20 scheme-light"
                 placeholder={
-                  isLocked ? "Locked - installment due" : "Enter 21 digit CIN"
+                  isLocked
+                    ? "Locked - installment due"
+                    : `Enter 21 digit ${registrationIdLabel}`
                 }
               />
               <button
@@ -423,7 +437,7 @@ export default function RegistrationDocumentsContent({
                     ? "border-gray-200 text-gray-300 cursor-not-allowed"
                     : "text-primary border-[#F46A45] hover:bg-orange-50 cursor-pointer"
                 }`}
-                title={isLocked ? "Locked - installment due" : "Edit CIN"}
+                title={isLocked ? "Locked - installment due" : `Edit ${registrationIdLabel}`}
               >
                 <Edit size={18} />
               </button>
@@ -439,7 +453,8 @@ export default function RegistrationDocumentsContent({
         {/* Documents List */}
         <div className="space-y-0 max-w-5xl">
           {data.documents.map((doc) => {
-            const isEmailDeliveryDoc = doc.name === "PAN" || doc.name === "TAN";
+            const isEmailDeliveryDoc =
+              doc.name === "PAN" || doc.name === "TAN" || doc.name === "COI";
 
             return (
               <div
@@ -579,7 +594,7 @@ export default function RegistrationDocumentsContent({
                   if (!requireEdit()) return false;
                   if (!data?.cin) {
                     toast.warning(
-                      "Please submit a valid CIN first to unlock document uploads.",
+                      `Please submit a valid ${registrationIdLabel} first to unlock document uploads.`,
                     );
                     return false;
                   }
