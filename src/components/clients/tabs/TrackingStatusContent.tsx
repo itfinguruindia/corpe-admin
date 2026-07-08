@@ -28,6 +28,10 @@ import {
 import CustomSelect from "@/components/ui/CustomSelect";
 import { FileUploadComponent } from "@/components/upload";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
+import {
+  getTrackerStepDisplayTitle,
+  resolveTrackerStepLabels,
+} from "@/utils/trackerStepLabels";
 
 // Types matching updated backend application tracker
 interface TrackerNote {
@@ -551,6 +555,9 @@ export default function TrackingStatusContent({
     { id: "Rejected", label: "Rejected" },
   ];
 
+  const formatStepLabels = (step: TrackerStep) =>
+    resolveTrackerStepLabels(step.title, step.description, tracker.companyType);
+
   const allSteps: TrackerStep[] = [];
   const clientActionSteps: TrackerStep[] = [];
   tracker.stages.forEach((stage) => {
@@ -569,7 +576,7 @@ export default function TrackingStatusContent({
     .flatMap((step) =>
       step.notes.map((note) => ({
         ...note,
-        stepTitle: step.title,
+        stepTitle: getTrackerStepDisplayTitle(step.title, tracker.companyType),
       })),
     )
     .sort(
@@ -588,7 +595,7 @@ export default function TrackingStatusContent({
         .filter((step) => !step.isHidden)
         .map((step) => ({
           key: step._id,
-          label: `Stage ${stage.order} - ${step.title}`,
+          label: `Stage ${stage.order} - ${getTrackerStepDisplayTitle(step.title, tracker.companyType)}`,
         })),
     ),
   );
@@ -1153,7 +1160,7 @@ export default function TrackingStatusContent({
                                                   : ""
                                             }`}
                                           >
-                                            {step.title}
+                                            {formatStepLabels(step).title}
                                             {isRocStep &&
                                               step.rocQueryMetadata &&
                                               step.rocQueryMetadata
@@ -1195,7 +1202,7 @@ export default function TrackingStatusContent({
                                           )}
                                         </div>
                                         <p className="text-slate-500 text-sm mt-0.5">
-                                          {step.description}
+                                          {formatStepLabels(step).description}
                                         </p>
 
                                         {/* Extension Metadata - countdown + attempt history */}
@@ -2620,7 +2627,7 @@ export default function TrackingStatusContent({
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-slate-800 leading-tight">
-                          {step.title}
+                          {formatStepLabels(step).title}
                         </div>
                         <div className="text-xs text-slate-400 mt-0.5">
                           Status:{" "}

@@ -21,6 +21,7 @@ import { getFileType } from "@/utils/helpers";
 import type { NameStatus } from "@/types/company";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
+import { isRunFilingStepTitle } from "@/utils/trackerStepLabels";
 
 interface NameApplicationContentProps {
   appNo: string;
@@ -422,8 +423,8 @@ export default function NameApplicationContent({
                 (sec: any) =>
                   sec.label === "Object Clause & RUN Filing" || sec.order === 2,
               );
-              const partAStep = sectionB?.steps?.find(
-                (st: any) => st.title === "SPICe+ Part A filed on MCA",
+              const partAStep = sectionB?.steps?.find((st: any) =>
+                isRunFilingStepTitle(st.title),
               );
               setIsRocReviewed(partAStep?.status === "Done");
             }
