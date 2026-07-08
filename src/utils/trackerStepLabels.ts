@@ -4,6 +4,11 @@ export const RUN_LLP_NAME_RESERVATION_TITLE =
   "Run LLP - Name Reservation filed on MCA";
 export const RUN_LLP_NAME_RESERVATION_DESCRIPTION = "Run LLP - Name Reservation";
 
+export const SPICE_PART_B_STEP_CANONICAL_TITLE = "SPICe+ Part B form";
+export const SPICE_PART_B_STEP_CANONICAL_DESCRIPTION = "Form preparation & check";
+export const FILLIP_FORM_TITLE = "FiLLiP Form";
+export const FILLIP_FORM_DESCRIPTION = "Form preparation & check";
+
 export const isLlpCompanyType = (
   companyType: string | null | undefined,
 ): boolean => {
@@ -25,12 +30,28 @@ export const isRunFilingStepTitle = (title: string): boolean => {
   );
 };
 
+export const isSpicePartBStepTitle = (title: string): boolean => {
+  const normalized = title.trim();
+  return (
+    normalized === SPICE_PART_B_STEP_CANONICAL_TITLE ||
+    normalized === FILLIP_FORM_TITLE
+  );
+};
+
+export const getFormFilingProseLabel = (
+  companyType?: string | null,
+): string =>
+  isLlpCompanyType(companyType) ? "FiLLiP Form" : "SPICe+ Part B";
+
 export const getTrackerStepDisplayTitle = (
   title: string,
   companyType?: string | null,
 ): string => {
   if (isLlpCompanyType(companyType) && isRunFilingStepTitle(title)) {
     return RUN_LLP_NAME_RESERVATION_TITLE;
+  }
+  if (isLlpCompanyType(companyType) && isSpicePartBStepTitle(title)) {
+    return FILLIP_FORM_TITLE;
   }
   return title;
 };
@@ -46,6 +67,13 @@ export const getTrackerStepDisplayDescription = (
       description.trim() === RUN_FILING_STEP_CANONICAL_DESCRIPTION)
   ) {
     return RUN_LLP_NAME_RESERVATION_DESCRIPTION;
+  }
+  if (
+    isLlpCompanyType(companyType) &&
+    (isSpicePartBStepTitle(stepTitle) ||
+      description.trim() === SPICE_PART_B_STEP_CANONICAL_DESCRIPTION)
+  ) {
+    return FILLIP_FORM_DESCRIPTION;
   }
   return description;
 };

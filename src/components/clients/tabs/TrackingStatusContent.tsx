@@ -29,6 +29,7 @@ import CustomSelect from "@/components/ui/CustomSelect";
 import { FileUploadComponent } from "@/components/upload";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import {
+  getFormFilingProseLabel,
   getTrackerStepDisplayTitle,
   resolveTrackerStepLabels,
 } from "@/utils/trackerStepLabels";
@@ -557,6 +558,7 @@ export default function TrackingStatusContent({
 
   const formatStepLabels = (step: TrackerStep) =>
     resolveTrackerStepLabels(step.title, step.description, tracker.companyType);
+  const formFilingLabel = getFormFilingProseLabel(tracker.companyType);
 
   const allSteps: TrackerStep[] = [];
   const clientActionSteps: TrackerStep[] = [];
@@ -779,7 +781,7 @@ export default function TrackingStatusContent({
                       Application Restart Required
                     </p>
                     <p className="text-xs text-red-700 leading-relaxed font-medium max-w-2xl">
-                      Both name extension payments were missed and SPICe+ Part B
+                      Both name extension payments were missed and {formFilingLabel}
                       was not filed within 20 days - the current MCA name
                       reservation has lapsed.
                     </p>
@@ -845,7 +847,7 @@ export default function TrackingStatusContent({
                     }`}
                   >
                     {extensionStatus.overallStatus === "monitoring" &&
-                      "Name Hold Monitoring - SPICe+ Part B pending"}
+                      `Name Hold Monitoring - ${formFilingLabel} pending`}
                     {extensionStatus.overallStatus === "countdown" &&
                       `Name Hold Expiring - Attempt ${extensionStatus.currentAttempt}`}
                     {extensionStatus.overallStatus === "expired_today" &&
