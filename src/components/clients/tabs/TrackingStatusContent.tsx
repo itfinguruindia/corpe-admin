@@ -88,6 +88,8 @@ interface InstallmentInfo {
   firstInstallmentPaid: boolean;
   secondInstallmentDue: boolean;
   secondInstallmentPaid: boolean;
+  paymentLinkStage4Sent: boolean;
+  paymentLinkStage6Sent: boolean;
 }
 
 interface TrackerData {
@@ -677,9 +679,9 @@ export default function TrackingStatusContent({
 
         {/* Installment Payment Warning Banners */}
         {tracker.installmentInfo?.firstInstallmentDue && (
-          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center gap-3 shadow-sm">
-            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-            <div>
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
               <p className="text-sm font-bold text-amber-900">
                 1st Installment Payment Required
               </p>
@@ -687,34 +689,62 @@ export default function TrackingStatusContent({
                 The Digital Signature Certificate (DSC) section in Stage 2 and
                 all of Stages 3 &amp; 4 are locked until the client pays the 1st
                 Installment.
-                <a
-                  href={`/clients/${appNo}/pricing-and-payment`}
-                  className="underline font-semibold ml-1"
+              </p>
+              <div className="flex items-center gap-3 mt-2">
+                <button
+                  onClick={() =>
+                    router.push(`/clients/${appNo}?tab=pricing-and-payment`)
+                  }
+                  className="text-xs font-semibold text-amber-800 bg-amber-200/70 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-none"
                 >
                   Go to Pricing &amp; Payment
-                </a>
-              </p>
+                </button>
+                <span
+                  className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage4Sent ? "text-green-700" : "text-amber-600"}`}
+                >
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage4Sent ? "bg-green-500" : "bg-amber-400"}`}
+                  />
+                  {tracker.installmentInfo.paymentLinkStage4Sent
+                    ? "Payment link sent to client"
+                    : "Payment link not generated yet"}
+                </span>
+              </div>
             </div>
           </div>
         )}
 
         {tracker.installmentInfo?.secondInstallmentDue && (
-          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center gap-3 shadow-sm">
-            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-            <div>
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
               <p className="text-sm font-bold text-amber-900">
                 2nd Installment Payment Required
               </p>
               <p className="text-xs text-amber-700 mt-0.5">
                 Stages 3 &amp; 4 are locked until the client pays the 2nd
                 Installment.
-                <a
-                  href={`/clients/${appNo}/pricing-and-payment`}
-                  className="underline font-semibold ml-1"
+              </p>
+              <div className="flex items-center gap-3 mt-2">
+                <button
+                  onClick={() =>
+                    router.push(`/clients/${appNo}?tab=pricing-and-payment`)
+                  }
+                  className="text-xs font-semibold text-amber-800 bg-amber-200/70 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-none"
                 >
                   Go to Pricing &amp; Payment
-                </a>
-              </p>
+                </button>
+                <span
+                  className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage6Sent ? "text-green-700" : "text-amber-600"}`}
+                >
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage6Sent ? "bg-green-500" : "bg-amber-400"}`}
+                  />
+                  {tracker.installmentInfo.paymentLinkStage6Sent
+                    ? "Payment link sent to client"
+                    : "Payment link not generated yet"}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -781,7 +811,8 @@ export default function TrackingStatusContent({
                       Application Restart Required
                     </p>
                     <p className="text-xs text-red-700 leading-relaxed font-medium max-w-2xl">
-                      Both name extension payments were missed and {formFilingLabel}
+                      Both name extension payments were missed and{" "}
+                      {formFilingLabel}
                       was not filed within 20 days - the current MCA name
                       reservation has lapsed.
                     </p>
@@ -833,75 +864,91 @@ export default function TrackingStatusContent({
                   </div>
                 </div>
               ) : (
-                <div className="flex-1">
-                  <p
-                    className={`text-sm font-bold ${
-                      extensionStatus.overallStatus === "expired" ||
-                      extensionStatus.overallStatus === "expired_today" ||
-                      extensionStatus.overallStatus === "expired_past"
-                        ? "text-red-900"
-                        : extensionStatus.overallStatus === "paid" ||
-                            extensionStatus.overallStatus === "in_progress"
-                          ? "text-blue-900"
-                          : "text-amber-900"
-                    }`}
-                  >
-                    {extensionStatus.overallStatus === "monitoring" &&
-                      `Name Hold Monitoring - ${formFilingLabel} pending`}
-                    {extensionStatus.overallStatus === "countdown" &&
-                      `Name Hold Expiring - Attempt ${extensionStatus.currentAttempt}`}
-                    {extensionStatus.overallStatus === "expired_today" &&
-                      `Name Hold Expired Today - Attempt ${extensionStatus.currentAttempt}`}
-                    {extensionStatus.overallStatus === "pay_now" &&
-                      `Payment Required - Name Extension Attempt ${extensionStatus.currentAttempt}`}
-                    {extensionStatus.overallStatus === "paid" &&
-                      "Name Extension - Payment Received"}
-                    {extensionStatus.overallStatus === "in_progress" &&
-                      "Name Extension - MCA Processing"}
-                    {extensionStatus.overallStatus === "expired" &&
-                      "Name Extension Expired"}
-                  </p>
-                  <p
-                    className={`text-xs mt-0.5 ${
-                      extensionStatus.overallStatus === "expired" ||
-                      extensionStatus.overallStatus === "expired_today" ||
-                      extensionStatus.overallStatus === "expired_past"
-                        ? "text-red-700"
-                        : extensionStatus.overallStatus === "paid" ||
-                            extensionStatus.overallStatus === "in_progress"
-                          ? "text-blue-700"
-                          : "text-amber-700"
-                    }`}
-                  >
-                    {extensionStatus.overallStatus === "monitoring" &&
-                      "Monitoring 20-day window. Name extension will activate at 5 days remaining."}
-                    {extensionStatus.overallStatus === "countdown" &&
-                      (() => {
-                        const attempt = extensionStatus.attempts?.find(
-                          (a: any) =>
-                            a.attemptNumber === extensionStatus.currentAttempt,
-                        );
-                        const amount =
-                          attempt?.amount ??
-                          (extensionStatus.currentAttempt === 1 ? 1000 : 2000);
-                        const currency = extensionStatus.currency || "INR";
-                        const formatted =
-                          currency === "USD"
-                            ? `$${amount}`
-                            : `₹${amount.toLocaleString("en-IN")}`;
-                        return `Attempt ${extensionStatus.currentAttempt} - ${formatted} fee required before expiry.`;
-                      })()}
-                    {extensionStatus.overallStatus === "expired_today" &&
-                      "Today is the last day to complete the extension payment."}
-                    {extensionStatus.overallStatus === "pay_now" &&
-                      `Client can pay now. Send payment link or wait for auto-enable.`}
-                    {extensionStatus.overallStatus === "paid" &&
-                      "Payment confirmed. Admin can mark the extension step as Done after MCA processing."}
-                    {extensionStatus.overallStatus === "in_progress" &&
-                      "Admin is working on MCA portal to extend the name hold."}
-                    {extensionStatus.overallStatus === "expired" &&
-                      "Extension window lapsed. Contact client to discuss next steps."}
-                  </p>
+                <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div>
+                    <p
+                      className={`text-sm font-bold ${
+                        extensionStatus.overallStatus === "expired" ||
+                        extensionStatus.overallStatus === "expired_today" ||
+                        extensionStatus.overallStatus === "expired_past"
+                          ? "text-red-900"
+                          : extensionStatus.overallStatus === "paid" ||
+                              extensionStatus.overallStatus === "in_progress"
+                            ? "text-blue-900"
+                            : "text-amber-900"
+                      }`}
+                    >
+                      {extensionStatus.overallStatus === "monitoring" &&
+                        `Name Hold Monitoring - ${formFilingLabel} pending`}
+                      {extensionStatus.overallStatus === "countdown" &&
+                        `Name Hold Expiring - Attempt ${extensionStatus.currentAttempt}`}
+                      {extensionStatus.overallStatus === "expired_today" &&
+                        `Name Hold Expired Today - Attempt ${extensionStatus.currentAttempt}`}
+                      {extensionStatus.overallStatus === "pay_now" &&
+                        `Payment Required - Name Extension Attempt ${extensionStatus.currentAttempt}`}
+                      {extensionStatus.overallStatus === "paid" &&
+                        "Name Extension - Payment Received"}
+                      {extensionStatus.overallStatus === "in_progress" &&
+                        "Name Extension - MCA Processing"}
+                      {extensionStatus.overallStatus === "expired" &&
+                        "Name Extension Expired"}
+                    </p>
+                    <p
+                      className={`text-xs mt-0.5 ${
+                        extensionStatus.overallStatus === "expired" ||
+                        extensionStatus.overallStatus === "expired_today" ||
+                        extensionStatus.overallStatus === "expired_past"
+                          ? "text-red-700"
+                          : extensionStatus.overallStatus === "paid" ||
+                              extensionStatus.overallStatus === "in_progress"
+                            ? "text-blue-700"
+                            : "text-amber-700"
+                      }`}
+                    >
+                      {extensionStatus.overallStatus === "monitoring" &&
+                        "Monitoring 20-day window. Name extension will activate at 5 days remaining."}
+                      {extensionStatus.overallStatus === "countdown" &&
+                        (() => {
+                          const attempt = extensionStatus.attempts?.find(
+                            (a: any) =>
+                              a.attemptNumber ===
+                              extensionStatus.currentAttempt,
+                          );
+                          const amount =
+                            attempt?.amount ??
+                            (extensionStatus.currentAttempt === 1
+                              ? 1000
+                              : 2000);
+                          const currency = extensionStatus.currency || "INR";
+                          const formatted =
+                            currency === "USD"
+                              ? `$${amount}`
+                              : `₹${amount.toLocaleString("en-IN")}`;
+                          return `Attempt ${extensionStatus.currentAttempt} - ${formatted} fee required before expiry.`;
+                        })()}
+                      {extensionStatus.overallStatus === "expired_today" &&
+                        "Today is the last day to complete the extension payment."}
+                      {extensionStatus.overallStatus === "pay_now" &&
+                        `Client can pay now. Send payment link or wait for auto-enable.`}
+                      {extensionStatus.overallStatus === "paid" &&
+                        "Payment confirmed. Admin can mark the extension step as Done after MCA processing."}
+                      {extensionStatus.overallStatus === "in_progress" &&
+                        "Admin is working on MCA portal to extend the name hold."}
+                      {extensionStatus.overallStatus === "expired" &&
+                        "Extension window lapsed. Contact client to discuss next steps."}
+                    </p>
+                  </div>
+                  {extensionStatus.overallStatus === "countdown" &&
+                    extTimeLeft && (
+                      <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-amber-200 shrink-0 font-sans shadow-xs">
+                        <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">
+                          Expires In
+                        </span>
+                        <span className="font-mono text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded border border-[#FAC775]">
+                          {extTimeLeft}
+                        </span>
+                      </div>
+                    )}
                 </div>
               )}
             </div>
@@ -1252,22 +1299,6 @@ export default function TrackingStatusContent({
                                                   restart required
                                                 </span>
                                               </div>
-                                            ) : extTimeLeft ? (
-                                              <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 shadow-sm">
-                                                <div className="flex items-center justify-between">
-                                                  <span className="text-[10px] font-semibold text-amber-800 uppercase tracking-wider">
-                                                    Name Hold Expires In
-                                                  </span>
-                                                  <span className="font-mono text-xs font-bold text-amber-600 bg-white border border-amber-100 px-2.5 py-1 rounded-lg">
-                                                    {extTimeLeft}
-                                                  </span>
-                                                </div>
-                                                <p className="text-[10px] text-gray-500 mt-1">
-                                                  Payment must be completed
-                                                  before expiry to prevent name
-                                                  loss.
-                                                </p>
-                                              </div>
                                             ) : null}
                                             {/* Attempt history chips */}
                                             <div className="flex flex-wrap gap-2">
@@ -1459,13 +1490,16 @@ export default function TrackingStatusContent({
 
                                                   <div className="space-y-1">
                                                     <label className="block text-xs font-semibold text-slate-600">
-                                                      Rejection Document (optional)
+                                                      Rejection Document
+                                                      (optional)
                                                     </label>
                                                     <div className="flex flex-wrap items-center gap-2">
                                                       <FileUploadComponent
                                                         context="clients"
                                                         allowedFileTypes=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                                                        enableExistingDocuments={false}
+                                                        enableExistingDocuments={
+                                                          false
+                                                        }
                                                         title="Attach rejection document"
                                                         subtitle="Upload from your computer or import from Google Drive."
                                                         onFileSelect={(file) =>
@@ -1510,22 +1544,25 @@ export default function TrackingStatusContent({
                                                             true,
                                                           );
                                                           await clientsApi.rejectRocQuery(
-                                                             tracker!.org._id,
-                                                             rejCategory,
-                                                             rejReason,
-                                                             rejInternalNote,
-                                                             rejectionFile || undefined,
-                                                           );
-                                                           setRocRejectionStepId(
-                                                             "",
-                                                           );
-                                                           setRejCategory("");
-                                                           setRejReason("");
-                                                           setRejInternalNote(
-                                                             "",
-                                                           );
-                                                           setRejectionFile(null);
-                                                           loadData();
+                                                            tracker!.org._id,
+                                                            rejCategory,
+                                                            rejReason,
+                                                            rejInternalNote,
+                                                            rejectionFile ||
+                                                              undefined,
+                                                          );
+                                                          setRocRejectionStepId(
+                                                            "",
+                                                          );
+                                                          setRejCategory("");
+                                                          setRejReason("");
+                                                          setRejInternalNote(
+                                                            "",
+                                                          );
+                                                          setRejectionFile(
+                                                            null,
+                                                          );
+                                                          loadData();
                                                         } catch (err: any) {
                                                           alert(
                                                             err.message ||
@@ -1775,9 +1812,9 @@ export default function TrackingStatusContent({
                                                             alert(
                                                               "New application created successfully!",
                                                             );
-                                                             router.push(
-                                                               `/clients/${res.applicationNo}?tab=tracking-status`,
-                                                             );
+                                                            router.push(
+                                                              `/clients/${res.applicationNo}?tab=tracking-status`,
+                                                            );
                                                           } catch (err: any) {
                                                             alert(
                                                               err.message ||
@@ -2057,23 +2094,34 @@ export default function TrackingStatusContent({
                                                                 Document
                                                                 attached:
                                                               </span>
-                                                               <span
-                                                                 onClick={async () => {
-                                                                   try {
-                                                                     const blob = await clientsApi.downloadRocQueryResponse(appNo);
-                                                                     const blobUrl = window.URL.createObjectURL(blob);
-                                                                     window.open(blobUrl, "_blank");
-                                                                   } catch {
-                                                                     alert("Failed to download document");
-                                                                   }
-                                                                 }}
-                                                                 className="text-blue-600 underline font-medium hover:text-blue-700 cursor-pointer"
-                                                               >
-                                                                 {step
-                                                                   .rocQueryMetadata
-                                                                   ?.clientDocumentName ||
-                                                                   "Download document"}
-                                                               </span>
+                                                              <span
+                                                                onClick={async () => {
+                                                                  try {
+                                                                    const blob =
+                                                                      await clientsApi.downloadRocQueryResponse(
+                                                                        appNo,
+                                                                      );
+                                                                    const blobUrl =
+                                                                      window.URL.createObjectURL(
+                                                                        blob,
+                                                                      );
+                                                                    window.open(
+                                                                      blobUrl,
+                                                                      "_blank",
+                                                                    );
+                                                                  } catch {
+                                                                    alert(
+                                                                      "Failed to download document",
+                                                                    );
+                                                                  }
+                                                                }}
+                                                                className="text-blue-600 underline font-medium hover:text-blue-700 cursor-pointer"
+                                                              >
+                                                                {step
+                                                                  .rocQueryMetadata
+                                                                  ?.clientDocumentName ||
+                                                                  "Download document"}
+                                                              </span>
                                                             </>
                                                           ) : (
                                                             <>
