@@ -77,11 +77,11 @@ function getTabLabel(
   key: TabKey,
   defaultLabel: string,
   labels: ReturnType<typeof useClientCompanyLabels>["labels"],
-  isOpc: boolean,
+  isMoaAoaExcluded: boolean,
 ) {
   if (key === "directors") return labels.directorsTab;
   if (key === "shareholders") return labels.shareholdersTab;
-  if (key === "moa-aoa" && isOpc) return "Documents";
+  if (key === "moa-aoa" && isMoaAoaExcluded) return "Documents";
   return defaultLabel;
 }
 
@@ -90,7 +90,7 @@ function ClientDetailsTabs() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { labels, isLlp, isOpc } = useClientCompanyLabels();
+  const { labels, isLlp, isMoaAoaExcluded } = useClientCompanyLabels();
   const appNoStr = appNo ? String(appNo) : "";
   const [llpAgreementStatus, setLlpAgreementStatus] =
     React.useState<LlpAgreementStatus | null>(null);
@@ -226,7 +226,7 @@ function ClientDetailsTabs() {
             {visibleTabs.map((t, idx) => (
               <Tabs.Tab key={t.key} id={t.key} className="w-max">
                 {idx > 0 && <Tabs.Separator />}
-                <span className="w-max">{getTabLabel(t.key, t.label, labels, isOpc)}</span>
+                <span className="w-max">{getTabLabel(t.key, t.label, labels, isMoaAoaExcluded)}</span>
                 <Tabs.Indicator className="bg-primary" />
               </Tabs.Tab>
             ))}

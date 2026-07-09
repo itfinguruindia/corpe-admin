@@ -57,6 +57,23 @@ export const isOpcCompanyType = (
   );
 };
 
+export const isPvtIndividualCompanyType = (
+  companyType: string | null | undefined,
+): boolean => {
+  if (!companyType) return false;
+  const normalized = companyType.toLowerCase().trim();
+  return (
+    normalized === "pvt-individual" ||
+    normalized === "private company with individual shareholders" ||
+    normalized === "private limited company – individual shareholding"
+  );
+};
+
+export const isMoaAoaExcludedCompanyType = (
+  companyType: string | null | undefined,
+): boolean =>
+  isOpcCompanyType(companyType) || isPvtIndividualCompanyType(companyType);
+
 export const isAllDocumentsDeliveredStepTitle = (title: string): boolean =>
   title.trim() === ALL_DOCUMENTS_DELIVERED_TITLE;
 
@@ -161,7 +178,7 @@ export const getTrackerStepDisplayDescription = (
     return SUBSCRIBER_SHEET_DESCRIPTION;
   }
   if (
-    isOpcCompanyType(companyType) &&
+    isMoaAoaExcludedCompanyType(companyType) &&
     isAllDocumentsDeliveredStepTitle(stepTitle)
   ) {
     return ALL_DOCUMENTS_DELIVERED_OPC_DESCRIPTION;

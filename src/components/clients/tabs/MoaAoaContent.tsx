@@ -87,18 +87,21 @@ const CONSENT_SECTION: DocumentSection = {
 
 export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
   const { requireEdit } = useClientTabEdit("moa");
-  const { isOpc, labels } = useClientCompanyLabels();
+  const { isOpc, isMoaAoaExcluded, labels } = useClientCompanyLabels();
   const initialSections = useMemo(() => {
-    if (!isOpc) return BASE_SECTIONS;
+    if (!isMoaAoaExcluded) return BASE_SECTIONS;
     const miscSections = BASE_SECTIONS.filter((section) => section.kind === "misc");
-    return [
-      {
-        ...CONSENT_SECTION,
-        label: labels.consentToAct || CONSENT_SECTION.label,
-      },
-      ...miscSections,
-    ];
-  }, [isOpc, labels.consentToAct]);
+    if (isOpc) {
+      return [
+        {
+          ...CONSENT_SECTION,
+          label: labels.consentToAct || CONSENT_SECTION.label,
+        },
+        ...miscSections,
+      ];
+    }
+    return miscSections;
+  }, [isMoaAoaExcluded, isOpc, labels.consentToAct]);
 
   const [sections, setSections] = useState<DocumentSection[]>(initialSections);
   const [isLoading, setIsLoading] = useState(true);
@@ -483,7 +486,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <div className="inline-block px-6 py-3 rounded-lg bg-linear-to-br from-white to-orange-100 text-secondary shadow-md font-medium">
-            {isOpc ? "Company Documents" : "MOA & AOA"}
+            {isMoaAoaExcluded ? "Company Documents" : "MOA & AOA"}
           </div>
         </div>
 

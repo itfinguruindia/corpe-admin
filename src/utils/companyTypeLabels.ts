@@ -22,6 +22,27 @@ export function isOpcCompanyType(
   );
 }
 
+export function isPvtIndividualCompanyType(
+  companyType: string | null | undefined,
+): boolean {
+  if (!companyType) return false;
+  const normalized = companyType.toLowerCase().trim();
+  return (
+    normalized === "pvt-individual" ||
+    normalized === "private company with individual shareholders" ||
+    normalized === "private limited company – individual shareholding"
+  );
+}
+
+/** Company types that do not use MOA/AOA (tracker, uploads, admin/client doc UI). */
+export function isMoaAoaExcludedCompanyType(
+  companyType: string | null | undefined,
+): boolean {
+  return (
+    isOpcCompanyType(companyType) || isPvtIndividualCompanyType(companyType)
+  );
+}
+
 export type StakeholderLabels = {
   director: string;
   directors: string;
