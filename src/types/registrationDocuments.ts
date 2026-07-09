@@ -21,12 +21,25 @@ export interface LlpAgreementStatus {
   adminFile?: {
     name: string;
     path: string;
+    uploadedAt?: string | null;
     uploadedBy: string;
   } | null;
   clientFile?: {
     name: string;
     path: string;
     uploadedAt?: string;
+    uploadedBy: string;
+  } | null;
+  downloadAvailable?: boolean;
+  downloadedByClient?: boolean;
+}
+
+export interface Form3Status {
+  status: "pending" | "uploaded";
+  adminFile?: {
+    name: string;
+    path: string;
+    uploadedAt?: string | null;
     uploadedBy: string;
   } | null;
   downloadAvailable?: boolean;

@@ -32,7 +32,7 @@ export function PanTanEmailDisclaimer({
       This document is delivered directly to the client&apos;s company email
       from Corporate Structure:{" "}
       <strong className="text-[#F46A45]">{trimmedEmail}</strong>. Upload and
-      download are not required for PAN/TAN on this portal.
+      download are not required for PAN, TAN, or COI on this portal.
     </>
   ) : (
     <>

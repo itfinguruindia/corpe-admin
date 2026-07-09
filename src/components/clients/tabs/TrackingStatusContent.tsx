@@ -28,6 +28,11 @@ import {
 import CustomSelect from "@/components/ui/CustomSelect";
 import { FileUploadComponent } from "@/components/upload";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
+import {
+  getFormFilingProseLabel,
+  getTrackerStepDisplayTitle,
+  resolveTrackerStepLabels,
+} from "@/utils/trackerStepLabels";
 
 // Types matching updated backend application tracker
 interface TrackerNote {
@@ -553,6 +558,10 @@ export default function TrackingStatusContent({
     { id: "Rejected", label: "Rejected" },
   ];
 
+  const formatStepLabels = (step: TrackerStep) =>
+    resolveTrackerStepLabels(step.title, step.description, tracker.companyType);
+  const formFilingLabel = getFormFilingProseLabel(tracker.companyType);
+
   const allSteps: TrackerStep[] = [];
   const clientActionSteps: TrackerStep[] = [];
   tracker.stages.forEach((stage) => {
@@ -571,7 +580,7 @@ export default function TrackingStatusContent({
     .flatMap((step) =>
       step.notes.map((note) => ({
         ...note,
-        stepTitle: step.title,
+        stepTitle: getTrackerStepDisplayTitle(step.title, tracker.companyType),
       })),
     )
     .sort(
@@ -590,7 +599,7 @@ export default function TrackingStatusContent({
         .filter((step) => !step.isHidden)
         .map((step) => ({
           key: step._id,
-          label: `Stage ${stage.order} - ${step.title}`,
+          label: `Stage ${stage.order} - ${getTrackerStepDisplayTitle(step.title, tracker.companyType)}`,
         })),
     ),
   );
@@ -683,13 +692,19 @@ export default function TrackingStatusContent({
               </p>
               <div className="flex items-center gap-3 mt-2">
                 <button
-                  onClick={() => router.push(`/clients/${appNo}?tab=pricing-and-payment`)}
+                  onClick={() =>
+                    router.push(`/clients/${appNo}?tab=pricing-and-payment`)
+                  }
                   className="text-xs font-semibold text-amber-800 bg-amber-200/70 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-none"
                 >
                   Go to Pricing &amp; Payment
                 </button>
-                <span className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage4Sent ? "text-green-700" : "text-amber-600"}`}>
-                  <span className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage4Sent ? "bg-green-500" : "bg-amber-400"}`} />
+                <span
+                  className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage4Sent ? "text-green-700" : "text-amber-600"}`}
+                >
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage4Sent ? "bg-green-500" : "bg-amber-400"}`}
+                  />
                   {tracker.installmentInfo.paymentLinkStage4Sent
                     ? "Payment link sent to client"
                     : "Payment link not generated yet"}
@@ -712,13 +727,19 @@ export default function TrackingStatusContent({
               </p>
               <div className="flex items-center gap-3 mt-2">
                 <button
-                  onClick={() => router.push(`/clients/${appNo}?tab=pricing-and-payment`)}
+                  onClick={() =>
+                    router.push(`/clients/${appNo}?tab=pricing-and-payment`)
+                  }
                   className="text-xs font-semibold text-amber-800 bg-amber-200/70 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-none"
                 >
                   Go to Pricing &amp; Payment
                 </button>
-                <span className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage6Sent ? "text-green-700" : "text-amber-600"}`}>
-                  <span className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage6Sent ? "bg-green-500" : "bg-amber-400"}`} />
+                <span
+                  className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage6Sent ? "text-green-700" : "text-amber-600"}`}
+                >
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage6Sent ? "bg-green-500" : "bg-amber-400"}`}
+                  />
                   {tracker.installmentInfo.paymentLinkStage6Sent
                     ? "Payment link sent to client"
                     : "Payment link not generated yet"}
@@ -790,7 +811,8 @@ export default function TrackingStatusContent({
                       Application Restart Required
                     </p>
                     <p className="text-xs text-red-700 leading-relaxed font-medium max-w-2xl">
-                      Both name extension payments were missed and SPICe+ Part B
+                      Both name extension payments were missed and{" "}
+                      {formFilingLabel}
                       was not filed within 20 days - the current MCA name
                       reservation has lapsed.
                     </p>
@@ -857,7 +879,7 @@ export default function TrackingStatusContent({
                       }`}
                     >
                       {extensionStatus.overallStatus === "monitoring" &&
-                        "Name Hold Monitoring - SPICe+ Part B pending"}
+                        `Name Hold Monitoring - ${formFilingLabel} pending`}
                       {extensionStatus.overallStatus === "countdown" &&
                         `Name Hold Expiring - Attempt ${extensionStatus.currentAttempt}`}
                       {extensionStatus.overallStatus === "expired_today" &&
@@ -889,11 +911,14 @@ export default function TrackingStatusContent({
                         (() => {
                           const attempt = extensionStatus.attempts?.find(
                             (a: any) =>
-                              a.attemptNumber === extensionStatus.currentAttempt,
+                              a.attemptNumber ===
+                              extensionStatus.currentAttempt,
                           );
                           const amount =
                             attempt?.amount ??
-                            (extensionStatus.currentAttempt === 1 ? 1000 : 2000);
+                            (extensionStatus.currentAttempt === 1
+                              ? 1000
+                              : 2000);
                           const currency = extensionStatus.currency || "INR";
                           const formatted =
                             currency === "USD"
@@ -913,16 +938,17 @@ export default function TrackingStatusContent({
                         "Extension window lapsed. Contact client to discuss next steps."}
                     </p>
                   </div>
-                  {extensionStatus.overallStatus === "countdown" && extTimeLeft && (
-                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-amber-200 shrink-0 font-sans shadow-xs">
-                      <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">
-                        Expires In
-                      </span>
-                      <span className="font-mono text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded border border-[#FAC775]">
-                        {extTimeLeft}
-                      </span>
-                    </div>
-                  )}
+                  {extensionStatus.overallStatus === "countdown" &&
+                    extTimeLeft && (
+                      <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-amber-200 shrink-0 font-sans shadow-xs">
+                        <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider">
+                          Expires In
+                        </span>
+                        <span className="font-mono text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded border border-[#FAC775]">
+                          {extTimeLeft}
+                        </span>
+                      </div>
+                    )}
                 </div>
               )}
             </div>
@@ -1183,7 +1209,7 @@ export default function TrackingStatusContent({
                                                   : ""
                                             }`}
                                           >
-                                            {step.title}
+                                            {formatStepLabels(step).title}
                                             {isRocStep &&
                                               step.rocQueryMetadata &&
                                               step.rocQueryMetadata
@@ -1225,7 +1251,7 @@ export default function TrackingStatusContent({
                                           )}
                                         </div>
                                         <p className="text-slate-500 text-sm mt-0.5">
-                                          {step.description}
+                                          {formatStepLabels(step).description}
                                         </p>
 
                                         {/* Extension Metadata - countdown + attempt history */}
@@ -1464,13 +1490,16 @@ export default function TrackingStatusContent({
 
                                                   <div className="space-y-1">
                                                     <label className="block text-xs font-semibold text-slate-600">
-                                                      Rejection Document (optional)
+                                                      Rejection Document
+                                                      (optional)
                                                     </label>
                                                     <div className="flex flex-wrap items-center gap-2">
                                                       <FileUploadComponent
                                                         context="clients"
                                                         allowedFileTypes=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                                                        enableExistingDocuments={false}
+                                                        enableExistingDocuments={
+                                                          false
+                                                        }
                                                         title="Attach rejection document"
                                                         subtitle="Upload from your computer or import from Google Drive."
                                                         onFileSelect={(file) =>
@@ -1515,22 +1544,25 @@ export default function TrackingStatusContent({
                                                             true,
                                                           );
                                                           await clientsApi.rejectRocQuery(
-                                                             tracker!.org._id,
-                                                             rejCategory,
-                                                             rejReason,
-                                                             rejInternalNote,
-                                                             rejectionFile || undefined,
-                                                           );
-                                                           setRocRejectionStepId(
-                                                             "",
-                                                           );
-                                                           setRejCategory("");
-                                                           setRejReason("");
-                                                           setRejInternalNote(
-                                                             "",
-                                                           );
-                                                           setRejectionFile(null);
-                                                           loadData();
+                                                            tracker!.org._id,
+                                                            rejCategory,
+                                                            rejReason,
+                                                            rejInternalNote,
+                                                            rejectionFile ||
+                                                              undefined,
+                                                          );
+                                                          setRocRejectionStepId(
+                                                            "",
+                                                          );
+                                                          setRejCategory("");
+                                                          setRejReason("");
+                                                          setRejInternalNote(
+                                                            "",
+                                                          );
+                                                          setRejectionFile(
+                                                            null,
+                                                          );
+                                                          loadData();
                                                         } catch (err: any) {
                                                           alert(
                                                             err.message ||
@@ -1780,9 +1812,9 @@ export default function TrackingStatusContent({
                                                             alert(
                                                               "New application created successfully!",
                                                             );
-                                                             router.push(
-                                                               `/clients/${res.applicationNo}?tab=tracking-status`,
-                                                             );
+                                                            router.push(
+                                                              `/clients/${res.applicationNo}?tab=tracking-status`,
+                                                            );
                                                           } catch (err: any) {
                                                             alert(
                                                               err.message ||
@@ -2062,23 +2094,34 @@ export default function TrackingStatusContent({
                                                                 Document
                                                                 attached:
                                                               </span>
-                                                               <span
-                                                                 onClick={async () => {
-                                                                   try {
-                                                                     const blob = await clientsApi.downloadRocQueryResponse(appNo);
-                                                                     const blobUrl = window.URL.createObjectURL(blob);
-                                                                     window.open(blobUrl, "_blank");
-                                                                   } catch {
-                                                                     alert("Failed to download document");
-                                                                   }
-                                                                 }}
-                                                                 className="text-blue-600 underline font-medium hover:text-blue-700 cursor-pointer"
-                                                               >
-                                                                 {step
-                                                                   .rocQueryMetadata
-                                                                   ?.clientDocumentName ||
-                                                                   "Download document"}
-                                                               </span>
+                                                              <span
+                                                                onClick={async () => {
+                                                                  try {
+                                                                    const blob =
+                                                                      await clientsApi.downloadRocQueryResponse(
+                                                                        appNo,
+                                                                      );
+                                                                    const blobUrl =
+                                                                      window.URL.createObjectURL(
+                                                                        blob,
+                                                                      );
+                                                                    window.open(
+                                                                      blobUrl,
+                                                                      "_blank",
+                                                                    );
+                                                                  } catch {
+                                                                    alert(
+                                                                      "Failed to download document",
+                                                                    );
+                                                                  }
+                                                                }}
+                                                                className="text-blue-600 underline font-medium hover:text-blue-700 cursor-pointer"
+                                                              >
+                                                                {step
+                                                                  .rocQueryMetadata
+                                                                  ?.clientDocumentName ||
+                                                                  "Download document"}
+                                                              </span>
                                                             </>
                                                           ) : (
                                                             <>
@@ -2634,7 +2677,7 @@ export default function TrackingStatusContent({
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-slate-800 leading-tight">
-                          {step.title}
+                          {formatStepLabels(step).title}
                         </div>
                         <div className="text-xs text-slate-400 mt-0.5">
                           Status:{" "}
