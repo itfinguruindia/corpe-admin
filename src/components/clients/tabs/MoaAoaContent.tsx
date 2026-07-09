@@ -90,12 +90,13 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
   const { isOpc, labels } = useClientCompanyLabels();
   const initialSections = useMemo(() => {
     if (!isOpc) return BASE_SECTIONS;
+    const miscSections = BASE_SECTIONS.filter((section) => section.kind === "misc");
     return [
       {
         ...CONSENT_SECTION,
         label: labels.consentToAct || CONSENT_SECTION.label,
       },
-      ...BASE_SECTIONS,
+      ...miscSections,
     ];
   }, [isOpc, labels.consentToAct]);
 
@@ -482,7 +483,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <div className="inline-block px-6 py-3 rounded-lg bg-linear-to-br from-white to-orange-100 text-secondary shadow-md font-medium">
-            MOA & AOA
+            {isOpc ? "Company Documents" : "MOA & AOA"}
           </div>
         </div>
 

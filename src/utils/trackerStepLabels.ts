@@ -25,6 +25,12 @@ export const SUBSCRIBER_SHEET_TITLE = "Subscriber sheet";
 export const SUBSCRIBER_SHEET_DESCRIPTION =
   "Subscriber sheet preparation & verification";
 
+export const ALL_DOCUMENTS_DELIVERED_TITLE = "All documents delivered to you";
+export const ALL_DOCUMENTS_DELIVERED_DESCRIPTION =
+  "COI, MoA/AoA delivered to dashboard";
+export const ALL_DOCUMENTS_DELIVERED_OPC_DESCRIPTION =
+  "COI delivered to dashboard";
+
 export const isLlpCompanyType = (
   companyType: string | null | undefined,
 ): boolean => {
@@ -38,6 +44,21 @@ export const isLlpCompanyType = (
     normalized.includes("limited liability partnership")
   );
 };
+
+export const isOpcCompanyType = (
+  companyType: string | null | undefined,
+): boolean => {
+  if (!companyType) return false;
+  const normalized = companyType.toLowerCase().trim();
+  return (
+    normalized === "one-person-company" ||
+    normalized === "one person company" ||
+    normalized === "opc"
+  );
+};
+
+export const isAllDocumentsDeliveredStepTitle = (title: string): boolean =>
+  title.trim() === ALL_DOCUMENTS_DELIVERED_TITLE;
 
 export const isRunFilingStepTitle = (title: string): boolean => {
   const normalized = title.trim();
@@ -138,6 +159,12 @@ export const getTrackerStepDisplayDescription = (
       description.trim() === INC_FORMS_STEP_DESCRIPTION)
   ) {
     return SUBSCRIBER_SHEET_DESCRIPTION;
+  }
+  if (
+    isOpcCompanyType(companyType) &&
+    isAllDocumentsDeliveredStepTitle(stepTitle)
+  ) {
+    return ALL_DOCUMENTS_DELIVERED_OPC_DESCRIPTION;
   }
   return description;
 };
