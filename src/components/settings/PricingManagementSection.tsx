@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { IndianRupee, ChevronRight } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
-import { PERMISSIONS } from "@/utils/permissions";
+import { canViewPricingPlans } from "@/utils/pricingPermissions";
 
 interface PricingManagementSectionProps {
   id?: string;
@@ -13,12 +13,9 @@ export default function PricingManagementSection({
   id,
 }: PricingManagementSectionProps) {
   const router = useRouter();
-  const { hasPermission, isSuperAdmin } = usePermissions();
+  const { admin } = usePermissions();
 
-  const canView =
-    isSuperAdmin ||
-    hasPermission(PERMISSIONS.PRICING_EDIT) ||
-    hasPermission(PERMISSIONS.SETTINGS_VIEW);
+  const canView = canViewPricingPlans(admin);
 
   if (!canView) return null;
 
@@ -47,7 +44,8 @@ export default function PricingManagementSection({
 
       <p className="text-sm text-gray-600 mb-4">
         Edit incorporation pricing for all company types. Changes apply to new
-        registrations only — existing clients keep their frozen pricing snapshot.
+        registrations only - existing clients keep their frozen pricing
+        snapshot.
       </p>
 
       <div className="flex items-center gap-2 text-[#FF6A3D] text-sm font-medium group-hover:gap-3 transition-all">

@@ -1,7 +1,7 @@
 import axiosInstance from "@/lib/axios";
 import type { NameStatus } from "@/types/company";
 
-export type MoaAoaDocType = "moa" | "aoa";
+export type MoaAoaDocType = "moa" | "aoa" | "consentToAct";
 
 type MoaAoaStatus = "open" | "clientUpload" | "TeamUpload";
 
@@ -438,6 +438,44 @@ export const clientsApi = {
     return response.data as Blob;
   },
 
+  getForm3Status: async (applicationNo: string) => {
+    try {
+      const response = await axiosInstance.get(
+        `/admin/clients/${applicationNo}/form3/status`,
+      );
+      return response.data?.data ?? response.data;
+    } catch {
+      return { status: "pending", adminFile: null };
+    }
+  },
+
+  uploadForm3Document: async (applicationNo: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/form3`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return response.data?.data ?? response.data;
+  },
+
+  downloadForm3Document: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/form3/download`,
+      {
+        responseType: "blob",
+      },
+    );
+    return response.data as Blob;
+  },
+
   getMcaQueryStatus: async (applicationNo: string) => {
     const response = await axiosInstance.get(
       `/admin/clients/${applicationNo}/mca-query/status`,
@@ -688,6 +726,7 @@ export const clientsApi = {
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        timeout: 120_000,
       },
     );
     return response.data?.data ?? response.data;
@@ -998,5 +1037,102 @@ export const clientsApi = {
       `/admin/clients/${applicationNo}/name-extension/request-restart`
     );
     return response.data;
+  },
+
+  // ROC Query Methods
+  getRocQuery: async (orgId: string) => {
+    const response = await axiosInstance.get(`/admin/tracker/${orgId}/roc-query`);
+    return response.data?.data ?? response.data;
+  },
+
+  raiseRocQuery: async (orgId: string, payload: { stepId: string; queryText: string; needsDocument: boolean; needsTextResponse: boolean }) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/raise`, payload);
+    return response.data?.data ?? response.data;
+  },
+
+  approveRocResubmit: async (orgId: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/approve`);
+    return response.data?.data ?? response.data;
+  },
+
+  sendBackRocQuery: async (orgId: string, note: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/send-back`, { note });
+    return response.data?.data ?? response.data;
+  },
+
+  rejectRocQuery: async (orgId: string, category: string, reason: string, internalNote?: string, rejectionFile?: File) => {
+    if (rejectionFile) {
+      const formData = new FormData();
+      formData.append("category", category);
+      formData.append("reason", reason);
+      if (internalNote) formData.append("internalNote", internalNote);
+      formData.append("file", rejectionFile);
+      const response = await axiosInstance.post(
+        `/admin/tracker/${orgId}/roc-query/reject`,
+        formData,
+      );
+      return response.data?.data ?? response.data;
+    }
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/reject`, { category, reason, internalNote });
+    return response.data?.data ?? response.data;
+  },
+
+  resolveRocQuery: async (orgId: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/resolve`);
+    return response.data?.data ?? response.data;
+  },
+
+  resetRocQueryToPending: async (orgId: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/reset-pending`);
+    return response.data?.data ?? response.data;
+  },
+
+  archiveApplication: async (orgId: string, reason: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/archive`, { reason });
+    return response.data?.data ?? response.data;
+  },
+
+  createFreshApplication: async (orgId: string) => {
+    const response = await axiosInstance.post(`/admin/tracker/${orgId}/roc-query/create-fresh`);
+    return response.data?.data ?? response.data;
+  },
+
+  downloadRocQueryResponse: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/roc-query/download`,
+      { responseType: "blob" },
+    );
+    return response.data as Blob;
+  },
+
+  getArchivedClients: async (
+    page = 1,
+    limit = 10,
+    search = "",
+  ): Promise<{
+    clients: Array<{
+      orgId: string;
+      appNo: string;
+      companyType: string;
+      clientName: string;
+      clientEmail: string;
+      archivedAt: string;
+      archivedByName: string;
+      archiveReason: string;
+    }>;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> => {
+    const response = await axiosInstance.get("/admin/clients/archived", {
+      params: { page, limit, search },
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  getArchivedClientDetails: async (orgId: string): Promise<any> => {
+    const response = await axiosInstance.get(`/admin/clients/archived/${orgId}`);
+    return response.data?.data ?? response.data;
   },
 };

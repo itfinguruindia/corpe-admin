@@ -271,15 +271,18 @@ function openPickerDialog(
       return;
     }
 
+    const mimeTypes = options.mimeTypes ?? DEFAULT_PICKER_MIME_TYPES;
+
     const view = new googlePicker.DocsView(googlePicker.ViewId.DOCS)
       .setIncludeFolders(false)
-      .setMimeTypes(options.mimeTypes ?? DEFAULT_PICKER_MIME_TYPES)
+      .setMimeTypes(mimeTypes)
       .setSelectFolderEnabled(false);
 
     const builder = new googlePicker.PickerBuilder()
       .setDeveloperKey(apiKey)
       .setOAuthToken(accessToken)
       .addView(view)
+      .setSelectableMimeTypes(mimeTypes)
       .setTitle(options.pickerTitle ?? "Select a file from Google Drive");
 
     const appId = process.env.NEXT_PUBLIC_GOOGLE_APP_ID;
@@ -289,8 +292,14 @@ function openPickerDialog(
 
     const picker = builder
       .setCallback((data: { action: string; docs?: PickerDocument[] }) => {
-        if (data.action === googlePicker.Action.PICKED && data.docs?.[0]) {
-          const doc0 = data.docs[0]!;
+        if (data.action === googlePicker.Action.PICKED) {
+          const doc0 = data.docs?.[0];
+          if (!doc0) {
+            settle(() =>
+              reject(new Error("No file was selected from Google Drive.")),
+            );
+            return;
+          }
           settle(() => resolve(doc0));
           return;
         }
@@ -298,7 +307,9 @@ function openPickerDialog(
           settle(() =>
             reject(new Error("Google Drive selection was cancelled.")),
           );
+          return;
         }
+        // Ignore intermediate events (e.g. "loaded" when the picker UI finishes rendering).
       })
       .build();
 
@@ -331,7 +342,12 @@ async function downloadDriveFile(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to download the selected file from Google Drive.");
+    const detail = await response.text().catch(() => "");
+    throw new Error(
+      detail
+        ? `Failed to download the selected file from Google Drive (${response.status}).`
+        : "Failed to download the selected file from Google Drive.",
+    );
   }
 
   return response.blob();

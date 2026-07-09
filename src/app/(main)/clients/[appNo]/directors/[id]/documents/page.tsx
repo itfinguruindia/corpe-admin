@@ -13,6 +13,7 @@ import { getFileType } from "@/utils/helpers";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import { FileUploadComponent } from "@/components/upload";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import {
   getDirectorDualSourceDocumentFields,
@@ -57,7 +58,11 @@ type DualSourceState = {
 export default function DirectorDocumentsPage() {
   const { appNo, id } = useParams();
   const { requireEdit } = useClientTabEdit("director");
-  const { labels, isLlp, isLoading: isCompanyTypeLoading } = useClientCompanyLabels();
+  const {
+    labels,
+    isLlp,
+    isLoading: isCompanyTypeLoading,
+  } = useClientCompanyLabels();
 
   const [director, setDirector] = useState<Director | null>(null);
   const [rawDocumentsData, setRawDocumentsData] = useState<any>(null);
@@ -290,11 +295,12 @@ export default function DirectorDocumentsPage() {
       try {
         setIsLoading(true);
 
-        const [directorData, documentsData, trackerResponse] = await Promise.all([
-          clientsApi.getDirectorById(appNo as string, id as string),
-          clientsApi.getDirectorDocuments(appNo as string, id as string),
-          clientsApi.getTrackingStatus(appNo as string).catch(() => null),
-        ]);
+        const [directorData, documentsData, trackerResponse] =
+          await Promise.all([
+            clientsApi.getDirectorById(appNo as string, id as string),
+            clientsApi.getDirectorDocuments(appNo as string, id as string),
+            clientsApi.getTrackingStatus(appNo as string).catch(() => null),
+          ]);
 
         setDirector(directorData);
         setRawDocumentsData(documentsData);
@@ -435,37 +441,29 @@ export default function DirectorDocumentsPage() {
     }
   };
 
-  const handleUpload = (documentType: string) => {
-    if (!requireEdit()) return;
-    const docTypeKey = getDocTypeKey(documentType);
-    if (!docTypeKey) return;
-
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".pdf,.doc,.docx";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file || !appNo || !id) return;
-      try {
-        await clientsApi.uploadDirectorDocument(
-          appNo as string,
-          id as string,
-          docTypeKey,
-          file,
-        );
-        toast.success(
-          `${documentType} draft uploaded. Client will see it in the Download button.`,
-        );
-        // Refresh status after upload
-        await refreshDocStatus(documentType, docTypeKey);
-      } catch (error) {
-        notifyApiError(error, {
-          fallback: `Could not upload ${documentType} document.`,
-          actionLabel: "upload director documents",
-        });
-      }
-    };
-    input.click();
+  const handleAdminUpload = async (
+    documentType: string,
+    docTypeKey: string,
+    file: File,
+  ) => {
+    if (!appNo || !id) return;
+    try {
+      await clientsApi.uploadDirectorDocument(
+        appNo as string,
+        id as string,
+        docTypeKey,
+        file,
+      );
+      toast.success(
+        `${documentType} draft uploaded. Client will see it in the Download button.`,
+      );
+      await refreshDocStatus(documentType, docTypeKey);
+    } catch (error) {
+      notifyApiError(error, {
+        fallback: `Could not upload ${documentType} document.`,
+        actionLabel: "upload director documents",
+      });
+    }
   };
 
   /* =======================
@@ -481,7 +479,8 @@ export default function DirectorDocumentsPage() {
     const isRefreshingDoc =
       isRefreshing[docTypeKey as keyof typeof isRefreshing];
     const isStage3Gated = !!(
-      installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid
+      installmentInfo?.firstInstallmentDue ||
+      !installmentInfo?.secondInstallmentPaid
     );
     const isClientUploadLocked =
       isStage3Gated &&
@@ -520,13 +519,25 @@ export default function DirectorDocumentsPage() {
                 className={`cursor-pointer text-secondary hover:text-primary ${isRefreshingDoc ? "animate-spin" : ""}`}
               />
             </div>
-            <div title={`Upload ${documentType} template (Admin)`}>
-              <Upload
-                size={20}
-                onClick={() => handleUpload(documentType)}
-                className="cursor-pointer text-primary hover:text-secondary"
-              />
-            </div>
+            <FileUploadComponent
+              context="clients"
+              allowedFileTypes=".pdf,.doc,.docx"
+              title={`Upload ${documentType}`}
+              subtitle="Upload from your computer, Google Drive, or existing documents."
+              onBeforeOpen={() => requireEdit()}
+              onFileSelect={(file) =>
+                handleAdminUpload(documentType, docTypeKey, file)
+              }
+              renderTrigger={(openPicker) => (
+                <div title={`Upload ${documentType} template (Admin)`}>
+                  <Upload
+                    size={20}
+                    onClick={openPicker}
+                    className="cursor-pointer text-primary hover:text-secondary"
+                  />
+                </div>
+              )}
+            />
           </div>
         </div>
 
@@ -620,7 +631,7 @@ export default function DirectorDocumentsPage() {
                   <div
                     title={
                       isClientUploadLocked
-                        ? "Locked — installment due"
+                        ? "Locked - installment due"
                         : "Delete"
                     }
                   >
@@ -708,7 +719,10 @@ export default function DirectorDocumentsPage() {
           )}
         </div>
 
-        {!!(installmentInfo?.firstInstallmentDue || installmentInfo?.secondInstallmentDue) && (
+        {!!(
+          installmentInfo?.firstInstallmentDue ||
+          installmentInfo?.secondInstallmentDue
+        ) && (
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-900 text-sm">
             <p className="font-semibold">
               Outstanding installment payments are due for this client.
@@ -810,27 +824,31 @@ export default function DirectorDocumentsPage() {
 
           {/* Right: Dual-Source Documents */}
           <div className="col-span-1 space-y-4">
-            {primaryDualSourceFields.map((field) =>
-              renderDualSourceCard(
-                field.label,
-                field.key,
-                getDualSourceFiles(field.key),
-              ),
-            )}
+            {primaryDualSourceFields.map((field) => (
+              <div key={field.key}>
+                {renderDualSourceCard(
+                  field.label,
+                  field.key,
+                  getDualSourceFiles(field.key),
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Bottom: Miscellaneous Documents (standard company types only) */}
+        {/* Bottom: Miscellaneous Documents */}
         {miscDualSourceFields.length > 0 && (
-        <div className="grid grid-cols-3 gap-6 mt-6">
-          {miscDualSourceFields.map((field) =>
-            renderDualSourceCard(
-              field.label,
-              field.key,
-              getDualSourceFiles(field.key),
-            ),
-          )}
-        </div>
+          <div className="grid grid-cols-3 gap-6 mt-6">
+            {miscDualSourceFields.map((field) => (
+              <div key={field.key}>
+                {renderDualSourceCard(
+                  field.label,
+                  field.key,
+                  getDualSourceFiles(field.key),
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

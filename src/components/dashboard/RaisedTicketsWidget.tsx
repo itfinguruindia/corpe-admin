@@ -12,7 +12,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
 
 function formatTime(dateString: string) {
-  if (!dateString) return "—";
+  if (!dateString) return "-";
   try {
     return new Date(dateString).toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -20,7 +20,7 @@ function formatTime(dateString: string) {
       hour12: true,
     });
   } catch {
-    return "—";
+    return "-";
   }
 }
 
@@ -152,7 +152,11 @@ export default function RaisedTicketsWidget() {
             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">
               Time
             </p>
-            <Chip variant="soft" size="sm" className="bg-primary-50 text-primary font-semibold">
+            <Chip
+              variant="soft"
+              size="sm"
+              className="bg-primary-50 text-primary font-semibold"
+            >
               {formatTime(ticket.createdOn)}
             </Chip>
           </div>
@@ -161,9 +165,7 @@ export default function RaisedTicketsWidget() {
 
       {canViewTickets && (
         <Link href="/tickets">
-          <Button
-            className="w-full text-secondary/60 hover:text-primary font-bold uppercase tracking-wider text-xs bg-transparent"
-          >
+          <Button className="w-full text-secondary/60 hover:text-primary font-bold uppercase tracking-wider text-xs bg-transparent">
             View all tickets
             <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
           </Button>

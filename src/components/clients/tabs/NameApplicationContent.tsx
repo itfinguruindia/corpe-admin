@@ -21,6 +21,7 @@ import { getFileType } from "@/utils/helpers";
 import type { NameStatus } from "@/types/company";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
+import { isRunFilingStepTitle } from "@/utils/trackerStepLabels";
 
 interface NameApplicationContentProps {
   appNo: string;
@@ -422,8 +423,8 @@ export default function NameApplicationContent({
                 (sec: any) =>
                   sec.label === "Object Clause & RUN Filing" || sec.order === 2,
               );
-              const partAStep = sectionB?.steps?.find(
-                (st: any) => st.title === "SPICe+ Part A filed on MCA",
+              const partAStep = sectionB?.steps?.find((st: any) =>
+                isRunFilingStepTitle(st.title),
               );
               setIsRocReviewed(partAStep?.status === "Done");
             }
@@ -713,7 +714,7 @@ export default function NameApplicationContent({
                     isDisabled
                       ? isReadOnly
                         ? "No comments."
-                        : "Rejected — disabled"
+                        : "Rejected - disabled"
                       : "Detailed comments"
                   }
                   defaultValue={companyComment}
@@ -743,8 +744,7 @@ export default function NameApplicationContent({
 
   /* ---------------- UI ---------------- */
 
-  const hasMcaQuery =
-    Boolean(mcaQueryText.trim()) || mcaQueryFiles.length > 0;
+  const hasMcaQuery = Boolean(mcaQueryText.trim()) || mcaQueryFiles.length > 0;
   const hasClientClarification =
     Boolean(clientClarification.trim()) || clientClarificationFiles.length > 0;
   const showMcaQuerySection =
@@ -845,7 +845,7 @@ export default function NameApplicationContent({
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-orange-950">
-                      Current Attempt (Attempt {attempts.length + 1}) — Active
+                      Current Attempt (Attempt {attempts.length + 1}) - Active
                     </h4>
                     <p className="text-xs text-orange-700/60 font-mono mt-0.5">
                       Currently editable tracking status
@@ -1045,7 +1045,9 @@ export default function NameApplicationContent({
                   {mcaQueryText}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400 mb-3">No query text provided</p>
+                <p className="text-sm text-gray-400 mb-3">
+                  No query text provided
+                </p>
               )}
 
               <div className="mt-4 space-y-2">

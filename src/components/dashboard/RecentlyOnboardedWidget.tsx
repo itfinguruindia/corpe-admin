@@ -58,9 +58,9 @@ export default function RecentlyOnboardedWidget() {
         if (!mounted) return;
         const mapped = (data.clients || []).map((c: any) => ({
           appNo: c.appNo || c.applicationNo || "",
-          entity: c.entity || "—",
-          assignee: c.assignee || "—",
-          assigner: c.assigner || "—",
+          entity: c.entity || "-",
+          assignee: c.assignee || "-",
+          assigner: c.assigner || "-",
         }));
         setClients(mapped);
       })
@@ -138,9 +138,7 @@ export default function RecentlyOnboardedWidget() {
 
       {canViewClients && (
         <Link href="/clients">
-          <Button
-            className="w-full text-secondary/60 hover:text-primary font-bold uppercase tracking-wider text-xs bg-transparent"
-          >
+          <Button className="w-full text-secondary/60 hover:text-primary font-bold uppercase tracking-wider text-xs bg-transparent">
             View all clients
             <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
           </Button>

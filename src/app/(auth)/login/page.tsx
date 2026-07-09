@@ -30,7 +30,7 @@ export default function LoginPage() {
     let cancelled = false;
 
     // proxy.ts redirects to /dashboard at the edge if the accessToken cookie is present,
-    // so this page only renders when the cookie is absent — do NOT check localStorage here.
+    // so this page only renders when the cookie is absent - do NOT check localStorage here.
     // Falling back to localStorage would cause an infinite loop: localStorage token exists
     // but proxy.ts has no cookie → redirect to /dashboard → proxy bounces back to /login.
 
@@ -134,7 +134,7 @@ export default function LoginPage() {
             </TextField>
 
             {/* Remember me + Forgot password */}
-          
+
             {/* <div className="flex items-center justify-between">
               <Checkbox id="remember-me">
                 <Label htmlFor="remember-me" className="text-sm text-black">

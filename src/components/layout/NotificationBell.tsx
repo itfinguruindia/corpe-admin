@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, startTransition } from "react";
 import Link from "next/link";
 import { Bell, Check, ExternalLink, Info, MessageSquare, User, Ticket, CreditCard, FileText, Settings } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
@@ -66,11 +66,15 @@ export default function NotificationBell() {
     const initFetch = async () => {
       try {
         const count = await notificationService.getUnreadCount();
-        dispatch(setUnreadCount(count));
-        
+        startTransition(() => {
+          dispatch(setUnreadCount(count));
+        });
+
         const data = await notificationService.getNotifications({}, 1, 10);
         if (data?.notifications) {
-          dispatch(setRecentNotifications(data.notifications));
+          startTransition(() => {
+            dispatch(setRecentNotifications(data.notifications));
+          });
         }
       } catch (error) {
         console.error("Failed to fetch initial notifications", error);

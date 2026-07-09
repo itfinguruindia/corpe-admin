@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast, Spinner } from "@heroui/react";
 import { Eye, Download, Upload, RefreshCw } from "lucide-react";
 
@@ -12,6 +12,7 @@ import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 import { getFileType } from "@/utils/helpers";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 
 interface MoaAoaContentProps {
   appNo: string;
@@ -32,7 +33,7 @@ type DocumentSection = {
   clientFile: DocFile;
 };
 
-const INITIAL_SECTIONS: DocumentSection[] = [
+const BASE_SECTIONS: DocumentSection[] = [
   {
     key: "moa",
     label: "MOA",
@@ -75,9 +76,34 @@ const INITIAL_SECTIONS: DocumentSection[] = [
   },
 ];
 
+const CONSENT_SECTION: DocumentSection = {
+  key: "consentToAct",
+  label: "Consent to Act as Nominee",
+  kind: "moa-aoa",
+  docType: "consentToAct",
+  adminFile: null,
+  clientFile: null,
+};
+
 export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
   const { requireEdit } = useClientTabEdit("moa");
-  const [sections, setSections] = useState<DocumentSection[]>(INITIAL_SECTIONS);
+  const { isOpc, isMoaAoaExcluded, labels } = useClientCompanyLabels();
+  const initialSections = useMemo(() => {
+    if (!isMoaAoaExcluded) return BASE_SECTIONS;
+    const miscSections = BASE_SECTIONS.filter((section) => section.kind === "misc");
+    if (isOpc) {
+      return [
+        {
+          ...CONSENT_SECTION,
+          label: labels.consentToAct || CONSENT_SECTION.label,
+        },
+        ...miscSections,
+      ];
+    }
+    return miscSections;
+  }, [isMoaAoaExcluded, isOpc, labels.consentToAct]);
+
+  const [sections, setSections] = useState<DocumentSection[]>(initialSections);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshingKey, setRefreshingKey] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -129,10 +155,14 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
 
   const loadAllSections = useCallback(async () => {
     const updated = await Promise.all(
-      INITIAL_SECTIONS.map((section) => loadSectionStatus(section)),
+      initialSections.map((section) => loadSectionStatus(section)),
     );
     setSections(updated);
-  }, [loadSectionStatus]);
+  }, [loadSectionStatus, initialSections]);
+
+  useEffect(() => {
+    setSections(initialSections);
+  }, [initialSections]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -147,14 +177,14 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
         }
       } catch (error) {
         console.error("Error fetching MOA & AOA:", error);
-        setSections(INITIAL_SECTIONS);
+        setSections(initialSections);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadData();
-  }, [loadAllSections, appNo]);
+  }, [loadAllSections, appNo, initialSections]);
 
   const refreshSection = async (sectionKey: string) => {
     const section = sections.find((s) => s.key === sectionKey);
@@ -253,7 +283,8 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
   const handleAdminUpload = async (section: DocumentSection, file: File) => {
     if (!file) return;
     if (!requireEdit()) return;
-    if (isLocked) {
+    // Consent template unlocks client download — allow even when installment is due
+    if (isLocked && section.docType !== "consentToAct") {
       toast("Action locked. Installment payment is due.", {
         variant: "danger",
       });
@@ -342,7 +373,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
               <div
                 title={
                   isLocked
-                    ? "Locked — installment due"
+                    ? "Locked - installment due"
                     : `Upload ${section.label} (Admin)`
                 }
               >
@@ -455,7 +486,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <div className="inline-block px-6 py-3 rounded-lg bg-linear-to-br from-white to-orange-100 text-secondary shadow-md font-medium">
-            MOA & AOA
+            {isMoaAoaExcluded ? "Company Documents" : "MOA & AOA"}
           </div>
         </div>
 

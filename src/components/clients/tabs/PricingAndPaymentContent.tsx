@@ -4,9 +4,13 @@ import { useEffect, useState } from "react";
 import {
   pricingPaymentService,
   PricingAndPaymentResponse,
-  PaymentStep as BackendPaymentStep
+  PaymentStep as BackendPaymentStep,
 } from "@/services/pricingPayment.service";
-import { PricingPayment, PaymentStep as FrontendPaymentStep, StepStatus } from "@/types/pricingPayment";
+import {
+  PricingPayment,
+  PaymentStep as FrontendPaymentStep,
+  StepStatus,
+} from "@/types/pricingPayment";
 
 import { InfoField, Chip, Switch } from "@/components/ui";
 import { Lock, MoreVertical, X } from "lucide-react";
@@ -29,9 +33,13 @@ export default function PricingAndPaymentContent({
   // Send Payment Link Modal state
   const [isPaymentLinkModalOpen, setIsPaymentLinkModalOpen] = useState(false);
   const [paymentLinkReason, setPaymentLinkReason] = useState("");
-  const [notificationType, setNotificationType] = useState<"email_sms" | "email" | "sms" | "none">("email_sms");
+  const [notificationType, setNotificationType] = useState<
+    "email_sms" | "email" | "sms" | "none"
+  >("email_sms");
   const [sendingLink, setSendingLink] = useState(false);
-  const [selectedStep, setSelectedStep] = useState<FrontendPaymentStep | null>(null);
+  const [selectedStep, setSelectedStep] = useState<FrontendPaymentStep | null>(
+    null,
+  );
 
   useEffect(() => {
     const loadPricingData = async () => {
@@ -59,7 +67,7 @@ export default function PricingAndPaymentContent({
         appNo,
         selectedStep.stepNumber,
         notificationType,
-        paymentLinkReason
+        paymentLinkReason,
       );
 
       if (success) {
@@ -88,16 +96,23 @@ export default function PricingAndPaymentContent({
     }
   };
 
-  const mapBackendToFrontend = (data: PricingAndPaymentResponse): PricingPayment => {
+  const mapBackendToFrontend = (
+    data: PricingAndPaymentResponse,
+  ): PricingPayment => {
     const { summary, steps } = data;
 
     const mapStatus = (status: string): StepStatus => {
       switch (status) {
-        case "paid": return "Paid";
-        case "pending": return "Pending";
-        case "failed": return "Overdue";
-        case "due": return "Pending";
-        default: return "Pending";
+        case "paid":
+          return "Paid";
+        case "pending":
+          return "Pending";
+        case "failed":
+          return "Overdue";
+        case "due":
+          return "Pending";
+        default:
+          return "Pending";
       }
     };
 
@@ -106,13 +121,18 @@ export default function PricingAndPaymentContent({
 
     steps.forEach((s: BackendPaymentStep) => {
       const bd = s.breakdown;
-      if (s.stepNumber === 7 && bd?.attempts?.length && bd.attempts.length > 0) {
+      if (
+        s.stepNumber === 7 &&
+        bd?.attempts?.length &&
+        bd.attempts.length > 0
+      ) {
         bd.attempts.forEach((att: any) => {
           let statusText = s.status; // fallback
-          if (att.paymentStatus === 'paid') statusText = 'paid';
-          else if (att.paymentStatus === 'failed') statusText = 'failed';
-          else if (att.attemptNumber === bd.currentAttempt) statusText = s.status;
-          else statusText = 'pending';
+          if (att.paymentStatus === "paid") statusText = "paid";
+          else if (att.paymentStatus === "failed") statusText = "failed";
+          else if (att.attemptNumber === bd.currentAttempt)
+            statusText = s.status;
+          else statusText = "pending";
 
           const mappedStatus = mapStatus(statusText);
 
@@ -120,20 +140,30 @@ export default function PricingAndPaymentContent({
           if (att.paymentStatus === "paid") {
             actionText = "Payment Received";
           } else {
-            actionText = att.paymentLinkSentAt ? "Resend Payment Link" : "Send Payment Link";
+            actionText = att.paymentLinkSentAt
+              ? "Resend Payment Link"
+              : "Send Payment Link";
           }
 
           paymentSteps.push({
             step: currentStepIndex++,
             stepNumber: s.stepNumber,
-            installmentName: att.attemptNumber === 1 ? "Name Extension — 1st Attempt" : "Name Extension — 2nd Attempt",
+            installmentName:
+              att.attemptNumber === 1
+                ? "Name Extension - 1st Attempt"
+                : "Name Extension - 2nd Attempt",
             amount: att.amount,
             triggerGate: s.triggerGate,
             effects: s.effects,
             status: mappedStatus,
             action: actionText,
             invoice: att.invoiceAvailable ? "Sent" : "Not Sent",
-            paymentAlert: att.paymentStatus === "paid" ? "Paid Confirmation" : (att.paymentStatus === "failed" ? "Payment Failed" : "Awaiting"),
+            paymentAlert:
+              att.paymentStatus === "paid"
+                ? "Paid Confirmation"
+                : att.paymentStatus === "failed"
+                  ? "Payment Failed"
+                  : "Awaiting",
             paymentModeCapture: att.paymentStatus === "paid" ? "Online" : "-",
             breakdown: bd,
             paymentLinkSent: !!att.paymentLinkSentAt,
@@ -147,7 +177,9 @@ export default function PricingAndPaymentContent({
         if (s.status === "paid") {
           actionText = "Payment Received";
         } else if ([4, 6, 7].includes(s.stepNumber)) {
-          actionText = s.paymentLinkSent ? "Resend Payment Link" : "Send Payment Link";
+          actionText = s.paymentLinkSent
+            ? "Resend Payment Link"
+            : "Send Payment Link";
         }
 
         paymentSteps.push({
@@ -160,7 +192,12 @@ export default function PricingAndPaymentContent({
           status: mapStatus(s.status),
           action: actionText,
           invoice: s.invoiceAvailable ? "Sent" : "Not Sent",
-          paymentAlert: s.status === "paid" ? "Paid Confirmation" : (s.status === "failed" ? "Payment Failed" : "Awaiting"),
+          paymentAlert:
+            s.status === "paid"
+              ? "Paid Confirmation"
+              : s.status === "failed"
+                ? "Payment Failed"
+                : "Awaiting",
           paymentModeCapture: s.status === "paid" ? "Online" : "-",
           breakdown: s.breakdown,
           paymentLinkSent: s.paymentLinkSent,
@@ -205,7 +242,8 @@ export default function PricingAndPaymentContent({
         return "red";
       default:
         // "First Installment Due", "Second Installment Due", etc.
-        if (status.includes("Installment Due") || status.includes("Pending")) return "yellow";
+        if (status.includes("Installment Due") || status.includes("Pending"))
+          return "yellow";
         return "gray";
     }
   };
@@ -221,7 +259,9 @@ export default function PricingAndPaymentContent({
   if (!pricingData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">Pricing data not found for {appNo}</div>
+        <div className="text-xl text-gray-600">
+          Pricing data not found for {appNo}
+        </div>
       </div>
     );
   }
@@ -255,17 +295,26 @@ export default function PricingAndPaymentContent({
           </div>
           <InfoField
             label="Base Service Fee"
-            value={formatCurrency(pricingData.baseServiceFee, pricingData.currency)}
+            value={formatCurrency(
+              pricingData.baseServiceFee,
+              pricingData.currency,
+            )}
           />
           <InfoField
             label="Discount"
-            value={formatCurrency(pricingData.discount || 0, pricingData.currency)}
+            value={formatCurrency(
+              pricingData.discount || 0,
+              pricingData.currency,
+            )}
             sublabel="(If any discount applied)"
             sublabelColor="text-blue-500"
           />
           <InfoField
             label="Total Payable"
-            value={formatCurrency(pricingData.totalPayable, pricingData.currency)}
+            value={formatCurrency(
+              pricingData.totalPayable,
+              pricingData.currency,
+            )}
           />
           <InfoField
             label="GST"
@@ -281,7 +330,10 @@ export default function PricingAndPaymentContent({
           />
           <InfoField
             label="Remaining Balance"
-            value={formatCurrency(pricingData.remainingBalance, pricingData.currency)}
+            value={formatCurrency(
+              pricingData.remainingBalance,
+              pricingData.currency,
+            )}
             sublabel="(Remaining amount)"
             sublabelColor="text-red-500"
           />
@@ -301,7 +353,8 @@ export default function PricingAndPaymentContent({
               <p className="text-base text-gray-700 font-bold">
                 {formatCurrency(
                   includeGST
-                    ? (pricingData.finalPayableWithGST ?? pricingData.finalPaidAmount)
+                    ? (pricingData.finalPayableWithGST ??
+                        pricingData.finalPaidAmount)
                     : pricingData.finalPaidAmount,
                   pricingData.currency,
                 )}
@@ -375,161 +428,294 @@ export default function PricingAndPaymentContent({
                           {step.step}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
-                          <div className="font-medium text-gray-900">{step.installmentName}</div>
+                          <div className="font-medium text-gray-900">
+                            {step.installmentName}
+                          </div>
                           {step.breakdown && (
                             <div className="text-xs text-gray-500 mt-2 flex flex-col gap-1 bg-gray-50 p-2.5 rounded border border-gray-100 max-w-xs shadow-sm">
                               {/* DIN Activation Fee Breakdown */}
                               {typeof step.breakdown.dinCount === "number" && (
                                 <>
                                   <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">DIN Activation Rate:</span>
+                                    <span className="text-gray-500">
+                                      DIN Activation Rate:
+                                    </span>
                                     <span className="font-semibold text-gray-700">
-                                      {formatCurrency(step.breakdown.dinRate || 0, pricingData.currency)}
+                                      {formatCurrency(
+                                        step.breakdown.dinRate || 0,
+                                        pricingData.currency,
+                                      )}
                                     </span>
                                   </div>
                                   <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">Directors Count:</span>
+                                    <span className="text-gray-500">
+                                      Directors Count:
+                                    </span>
                                     <span className="font-semibold text-gray-700">
                                       {step.breakdown.dinCount}
                                     </span>
                                   </div>
-                                  {(step.breakdown as any).dinDirectors?.length > 0 && (
+                                  {(step.breakdown as any).dinDirectors
+                                    ?.length > 0 && (
                                     <div className="flex flex-col gap-0.5 border-t border-gray-100 pt-1 mt-0.5">
-                                      {(step.breakdown as any).dinDirectors.map((dir: any, di: number) => (
-                                        <div key={di} className="flex justify-between gap-4 text-[10px] text-gray-400">
-                                          <span>{dir.name}:</span>
-                                          <span>{formatCurrency((step.breakdown as any).dinRate || 0, pricingData.currency)}</span>
-                                        </div>
-                                      ))}
+                                      {(step.breakdown as any).dinDirectors.map(
+                                        (dir: any, di: number) => (
+                                          <div
+                                            key={di}
+                                            className="flex justify-between gap-4 text-[10px] text-gray-400"
+                                          >
+                                            <span>{dir.name}:</span>
+                                            <span>
+                                              {formatCurrency(
+                                                (step.breakdown as any)
+                                                  .dinRate || 0,
+                                                pricingData.currency,
+                                              )}
+                                            </span>
+                                          </div>
+                                        ),
+                                      )}
                                     </div>
                                   )}
-                                  {(step.breakdown as any).paidDinDirectors?.length > 0 && (
+                                  {(step.breakdown as any).paidDinDirectors
+                                    ?.length > 0 && (
                                     <div className="flex flex-col gap-0.5 border-t border-gray-100 pt-1 mt-0.5 text-green-600">
-                                      <div className="text-[10px] font-medium text-green-700 mb-0.5">Previously Paid:</div>
-                                      {(step.breakdown as any).paidDinDirectors.map((dir: any, di: number) => (
-                                        <div key={di} className="flex justify-between gap-4 text-[10px]">
-                                          <span>{dir.name}:</span>
-                                          <span>✓ {formatCurrency((step.breakdown as any).dinRate || 0, pricingData.currency)}</span>
-                                        </div>
-                                      ))}
+                                      <div className="text-[10px] font-medium text-green-700 mb-0.5">
+                                        Previously Paid:
+                                      </div>
+                                      {(
+                                        step.breakdown as any
+                                      ).paidDinDirectors.map(
+                                        (dir: any, di: number) => (
+                                          <div
+                                            key={di}
+                                            className="flex justify-between gap-4 text-[10px]"
+                                          >
+                                            <span>{dir.name}:</span>
+                                            <span>
+                                              ✓{" "}
+                                              {formatCurrency(
+                                                (step.breakdown as any)
+                                                  .dinRate || 0,
+                                                pricingData.currency,
+                                              )}
+                                            </span>
+                                          </div>
+                                        ),
+                                      )}
                                     </div>
                                   )}
                                   <div className="border-t border-gray-200 my-1"></div>
                                   <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
                                     <span>Total Activation Fee:</span>
                                     <span>
-                                      {formatCurrency((step.breakdown as any).dinTotal || 0, pricingData.currency)}
+                                      {formatCurrency(
+                                        (step.breakdown as any).dinTotal || 0,
+                                        pricingData.currency,
+                                      )}
                                     </span>
                                   </div>
-                                  {typeof (step.breakdown as any).totalPaidSoFar === "number" && (step.breakdown as any).totalPaidSoFar > 0 && (
-                                    <div className="flex justify-between gap-4 text-green-700 text-[11px] font-medium mt-0.5">
-                                      <span>Total Paid So Far:</span>
-                                      <span>{formatCurrency((step.breakdown as any).totalPaidSoFar, pricingData.currency)}</span>
-                                    </div>
-                                  )}
+                                  {typeof (step.breakdown as any)
+                                    .totalPaidSoFar === "number" &&
+                                    (step.breakdown as any).totalPaidSoFar >
+                                      0 && (
+                                      <div className="flex justify-between gap-4 text-green-700 text-[11px] font-medium mt-0.5">
+                                        <span>Total Paid So Far:</span>
+                                        <span>
+                                          {formatCurrency(
+                                            (step.breakdown as any)
+                                              .totalPaidSoFar,
+                                            pricingData.currency,
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
                                 </>
                               )}
 
-                              {/* Stage 7 — Name Extension Attempts */}
-                              {step.stepNumber === 7 && step.breakdown.attempts && step.breakdown.attempts.length > 0 && (
-                                <div className="flex flex-col gap-1.5 border-t border-gray-200 pt-2 mt-1">
-                                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                                    Extension Attempts
-                                  </span>
-                                  {step.breakdown.attempts.map((att: any) => {
-                                    const statusColor =
-                                      att.status === 'done' ? 'text-green-700 bg-green-50 border-green-200' :
-                                      att.status === 'expired' ? 'text-red-700 bg-red-50 border-red-200' :
-                                      att.status === 'paid' || att.status === 'in_progress' ? 'text-blue-700 bg-blue-50 border-blue-200' :
-                                      'text-amber-700 bg-amber-50 border-amber-200';
-                                    const statusLabel =
-                                      att.status === 'done' ? 'Completed' :
-                                      att.status === 'paid' ? 'Paid' :
-                                      att.status === 'in_progress' ? 'In Progress' :
-                                      att.status === 'expired' ? 'Expired' : 'Pending';
-                                    return (
-                                      <div key={att.attemptNumber} className={`flex items-center justify-between border rounded px-2.5 py-1.5 text-[10px] font-semibold ${statusColor}`}>
-                                        <span>{att.attemptNumber === 1 ? '1st' : '2nd'} Attempt</span>
-                                        <div className="flex items-center gap-2">
-                                          <span>{formatCurrency(att.amount, pricingData.currency || 'INR')}</span>
-                                          <span className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold border border-current">
-                                            {statusLabel}
+                              {/* Stage 7 - Name Extension Attempts */}
+                              {step.stepNumber === 7 &&
+                                step.breakdown.attempts &&
+                                step.breakdown.attempts.length > 0 && (
+                                  <div className="flex flex-col gap-1.5 border-t border-gray-200 pt-2 mt-1">
+                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                                      Extension Attempts
+                                    </span>
+                                    {step.breakdown.attempts.map((att: any) => {
+                                      const statusColor =
+                                        att.status === "done"
+                                          ? "text-green-700 bg-green-50 border-green-200"
+                                          : att.status === "expired"
+                                            ? "text-red-700 bg-red-50 border-red-200"
+                                            : att.status === "paid" ||
+                                                att.status === "in_progress"
+                                              ? "text-blue-700 bg-blue-50 border-blue-200"
+                                              : "text-amber-700 bg-amber-50 border-amber-200";
+                                      const statusLabel =
+                                        att.status === "done"
+                                          ? "Completed"
+                                          : att.status === "paid"
+                                            ? "Paid"
+                                            : att.status === "in_progress"
+                                              ? "In Progress"
+                                              : att.status === "expired"
+                                                ? "Expired"
+                                                : "Pending";
+                                      return (
+                                        <div
+                                          key={att.attemptNumber}
+                                          className={`flex items-center justify-between border rounded px-2.5 py-1.5 text-[10px] font-semibold ${statusColor}`}
+                                        >
+                                          <span>
+                                            {att.attemptNumber === 1
+                                              ? "1st"
+                                              : "2nd"}{" "}
+                                            Attempt
                                           </span>
+                                          <div className="flex items-center gap-2">
+                                            <span>
+                                              {formatCurrency(
+                                                att.amount,
+                                                pricingData.currency || "INR",
+                                              )}
+                                            </span>
+                                            <span className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold border border-current">
+                                              {statusLabel}
+                                            </span>
+                                          </div>
                                         </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                                      );
+                                    })}
+                                  </div>
+                                )}
 
                               {/* Regular Installments / Surcharges / Breakdown (excl. DIN) */}
                               {typeof step.breakdown.dinCount !== "number" && (
                                 <>
                                   {/* Installment Base */}
-                                  {typeof step.breakdown.installmentBase === "number" && step.breakdown.installmentBase > 0 && (
-                                    <div className="flex justify-between gap-4">
-                                      <span className="text-gray-500">Installment Base:</span>
-                                      <span className="font-semibold text-gray-700">
-                                        {formatCurrency(step.breakdown.installmentBase, pricingData.currency)}
-                                      </span>
-                                    </div>
-                                  )}
+                                  {typeof step.breakdown.installmentBase ===
+                                    "number" &&
+                                    step.breakdown.installmentBase > 0 && (
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-gray-500">
+                                          Installment Base:
+                                        </span>
+                                        <span className="font-semibold text-gray-700">
+                                          {formatCurrency(
+                                            step.breakdown.installmentBase,
+                                            pricingData.currency,
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
 
                                   {/* Extra Directors */}
-                                  {typeof step.breakdown.indianCount === "number" && step.breakdown.indianCount > 0 && (
-                                    <div className="flex justify-between gap-4">
-                                      <span className="text-gray-500">Extra Directors (Indian) ({step.breakdown.indianCount}):</span>
-                                      <span className="font-semibold text-gray-700">
-                                        +{formatCurrency(step.breakdown.indianCount * (step.breakdown.indianRate || 0), pricingData.currency)}
-                                      </span>
-                                    </div>
-                                  )}
+                                  {typeof step.breakdown.indianCount ===
+                                    "number" &&
+                                    step.breakdown.indianCount > 0 && (
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-gray-500">
+                                          Extra Directors (Indian) (
+                                          {step.breakdown.indianCount}):
+                                        </span>
+                                        <span className="font-semibold text-gray-700">
+                                          +
+                                          {formatCurrency(
+                                            step.breakdown.indianCount *
+                                              (step.breakdown.indianRate || 0),
+                                            pricingData.currency,
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
 
-                                  {typeof step.breakdown.foreignCount === "number" && step.breakdown.foreignCount > 0 && (
-                                    <div className="flex justify-between gap-4">
-                                      <span className="text-gray-500">Extra Directors (Foreign) ({step.breakdown.foreignCount}):</span>
-                                      <span className="font-semibold text-gray-700">
-                                        +{formatCurrency(step.breakdown.foreignCount * (step.breakdown.foreignRate || 0), pricingData.currency)}
-                                      </span>
-                                    </div>
-                                  )}
+                                  {typeof step.breakdown.foreignCount ===
+                                    "number" &&
+                                    step.breakdown.foreignCount > 0 && (
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-gray-500">
+                                          Extra Directors (Foreign) (
+                                          {step.breakdown.foreignCount}):
+                                        </span>
+                                        <span className="font-semibold text-gray-700">
+                                          +
+                                          {formatCurrency(
+                                            step.breakdown.foreignCount *
+                                              (step.breakdown.foreignRate || 0),
+                                            pricingData.currency,
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
 
                                   {/* Non-Shareholders */}
-                                  {typeof step.breakdown.nonShareholderCount === "number" && step.breakdown.nonShareholderCount > 0 && (
-                                    <div className="flex justify-between gap-4">
-                                      <span className="text-gray-500">Non-Shareholder Directors ({step.breakdown.nonShareholderCount}):</span>
-                                      <span className="font-semibold text-gray-700">
-                                        +{formatCurrency(step.breakdown.nonShareholderCount * (step.breakdown.nonShareholderRate || 0), pricingData.currency)}
-                                      </span>
-                                    </div>
-                                  )}
+                                  {typeof step.breakdown.nonShareholderCount ===
+                                    "number" &&
+                                    step.breakdown.nonShareholderCount > 0 && (
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-gray-500">
+                                          Non-Shareholder Directors (
+                                          {step.breakdown.nonShareholderCount}):
+                                        </span>
+                                        <span className="font-semibold text-gray-700">
+                                          +
+                                          {formatCurrency(
+                                            step.breakdown.nonShareholderCount *
+                                              (step.breakdown
+                                                .nonShareholderRate || 0),
+                                            pricingData.currency,
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
 
                                   {/* GST details */}
-                                  {typeof step.breakdown.gstAmount === "number" && step.breakdown.gstAmount > 0 && (
-                                    <div className="flex justify-between gap-4">
-                                      <span className="text-gray-500">GST ({step.breakdown.gstPercentage}%):</span>
-                                      <span className="font-semibold text-gray-700">
-                                        +{formatCurrency(step.breakdown.gstAmount, pricingData.currency)}
-                                      </span>
-                                    </div>
-                                  )}
+                                  {typeof step.breakdown.gstAmount ===
+                                    "number" &&
+                                    step.breakdown.gstAmount > 0 && (
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-gray-500">
+                                          GST ({step.breakdown.gstPercentage}%):
+                                        </span>
+                                        <span className="font-semibold text-gray-700">
+                                          +
+                                          {formatCurrency(
+                                            step.breakdown.gstAmount,
+                                            pricingData.currency,
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
 
                                   {/* Total */}
-                                  {typeof step.breakdown.installmentTotal === "number" && (
+                                  {typeof step.breakdown.installmentTotal ===
+                                    "number" && (
                                     <>
                                       <div className="border-t border-gray-200 my-1"></div>
                                       <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
                                         <span>Total:</span>
                                         <span>
-                                          {formatCurrency(step.breakdown.installmentTotal, pricingData.currency)}
+                                          {formatCurrency(
+                                            step.breakdown.installmentTotal,
+                                            pricingData.currency,
+                                          )}
                                         </span>
                                       </div>
-                                      {typeof (step.breakdown as any).totalPaidSoFar === "number" && (step.breakdown as any).totalPaidSoFar > 0 && (
-                                        <div className="flex justify-between gap-4 text-green-700 text-[11px] font-medium mt-0.5">
-                                          <span>Total Paid So Far:</span>
-                                          <span>{formatCurrency((step.breakdown as any).totalPaidSoFar, pricingData.currency)}</span>
-                                        </div>
-                                      )}
+                                      {typeof (step.breakdown as any)
+                                        .totalPaidSoFar === "number" &&
+                                        (step.breakdown as any).totalPaidSoFar >
+                                          0 && (
+                                          <div className="flex justify-between gap-4 text-green-700 text-[11px] font-medium mt-0.5">
+                                            <span>Total Paid So Far:</span>
+                                            <span>
+                                              {formatCurrency(
+                                                (step.breakdown as any)
+                                                  .totalPaidSoFar,
+                                                pricingData.currency,
+                                              )}
+                                            </span>
+                                          </div>
+                                        )}
                                     </>
                                   )}
                                 </>
@@ -561,12 +747,19 @@ export default function PricingAndPaymentContent({
                           />
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          {["Send Payment Link", "Resend Payment Link"].includes(step.action) ? (
+                          {[
+                            "Send Payment Link",
+                            "Resend Payment Link",
+                          ].includes(step.action) ? (
                             <div className="flex flex-col gap-1 items-start">
                               <button
-                                disabled={step.stepNumber === 7 && step._isActiveAttempt === false}
+                                disabled={
+                                  step.stepNumber === 7 &&
+                                  step._isActiveAttempt === false
+                                }
                                 className={`px-4 py-1.5 text-sm rounded-md transition-colors font-medium ${
-                                  step.stepNumber === 7 && step._isActiveAttempt === false
+                                  step.stepNumber === 7 &&
+                                  step._isActiveAttempt === false
                                     ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                                     : step.action === "Resend Payment Link"
                                       ? "bg-gray-600 hover:bg-gray-700 text-white cursor-pointer"
@@ -575,14 +768,19 @@ export default function PricingAndPaymentContent({
                                 onClick={async () => {
                                   if (step.stepNumber === 7) {
                                     setSelectedStep(step);
-                                    setPaymentLinkReason("Your MCA name reservation is expiring. This extension holds your proposed name while we complete registration.");
+                                    setPaymentLinkReason(
+                                      "Your MCA name reservation is expiring. This extension holds your proposed name while we complete registration.",
+                                    );
                                     setNotificationType("email_sms");
                                     setIsPaymentLinkModalOpen(true);
                                     return;
                                   }
 
                                   try {
-                                    const actionLabel = step.action === "Resend Payment Link" ? "Resend" : "Send";
+                                    const actionLabel =
+                                      step.action === "Resend Payment Link"
+                                        ? "Resend"
+                                        : "Send";
                                     const confirmed = await swal({
                                       title: `${actionLabel} Payment Link?`,
                                       text: `Are you sure you want to ${actionLabel.toLowerCase()} the payment link for Step ${step.step}?`,
@@ -592,10 +790,11 @@ export default function PricingAndPaymentContent({
                                     });
                                     if (!confirmed.isConfirmed) return;
 
-                                    const success = await pricingPaymentService.sendPaymentLink(
-                                      appNo,
-                                      step.stepNumber
-                                    );
+                                    const success =
+                                      await pricingPaymentService.sendPaymentLink(
+                                        appNo,
+                                        step.stepNumber,
+                                      );
 
                                     if (success) {
                                       await swal({
@@ -604,9 +803,14 @@ export default function PricingAndPaymentContent({
                                         icon: "success",
                                       });
                                       // Refresh pricing data
-                                      const data = await pricingPaymentService.getPricingAndPayment(appNo);
+                                      const data =
+                                        await pricingPaymentService.getPricingAndPayment(
+                                          appNo,
+                                        );
                                       if (data) {
-                                        setPricingData(mapBackendToFrontend(data));
+                                        setPricingData(
+                                          mapBackendToFrontend(data),
+                                        );
                                       }
                                     } else {
                                       await swal({
@@ -624,7 +828,10 @@ export default function PricingAndPaymentContent({
                               </button>
                               {step.paymentLinkSentAt && (
                                 <span className="text-[10px] text-gray-400 font-medium">
-                                  Sent: {new Date(step.paymentLinkSentAt).toLocaleDateString()}
+                                  Sent:{" "}
+                                  {new Date(
+                                    step.paymentLinkSentAt,
+                                  ).toLocaleDateString()}
                                 </span>
                               )}
                             </div>
@@ -729,10 +936,13 @@ export default function PricingAndPaymentContent({
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Request {(() => {
-                    const currentAttemptNum = selectedStep.breakdown?.currentAttempt || 1;
+                  Request{" "}
+                  {(() => {
+                    const currentAttemptNum =
+                      selectedStep.breakdown?.currentAttempt || 1;
                     return currentAttemptNum === 1 ? "1st" : "2nd";
-                  })()} name extension
+                  })()}{" "}
+                  name extension
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Client will see this in their approvals section
@@ -755,10 +965,18 @@ export default function PricingAndPaymentContent({
                 </span>
                 <span className="text-lg font-black text-[#1E3A6E]">
                   {(() => {
-                    const currentAttemptNum = selectedStep.breakdown?.currentAttempt || 1;
-                    const attempt = selectedStep.breakdown?.attempts?.find((a: any) => a.attemptNumber === currentAttemptNum);
-                    const baseAmt = attempt?.amount ?? (currentAttemptNum === 1 ? 1000 : 2000);
-                    return formatCurrency(baseAmt, pricingData.currency || "INR");
+                    const currentAttemptNum =
+                      selectedStep.breakdown?.currentAttempt || 1;
+                    const attempt = selectedStep.breakdown?.attempts?.find(
+                      (a: any) => a.attemptNumber === currentAttemptNum,
+                    );
+                    const baseAmt =
+                      attempt?.amount ??
+                      (currentAttemptNum === 1 ? 1000 : 2000);
+                    return formatCurrency(
+                      baseAmt,
+                      pricingData.currency || "INR",
+                    );
                   })()}
                 </span>
               </div>
@@ -766,7 +984,7 @@ export default function PricingAndPaymentContent({
               {/* Reason */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
-                  Reason for extension — shown to client
+                  Reason for extension - shown to client
                 </span>
                 <textarea
                   className="w-full text-xs p-3 border border-slate-200 rounded-lg bg-white text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"

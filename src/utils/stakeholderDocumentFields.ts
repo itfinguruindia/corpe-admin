@@ -83,13 +83,11 @@ export function getDirectorDualSourceDocumentFields(params: {
     fields.push({ key: "noPanDeclaration", label: "No PAN Declaration" });
   }
 
-  if (!isLlp) {
-    fields.push(
-      { key: "miscellaneous1", label: "Miscellaneous 1" },
-      { key: "miscellaneous2", label: "Miscellaneous 2" },
-      { key: "miscellaneous3", label: "Miscellaneous 3" },
-    );
-  }
+  fields.push(
+    { key: "miscellaneous1", label: "Miscellaneous Document 1" },
+    { key: "miscellaneous2", label: "Miscellaneous Document 2" },
+    { key: "miscellaneous3", label: "Miscellaneous Document 3" },
+  );
 
   return fields;
 }

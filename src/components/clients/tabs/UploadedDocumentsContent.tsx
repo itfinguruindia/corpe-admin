@@ -20,6 +20,7 @@ import Modal from "@/components/ui/Modal";
 import { getFileType } from "@/utils/helpers";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import { FileUploadComponent } from "@/components/upload";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { toStakeholderId } from "@/utils/stakeholderIds";
 
@@ -42,6 +43,8 @@ export default function UploadedDocumentsContent({
   const [officeDocs, setOfficeDocs] = useState<{
     proofOfOffice?: { name: string; path: string } | null;
     proofOfOfficeAddress?: { name: string; path: string } | null;
+    proofOfOfficeNoc?: { name: string; path: string } | null;
+    proofOfOfficeNocAdminDraft?: { name: string; path: string } | null;
     proofOfOfficeAddressAdminDraft?: { name: string; path: string } | null;
   }>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -63,11 +66,13 @@ export default function UploadedDocumentsContent({
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [response, overviewResponse, trackerResponse] = await Promise.all([
-          clientsApi.getDirectorAndShareHolders(appNo, false),
-          clientsApi.getCompanyOverview(appNo),
-          clientsApi.getTrackingStatus(appNo).catch(() => null),
-        ]);
+        const [response, overviewResponse, trackerResponse] = await Promise.all(
+          [
+            clientsApi.getDirectorAndShareHolders(appNo, false),
+            clientsApi.getCompanyOverview(appNo),
+            clientsApi.getTrackingStatus(appNo).catch(() => null),
+          ],
+        );
 
         if (response && response.data) {
           // Map directors
@@ -97,6 +102,9 @@ export default function UploadedDocumentsContent({
             proofOfOffice: registeredOffice?.proofOfOffice ?? null,
             proofOfOfficeAddress:
               registeredOffice?.proofOfOfficeAddress ?? null,
+            proofOfOfficeNoc: registeredOffice?.proofOfOfficeNoc ?? null,
+            proofOfOfficeNocAdminDraft:
+              registeredOffice?.proofOfOfficeNocAdminDraft ?? null,
             proofOfOfficeAddressAdminDraft:
               registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
           });
@@ -163,38 +171,19 @@ export default function UploadedDocumentsContent({
     }
   };
 
-  const handleDocUpload = (docType: string, label: string) => {
-    if (!requireEdit()) return;
-
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".pdf,.jpg,.jpeg,.png";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-
-      try {
-        await clientsApi.uploadCorporateStructureDocument(appNo, docType, file);
-        toast.success(`${label} uploaded successfully.`);
-        // Reload data to reflect the changes
-        const overviewResponse = await clientsApi.getCompanyOverview(appNo);
-        if (overviewResponse && overviewResponse.data) {
-          const registeredOffice =
-            overviewResponse.data.corporateStructure?.registeredOffice;
-          setOfficeDocs({
-            proofOfOffice: registeredOffice?.proofOfOffice ?? null,
-            proofOfOfficeAddress:
-              registeredOffice?.proofOfOfficeAddress ?? null,
-            proofOfOfficeAddressAdminDraft:
-              registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
-          });
-        }
-      } catch (error) {
-        console.error("Error uploading document:", error);
-        toast.danger(`Failed to upload ${label}.`);
-      }
-    };
-    input.click();
+  const uploadOfficeDocument = async (
+    docType: string,
+    label: string,
+    file: File,
+  ) => {
+    try {
+      await clientsApi.uploadCorporateStructureDocument(appNo, docType, file);
+      toast.success(`${label} uploaded successfully.`);
+      await loadOfficeDocs();
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      toast.danger(`Failed to upload ${label}.`);
+    }
   };
 
   const handleDocDelete = async (docType: string, label: string) => {
@@ -215,6 +204,9 @@ export default function UploadedDocumentsContent({
         setOfficeDocs({
           proofOfOffice: registeredOffice?.proofOfOffice ?? null,
           proofOfOfficeAddress: registeredOffice?.proofOfOfficeAddress ?? null,
+          proofOfOfficeNoc: registeredOffice?.proofOfOfficeNoc ?? null,
+          proofOfOfficeNocAdminDraft:
+            registeredOffice?.proofOfOfficeNocAdminDraft ?? null,
           proofOfOfficeAddressAdminDraft:
             registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
         });
@@ -233,6 +225,9 @@ export default function UploadedDocumentsContent({
       setOfficeDocs({
         proofOfOffice: registeredOffice?.proofOfOffice ?? null,
         proofOfOfficeAddress: registeredOffice?.proofOfOfficeAddress ?? null,
+        proofOfOfficeNoc: registeredOffice?.proofOfOfficeNoc ?? null,
+        proofOfOfficeNocAdminDraft:
+          registeredOffice?.proofOfOfficeNocAdminDraft ?? null,
         proofOfOfficeAddressAdminDraft:
           registeredOffice?.proofOfOfficeAddressAdminDraft ?? null,
       });
@@ -265,13 +260,26 @@ export default function UploadedDocumentsContent({
             <h3 className="text-base font-bold text-secondary">{label}</h3>
             <div className="flex items-center gap-2 shrink-0">
               {allowUpload && (
-                <button
-                  onClick={() => handleDocUpload(docType, label)}
-                  title="Upload document"
-                  className="p-1.5 text-gray-500 hover:text-primary hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
-                >
-                  <Upload className="w-4 h-4" />
-                </button>
+                <FileUploadComponent
+                  context="clients"
+                  allowedFileTypes=".pdf,.jpg,.jpeg,.png"
+                  title={`Upload ${label}`}
+                  subtitle="Upload from your computer, Google Drive, or existing documents."
+                  onBeforeOpen={() => requireEdit()}
+                  onFileSelect={(file) =>
+                    uploadOfficeDocument(docType, label, file)
+                  }
+                  renderTrigger={(openPicker) => (
+                    <button
+                      type="button"
+                      onClick={openPicker}
+                      title="Upload document"
+                      className="p-1.5 text-gray-500 hover:text-primary hover:bg-gray-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Upload className="w-4 h-4" />
+                    </button>
+                  )}
+                />
               )}
               {fileObj && (
                 <button
@@ -348,7 +356,8 @@ export default function UploadedDocumentsContent({
     // client can download and upload signed copy.
     const lockAdminTemplate = false;
     const lockClientSignedCopy = !!(
-      installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid
+      installmentInfo?.firstInstallmentDue ||
+      !installmentInfo?.secondInstallmentPaid
     );
 
     return (
@@ -387,24 +396,39 @@ export default function UploadedDocumentsContent({
                   📤 ADMIN TEMPLATE
                 </span>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={lockAdminTemplate ? undefined : () =>
-                      handleDocUpload(docTypeAdmin, "Admin Template")
-                    }
+                  <FileUploadComponent
+                    context="clients"
+                    allowedFileTypes=".pdf,.jpg,.jpeg,.png"
+                    title="Upload Admin Template"
+                    subtitle="Upload from your computer, Google Drive, or existing documents."
                     disabled={lockAdminTemplate}
-                    title={lockAdminTemplate ? "Locked" : "Upload template"}
-                    className={`p-1.5 rounded-lg transition-colors ${
-                      lockAdminTemplate
-                        ? "text-gray-300 cursor-not-allowed"
-                        : "text-gray-500 hover:text-primary hover:bg-orange-50 cursor-pointer"
-                    }`}
-                  >
-                    <Upload className="w-4 h-4" />
-                  </button>
+                    onBeforeOpen={() => requireEdit()}
+                    onFileSelect={(file) =>
+                      uploadOfficeDocument(docTypeAdmin, "Admin Template", file)
+                    }
+                    renderTrigger={(openPicker) => (
+                      <button
+                        type="button"
+                        onClick={lockAdminTemplate ? undefined : openPicker}
+                        disabled={lockAdminTemplate}
+                        title={lockAdminTemplate ? "Locked" : "Upload template"}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          lockAdminTemplate
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-gray-500 hover:text-primary hover:bg-orange-50 cursor-pointer"
+                        }`}
+                      >
+                        <Upload className="w-4 h-4" />
+                      </button>
+                    )}
+                  />
                   {adminFile && (
                     <button
-                      onClick={lockAdminTemplate ? undefined : () =>
-                        handleDocDelete(docTypeAdmin, "Admin Template")
+                      onClick={
+                        lockAdminTemplate
+                          ? undefined
+                          : () =>
+                              handleDocDelete(docTypeAdmin, "Admin Template")
                       }
                       disabled={lockAdminTemplate}
                       title={lockAdminTemplate ? "Locked" : "Delete template"}
@@ -473,13 +497,19 @@ export default function UploadedDocumentsContent({
                 <div className="flex items-center gap-2">
                   {clientFile && (
                     <button
-                      onClick={lockClientSignedCopy ? undefined : () =>
-                        handleDocDelete(docTypeClient, "Client Signed Copy")
+                      onClick={
+                        lockClientSignedCopy
+                          ? undefined
+                          : () =>
+                              handleDocDelete(
+                                docTypeClient,
+                                "Client Signed Copy",
+                              )
                       }
                       disabled={lockClientSignedCopy}
                       title={
                         lockClientSignedCopy
-                          ? "Locked — installment due"
+                          ? "Locked - installment due"
                           : "Delete client copy"
                       }
                       className={`p-1.5 rounded-lg transition-colors ${
@@ -559,9 +589,15 @@ export default function UploadedDocumentsContent({
           </p>
         </div>
 
-        {!!(installmentInfo?.firstInstallmentDue || !installmentInfo?.secondInstallmentPaid) && (
+        {!!(
+          installmentInfo?.firstInstallmentDue ||
+          !installmentInfo?.secondInstallmentPaid
+        ) && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold max-w-5xl">
-            <span>⚠️ Stage locked. Outstanding installment payments are due for this client. Document actions are disabled.</span>
+            <span>
+              ⚠️ Stage locked. Outstanding installment payments are due for this
+              client. Document actions are disabled.
+            </span>
           </div>
         )}
 
@@ -572,7 +608,9 @@ export default function UploadedDocumentsContent({
               <div className="bg-primary/10 p-2 rounded-lg">
                 <UserCheck className="text-primary w-6 h-6" />
               </div>
-              <h2 className="text-2xl font-bold text-secondary">{labels.directors}</h2>
+              <h2 className="text-2xl font-bold text-secondary">
+                {labels.directors}
+              </h2>
               <span className="bg-gray-200 text-gray-700 px-3 py-0.5 rounded-full text-sm font-medium ml-auto">
                 {directors.length}
               </span>
@@ -613,7 +651,9 @@ export default function UploadedDocumentsContent({
                 {shareholders.map((shareholder) => (
                   <TabCard
                     key={shareholder.id}
-                    label={labels.shareholderWithNumber(shareholder.shareholderNumber)}
+                    label={labels.shareholderWithNumber(
+                      shareholder.shareholderNumber,
+                    )}
                     onClick={() => handleShareholderClick(shareholder)}
                     className="text-left hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
                   />
@@ -643,12 +683,18 @@ export default function UploadedDocumentsContent({
               officeDocs.proofOfOffice,
               false,
             )}
-            {renderDualOfficeDocCard(
-              "Proof of office address along with NOC, if applicable (Conveyance/ Lease deed/ Rent Agreement along with rent receipts)",
+            {renderOfficeDocCard(
+              "Proof of Office Address (Conveyance Deed / Lease Deed / Rent Agreement, etc.)",
               "proofOfOfficeAddress",
-              "proofOfOfficeAddressAdminDraft",
               officeDocs.proofOfOfficeAddress,
-              officeDocs.proofOfOfficeAddressAdminDraft,
+              false,
+            )}
+            {renderDualOfficeDocCard(
+              "NOC (No Objection Certificate)",
+              "proofOfOfficeNoc",
+              "proofOfOfficeNocAdminDraft",
+              officeDocs.proofOfOfficeNoc,
+              officeDocs.proofOfOfficeNocAdminDraft,
               refreshOfficeDocs,
               isRefreshing,
             )}
@@ -658,7 +704,8 @@ export default function UploadedDocumentsContent({
         {directors.length === 0 &&
           shareholders.length === 0 &&
           !officeDocs.proofOfOffice &&
-          !officeDocs.proofOfOfficeAddress && (
+          !officeDocs.proofOfOfficeAddress &&
+          !officeDocs.proofOfOfficeNoc && (
             <div className="mt-20">
               <EmptyState message="No entities or registered office documents found. Please check the application status." />
             </div>
