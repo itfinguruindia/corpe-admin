@@ -83,6 +83,8 @@ interface InstallmentInfo {
   firstInstallmentPaid: boolean;
   secondInstallmentDue: boolean;
   secondInstallmentPaid: boolean;
+  paymentLinkStage4Sent: boolean;
+  paymentLinkStage6Sent: boolean;
 }
 
 interface TrackerData {
@@ -668,9 +670,9 @@ export default function TrackingStatusContent({
 
         {/* Installment Payment Warning Banners */}
         {tracker.installmentInfo?.firstInstallmentDue && (
-          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center gap-3 shadow-sm">
-            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-            <div>
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
               <p className="text-sm font-bold text-amber-900">
                 1st Installment Payment Required
               </p>
@@ -678,34 +680,50 @@ export default function TrackingStatusContent({
                 The Digital Signature Certificate (DSC) section in Stage 2 and
                 all of Stages 3 &amp; 4 are locked until the client pays the 1st
                 Installment.
-                <a
-                  href={`/clients/${appNo}/pricing-and-payment`}
-                  className="underline font-semibold ml-1"
+              </p>
+              <div className="flex items-center gap-3 mt-2">
+                <button
+                  onClick={() => router.push(`/clients/${appNo}?tab=pricing-and-payment`)}
+                  className="text-xs font-semibold text-amber-800 bg-amber-200/70 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-none"
                 >
                   Go to Pricing &amp; Payment
-                </a>
-              </p>
+                </button>
+                <span className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage4Sent ? "text-green-700" : "text-amber-600"}`}>
+                  <span className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage4Sent ? "bg-green-500" : "bg-amber-400"}`} />
+                  {tracker.installmentInfo.paymentLinkStage4Sent
+                    ? "Payment link sent to client"
+                    : "Payment link not generated yet"}
+                </span>
+              </div>
             </div>
           </div>
         )}
 
         {tracker.installmentInfo?.secondInstallmentDue && (
-          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center gap-3 shadow-sm">
-            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-            <div>
+          <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
               <p className="text-sm font-bold text-amber-900">
                 2nd Installment Payment Required
               </p>
               <p className="text-xs text-amber-700 mt-0.5">
                 Stages 3 &amp; 4 are locked until the client pays the 2nd
                 Installment.
-                <a
-                  href={`/clients/${appNo}/pricing-and-payment`}
-                  className="underline font-semibold ml-1"
+              </p>
+              <div className="flex items-center gap-3 mt-2">
+                <button
+                  onClick={() => router.push(`/clients/${appNo}?tab=pricing-and-payment`)}
+                  className="text-xs font-semibold text-amber-800 bg-amber-200/70 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer border-none"
                 >
                   Go to Pricing &amp; Payment
-                </a>
-              </p>
+                </button>
+                <span className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage6Sent ? "text-green-700" : "text-amber-600"}`}>
+                  <span className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage6Sent ? "bg-green-500" : "bg-amber-400"}`} />
+                  {tracker.installmentInfo.paymentLinkStage6Sent
+                    ? "Payment link sent to client"
+                    : "Payment link not generated yet"}
+                </span>
+              </div>
             </div>
           </div>
         )}
