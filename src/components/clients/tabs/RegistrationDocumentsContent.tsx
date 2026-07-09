@@ -11,10 +11,12 @@ import Modal from "@/components/ui/Modal";
 import {
   RegistrationData,
   LlpAgreementStatus,
+  Form3Status,
 } from "@/types/registrationDocuments";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { getFileType } from "@/utils/helpers";
+import { getStakeholderLabels } from "@/utils/companyTypeLabels";
 import { PanTanEmailDisclaimer } from "./PanTanEmailDisclaimer";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 import { FileUploadComponent } from "@/components/upload";
@@ -71,6 +73,8 @@ export default function RegistrationDocumentsContent({
   } | null>(null);
   const [llpAgreementStatus, setLlpAgreementStatus] =
     useState<LlpAgreementStatus | null>(null);
+  const [form3Status, setForm3Status] = useState<Form3Status | null>(null);
+  const [form3Countdown, setForm3Countdown] = useState<string | null>(null);
 
   const isLlpCompany =
     data?.companyType?.toLowerCase() === "llp" ||
@@ -102,10 +106,15 @@ export default function RegistrationDocumentsContent({
         companyType === "llp" ||
         companyType === "limited-liability-partnership"
       ) {
-        const llpStatus = await clientsApi.getLlpAgreementStatus(appNo);
+        const [llpStatus, form3] = await Promise.all([
+          clientsApi.getLlpAgreementStatus(appNo),
+          clientsApi.getForm3Status(appNo),
+        ]);
         setLlpAgreementStatus(llpStatus);
+        setForm3Status(form3);
       } else {
         setLlpAgreementStatus(null);
+        setForm3Status(null);
       }
     } catch (error) {
       console.error("Failed to load registration data:", error);
@@ -118,6 +127,43 @@ export default function RegistrationDocumentsContent({
     loadData();
   }, [appNo]);
 
+  useEffect(() => {
+    const startIso = llpAgreementStatus?.adminFile?.uploadedAt || null;
+    const form3Done = Boolean(form3Status?.adminFile?.path);
+    if (!startIso || form3Done) {
+      setForm3Countdown(null);
+      return;
+    }
+
+    const startMs = new Date(String(startIso)).getTime();
+    if (!Number.isFinite(startMs)) {
+      setForm3Countdown(null);
+      return;
+    }
+
+    const deadlineMs = startMs + 25 * 24 * 60 * 60 * 1000;
+
+    const pad = (n: number) => String(Math.max(0, n)).padStart(2, "0");
+    const tick = () => {
+      const diff = deadlineMs - Date.now();
+      if (diff <= 0) {
+        setForm3Countdown("00d : 00h : 00m : 00s");
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      setForm3Countdown(
+        `${pad(days)}d : ${pad(hours)}h : ${pad(minutes)}m : ${pad(seconds)}s`,
+      );
+    };
+
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [llpAgreementStatus?.adminFile?.uploadedAt, form3Status?.adminFile?.path]);
+
   const handleCinSubmit = async () => {
     if (!requireEdit()) return;
     if (isLocked) {
@@ -125,19 +171,25 @@ export default function RegistrationDocumentsContent({
       return;
     }
     if (!CIN_REGEX.test(cinInput)) {
-      setCinError("Please enter a valid CIN (e.g. L12345AB1234DEF123456)");
+      const registrationIdLabel = getStakeholderLabels(data?.companyType)
+        .cinLlpinLabel;
+      setCinError(
+        `Please enter a valid ${registrationIdLabel} (e.g. L12345AB1234DEF123456)`,
+      );
       return;
     }
     setCinError("");
     setIsCinEditable(false);
     try {
       await clientsApi.updateCinAndStatus(appNo, cinInput, companyStatus);
-      toast.success("CIN updated successfully!");
+      toast.success(
+        `${getStakeholderLabels(data?.companyType).cinLlpinLabel} updated successfully!`,
+      );
       loadData();
     } catch (error) {
       console.error("Failed to update CIN:", error);
       notifyApiError(error, {
-        fallback: "Failed to update CIN.",
+        fallback: `Failed to update ${getStakeholderLabels(data?.companyType).cinLlpinLabel}.`,
         actionLabel: "update registration details",
       });
     }
@@ -166,7 +218,7 @@ export default function RegistrationDocumentsContent({
   const canUploadRegistrationDoc = (docName: string) => {
     if (!data?.cin) {
       toast.warning(
-        "Please submit a valid CIN first to unlock document uploads.",
+        `Please submit a valid ${getStakeholderLabels(data?.companyType).cinLlpinLabel} first to unlock document uploads.`,
       );
       return false;
     }
@@ -264,6 +316,56 @@ export default function RegistrationDocumentsContent({
     }
   };
 
+  const handleForm3Upload = async (file: File) => {
+    try {
+      setIsLoading(true);
+      await clientsApi.uploadForm3Document(appNo, file);
+      toast.success("Form 3 uploaded successfully!");
+      loadData();
+    } catch (error) {
+      console.error("Failed to upload Form 3:", error);
+      notifyApiError(error, {
+        fallback: "Failed to upload Form 3.",
+        actionLabel: "upload Form 3",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForm3Download = async () => {
+    try {
+      const fileName = form3Status?.adminFile?.name;
+      const blob = await clientsApi.downloadForm3Document(appNo);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName || "form-3.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Failed to download Form 3:", error);
+      toast.danger("No file uploaded yet or download failed.");
+    }
+  };
+
+  const handleForm3Preview = async () => {
+    try {
+      const fileName = form3Status?.adminFile?.name;
+      const blob = await clientsApi.downloadForm3Document(appNo);
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setPreviewFileName(fileName || "form-3.pdf");
+      setPreviewTitle("Form 3");
+      setIsPreviewOpen(true);
+    } catch (error) {
+      console.error("Failed to preview Form 3:", error);
+      toast.danger("Could not open Form 3.");
+    }
+  };
+
   const handleLlpAgreementDownload = async (source: "admin" | "client") => {
     try {
       const fileName =
@@ -319,6 +421,9 @@ export default function RegistrationDocumentsContent({
     );
   }
 
+  const labels = getStakeholderLabels(data.companyType);
+  const registrationIdLabel = labels.cinLlpinLabel;
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans p-6">
       <div className="max-w-full">
@@ -328,6 +433,9 @@ export default function RegistrationDocumentsContent({
               <h2 className="text-xl font-semibold text-secondary">
                 Registration Documents
               </h2>
+              <div className="mt-1 text-sm font-semibold text-gray-600">
+                Application No: <span className="text-secondary">{appNo}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -355,7 +463,7 @@ export default function RegistrationDocumentsContent({
                 toast.danger("Action locked. Installment payment is due.");
               } else if (!data?.cin) {
                 toast.warning(
-                  "Please submit a valid CIN first to unlock company status updates.",
+                  `Please submit a valid ${registrationIdLabel} first to unlock company status updates.`,
                 );
               }
             }}
@@ -376,16 +484,18 @@ export default function RegistrationDocumentsContent({
           </div>
           {!data?.cin && (
             <p className="mt-2 text-xs font-medium text-amber-600">
-              * Please enter and submit the CIN first to unlock company status
-              updates.
+              * Please enter and submit the {registrationIdLabel} first to unlock
+              company status updates.
             </p>
           )}
         </div>
 
-        {/* CIN Section */}
+        {/* CIN / LLPIN Section */}
         <div className="flex flex-col gap-y-4 border-b border-gray-200 pb-8">
           <div className="flex items-center">
-            <label className="text-lg font-bold text-black min-w-20">CIN</label>
+            <label className="text-lg font-bold text-black min-w-20">
+              {registrationIdLabel}
+            </label>
             <div className="flex items-center gap-4 flex-1 max-w-xl">
               <input
                 type="text"
@@ -397,7 +507,9 @@ export default function RegistrationDocumentsContent({
                 }}
                 className="disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#F46A45] focus:outline-none focus:ring-2 focus:ring-[#F46A45]/20 scheme-light"
                 placeholder={
-                  isLocked ? "Locked - installment due" : "Enter 21 digit CIN"
+                  isLocked
+                    ? "Locked - installment due"
+                    : `Enter 21 digit ${registrationIdLabel}`
                 }
               />
               <button
@@ -423,7 +535,7 @@ export default function RegistrationDocumentsContent({
                     ? "border-gray-200 text-gray-300 cursor-not-allowed"
                     : "text-primary border-[#F46A45] hover:bg-orange-50 cursor-pointer"
                 }`}
-                title={isLocked ? "Locked - installment due" : "Edit CIN"}
+                title={isLocked ? "Locked - installment due" : `Edit ${registrationIdLabel}`}
               >
                 <Edit size={18} />
               </button>
@@ -439,7 +551,8 @@ export default function RegistrationDocumentsContent({
         {/* Documents List */}
         <div className="space-y-0 max-w-5xl">
           {data.documents.map((doc) => {
-            const isEmailDeliveryDoc = doc.name === "PAN" || doc.name === "TAN";
+            const isEmailDeliveryDoc =
+              doc.name === "PAN" || doc.name === "TAN" || doc.name === "COI";
 
             return (
               <div
@@ -579,7 +692,7 @@ export default function RegistrationDocumentsContent({
                   if (!requireEdit()) return false;
                   if (!data?.cin) {
                     toast.warning(
-                      "Please submit a valid CIN first to unlock document uploads.",
+                      `Please submit a valid ${registrationIdLabel} first to unlock document uploads.`,
                     );
                     return false;
                   }
@@ -679,6 +792,119 @@ export default function RegistrationDocumentsContent({
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Form 3 (LLP only) */}
+            <div className="mt-8 border-t border-gray-100 pt-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-black">Form 3</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    One-way document. Upload Form 3 for the client to download.
+                  </p>
+                </div>
+                <FileUploadComponent
+                  context="clients"
+                  allowedFileTypes=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                  title="Upload Form 3"
+                  subtitle="Upload from your computer, Google Drive, or existing documents."
+                  disabled={!data?.cin}
+                  onBeforeOpen={() => {
+                    if (!requireEdit()) return false;
+                    if (!data?.cin) {
+                      toast.warning(
+                        `Please submit a valid ${registrationIdLabel} first to unlock document uploads.`,
+                      );
+                      return false;
+                    }
+                    return true;
+                  }}
+                  onFileSelect={handleForm3Upload}
+                  renderTrigger={(openPicker) => (
+                    <button
+                      type="button"
+                      onClick={data?.cin ? openPicker : undefined}
+                      disabled={!data?.cin}
+                      className="inline-flex items-center gap-2 rounded-lg border border-[#F46A45] px-4 py-2 text-sm font-medium text-[#F46A45] transition-colors hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      title="Upload Form 3 (Admin)"
+                    >
+                      <Upload size={18} />
+                      Upload Form 3
+                    </button>
+                  )}
+                />
+              </div>
+
+              {(() => {
+                const llpStart = llpAgreementStatus?.adminFile?.uploadedAt
+                  ? new Date(String(llpAgreementStatus.adminFile.uploadedAt))
+                  : null;
+                const form3Done = Boolean(form3Status?.adminFile?.path);
+                const startMs = llpStart ? llpStart.getTime() : null;
+                const duePassed =
+                  Boolean(startMs) &&
+                  !form3Done &&
+                  Date.now() > (startMs as number) + 25 * 24 * 60 * 60 * 1000;
+
+                if (duePassed) {
+                  return (
+                    <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800">
+                      ⚠️ Form 3 due window passed. Please file/upload Form 3.
+                    </div>
+                  );
+                }
+
+                if (form3Countdown) {
+                  return (
+                    <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+                      ⏳ {form3Countdown} remaining to file/upload Form 3 (25-day
+                      window starts from LLP Agreement upload).
+                    </div>
+                  );
+                }
+
+                return null;
+              })()}
+
+              <div className="space-y-3">
+                {form3Status?.adminFile ? (
+                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-orange-700">
+                        Admin Upload
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleForm3Preview}
+                          className="text-orange-600 hover:text-orange-700"
+                          title="Preview"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleForm3Download}
+                          className="text-orange-600 hover:text-orange-700"
+                          title="Download"
+                        >
+                          <Download size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="truncate text-sm text-secondary">
+                      {form3Status.adminFile.name}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
+                    <div className="mb-1 text-xs font-medium text-gray-400">
+                      Admin Upload
+                    </div>
+                    <div className="text-sm text-gray-400">No file uploaded</div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

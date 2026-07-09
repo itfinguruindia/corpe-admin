@@ -22,6 +22,7 @@ export function toStakeholderId(
 export function matchesStakeholderId(
   record: StakeholderRecord | null | undefined,
   routeId: string | undefined,
+  fallbackIndex?: number,
 ): boolean {
   if (!routeId || !record) return false;
 
@@ -32,5 +33,17 @@ export function matchesStakeholderId(
     record._id,
   ].filter((value) => value !== null && value !== undefined && value !== "");
 
-  return candidates.some((value) => String(value) === normalizedRouteId);
+  if (candidates.some((value) => String(value) === normalizedRouteId)) {
+    return true;
+  }
+
+  // Allow numeric/index route ids used as last-resort fallbacks
+  if (
+    fallbackIndex !== undefined &&
+    String(fallbackIndex) === normalizedRouteId
+  ) {
+    return true;
+  }
+
+  return false;
 }
