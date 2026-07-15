@@ -1,4 +1,5 @@
 import type { Admin } from "@/types/admin";
+import { hasFullAdminAccess } from "@/utils/elevatedAdmin";
 
 export interface ClientAssignmentInfo {
   assigneeId: string | null;
@@ -33,23 +34,23 @@ export function isAdminAssignedToClient(
   return id === assignment.assigneeId || id === assignment.assignerId;
 }
 
-/** Super admin or assignee/assigner — required for edit/delete on client data. */
+/** Full-admin roles, or assignee/assigner — required for edit/delete on client data. */
 export function canMutateClientData(
   admin: Admin | null | undefined,
   assignment: ClientAssignmentInfo | null | undefined,
 ): boolean {
   if (!admin) return false;
-  if (admin.isSuperAdmin) return true;
+  if (hasFullAdminAccess(admin)) return true;
   return isAdminAssignedToClient(admin, assignment);
 }
 
-/** Super admin or client-assign permission. */
+/** Full-admin roles, or client-assign permission. */
 export function canUpdateClientAssignment(
   admin: Admin | null | undefined,
   _assignment?: ClientAssignmentInfo | null | undefined,
   hasClientAssign = false,
 ): boolean {
   if (!admin) return false;
-  if (admin.isSuperAdmin) return true;
+  if (hasFullAdminAccess(admin)) return true;
   return hasClientAssign;
 }
