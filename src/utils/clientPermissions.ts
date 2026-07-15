@@ -5,6 +5,7 @@ import {
   canMutateClientData,
   type ClientAssignmentInfo,
 } from "@/utils/clientAssignment";
+import { hasFullAdminAccess } from "@/utils/elevatedAdmin";
 import { showRouteAccessDeniedToast } from "@/lib/rbac/routeAccessDenied";
 
 export type ClientPermissionTab =
@@ -44,7 +45,7 @@ export function canPerformClientTabEdit(
   assignment?: ClientAssignmentInfo | null,
 ): boolean {
   if (!admin) return false;
-  if (admin.isSuperAdmin) return true;
+  if (hasFullAdminAccess(admin)) return true;
 
   const tabPerms = TAB_MUTATION_PERMISSIONS[tab];
   const hasRbac = hasPermission(
@@ -72,7 +73,7 @@ export function requireClientTabEdit(
     return false;
   }
 
-  if (admin.isSuperAdmin) return true;
+  if (hasFullAdminAccess(admin)) return true;
 
   const tabPerms = TAB_MUTATION_PERMISSIONS[tab];
   if (!hasPermission(admin, [...tabPerms, PERMISSIONS.CLIENT_EDIT], "any")) {
@@ -109,7 +110,7 @@ export function canDeleteClient(
   _assignment?: ClientAssignmentInfo | null,
 ): boolean {
   if (!admin) return false;
-  if (admin.isSuperAdmin) return true;
+  if (hasFullAdminAccess(admin)) return true;
   return hasPermission(admin, PERMISSIONS.CLIENT_DELETE);
 }
 
@@ -121,7 +122,7 @@ export function requireClientDelete(
     showRouteAccessDeniedToast();
     return false;
   }
-  if (admin.isSuperAdmin) return true;
+  if (hasFullAdminAccess(admin)) return true;
   if (!hasPermission(admin, PERMISSIONS.CLIENT_DELETE)) {
     showRouteAccessDeniedToast();
     return false;
