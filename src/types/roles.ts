@@ -64,6 +64,8 @@ export interface User {
   id?: string; // Keep for backward compatibility
   name: string;
   email: string;
+  phoneNumber?: string;
+  countryCode?: string;
   roleId?: number | string; // Can be number (mock) or string (backend _id)
   role?: string | Role; // Role name or populated Role object
   isSuperAdmin?: boolean; // Flag for super admin
