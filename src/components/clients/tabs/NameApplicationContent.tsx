@@ -529,7 +529,7 @@ export default function NameApplicationContent({
                 {/* NAME STATUS */}
                 <div className="flex flex-col gap-2 relative">
                   <span className="text-[11px] font-bold text-gray-500 tracking-wider">
-                    NAME STATUS
+                    MCA APPROVAL
                   </span>
                   <div
                     onClick={() => {
@@ -585,7 +585,7 @@ export default function NameApplicationContent({
                 {/* MCA APPROVAL */}
                 <div className="flex flex-col gap-2 relative">
                   <span className="text-[11px] font-bold text-gray-500 tracking-wider">
-                    MCA APPROVAL
+                    NAME STATUS
                   </span>
                   <div
                     onClick={() => {

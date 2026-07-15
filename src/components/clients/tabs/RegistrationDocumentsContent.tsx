@@ -551,8 +551,8 @@ export default function RegistrationDocumentsContent({
         {/* Documents List */}
         <div className="space-y-0 max-w-5xl">
           {data.documents.map((doc) => {
-            const isEmailDeliveryDoc =
-              doc.name === "PAN" || doc.name === "TAN" || doc.name === "COI";
+            const isEmailDeliveryDoc = doc.name === "PAN" || doc.name === "TAN";
+            const showUploadActions = !isEmailDeliveryDoc;
 
             return (
               <div
@@ -577,7 +577,7 @@ export default function RegistrationDocumentsContent({
                   )}
                 </div>
 
-                {!isEmailDeliveryDoc && (
+                {showUploadActions && (
                   <div className="flex items-center gap-6 shrink-0">
                     {/* View */}
                     <button
@@ -641,7 +641,9 @@ export default function RegistrationDocumentsContent({
                               ? "Locked - installment due"
                               : "Upload"
                           }
-                          disabled={!data?.cin || (doc.name === "COI" && isLocked)}
+                          disabled={
+                            !data?.cin || (doc.name === "COI" && isLocked)
+                          }
                           style={{
                             opacity:
                               !data?.cin || (doc.name === "COI" && isLocked)
