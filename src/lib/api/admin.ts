@@ -51,6 +51,57 @@ export const adminApi = {
     return response.data;
   },
 
+  // Super-admin: fetch login details including exact recoverable password
+  getAdminLoginDetails: async (adminId: string) => {
+    const response = await axiosInstance.get(`/admin/${adminId}/login-details`);
+    return response.data.data.admin as {
+      _id: string;
+      name: string;
+      email: string;
+      phoneNumber?: string;
+      countryCode?: string;
+      isSuperAdmin?: boolean;
+      status?: string;
+      password: string | null;
+    };
+  },
+
+  // Super-admin: set exact login password (also makes it viewable)
+  setAdminPassword: async (adminId: string, password: string) => {
+    const response = await axiosInstance.post(
+      `/admin/${adminId}/temporary-password`,
+      { password },
+    );
+    return response.data.data as {
+      _id: string;
+      name: string;
+      email: string;
+      phoneNumber?: string;
+      countryCode?: string;
+      password: string;
+    };
+  },
+
+  // Super-admin: switch session into another admin (no password needed)
+  loginAsAdmin: async (adminId: string) => {
+    const response = await axiosInstance.post(`/admin/${adminId}/login-as`);
+    return response.data.data as {
+      accessToken: string;
+      refreshToken: string;
+      admin: {
+        id: string;
+        name: string;
+        email: string;
+        phoneNumber?: string;
+        countryCode?: string;
+        profilePicture?: string | null;
+        isSuperAdmin?: boolean;
+        role?: unknown;
+        permissions?: string[];
+      };
+    };
+  },
+
   // Register new admin
   registerAdmin: async (adminData: {
     name: string;

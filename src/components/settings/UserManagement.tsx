@@ -17,6 +17,12 @@ import {
   Clock,
   Users as UsersIcon,
   Shield,
+  Eye,
+  Copy,
+  Check,
+  Phone,
+  KeyRound,
+  LogIn,
 } from "lucide-react";
 import {
   Button,
@@ -33,6 +39,9 @@ import PermissionGate from "@/components/rbac/PermissionGate";
 import { PERMISSIONS } from "@/utils/permissions";
 import { usePermissions } from "@/hooks/usePermissions";
 import useSwal from "@/utils/useSwal";
+import { applyAdminSession } from "@/utils/auth";
+import { redirectAfterAuth } from "@/utils/navigation";
+import type { Admin } from "@/types/admin";
 
 interface UserManagementProps {
   onEditUser?: (userId: string) => void;
@@ -43,7 +52,7 @@ export default function UserManagement({
   onEditUser,
   onDeleteUser,
 }: UserManagementProps) {
-  const { canEditUsers, hasPermission } = usePermissions();
+  const { canEditUsers, hasPermission, isSuperAdmin } = usePermissions();
   const swal = useSwal();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -53,11 +62,38 @@ export default function UserManagement({
   const [selectedRole, setSelectedRole] = useState<string | "all">("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [credentialsUser, setCredentialsUser] = useState<User | null>(null);
+  const [credentialsDetails, setCredentialsDetails] = useState<{
+    name: string;
+    email: string;
+    phoneNumber?: string;
+    countryCode?: string;
+    password: string | null;
+  } | null>(null);
+  const [manualPassword, setManualPassword] = useState("");
+  const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [isLoggingAsUser, setIsLoggingAsUser] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const createModalState = useOverlayState({
     isOpen: isCreateModalOpen,
     onOpenChange: (open) => {
       if (!open) setIsCreateModalOpen(false);
+    },
+  });
+
+  const credentialsModalState = useOverlayState({
+    isOpen: Boolean(credentialsUser),
+    onOpenChange: (open) => {
+      if (!open) {
+        setCredentialsUser(null);
+        setCredentialsDetails(null);
+        setManualPassword("");
+        setCopiedField(null);
+        setShowPassword(false);
+      }
     },
   });
 
@@ -238,6 +274,129 @@ export default function UserManagement({
     }
   };
 
+  const handleViewCredentials = async (user: User) => {
+    const userId = user._id || user.id || "";
+    if (!userId) return;
+
+    setCredentialsUser(user);
+    setManualPassword("");
+    setCopiedField(null);
+    setShowPassword(false);
+    setIsLoadingCredentials(true);
+
+    try {
+      const details = await adminApi.getAdminLoginDetails(userId);
+      setCredentialsDetails({
+        name: details.name,
+        email: details.email,
+        phoneNumber: details.phoneNumber,
+        countryCode: details.countryCode,
+        password: details.password,
+      });
+    } catch (error: unknown) {
+      console.error("Error loading login details:", error);
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to load login details.";
+      toast.danger(message);
+      setCredentialsUser(null);
+    } finally {
+      setIsLoadingCredentials(false);
+    }
+  };
+
+  const handleSaveExactPassword = async () => {
+    const userId = credentialsUser?._id || credentialsUser?.id || "";
+    if (!userId) return;
+
+    const nextPassword = manualPassword.trim();
+    if (nextPassword.length < 6) {
+      toast.danger("Password must be at least 6 characters");
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      const data = await adminApi.setAdminPassword(userId, nextPassword);
+      setCredentialsDetails({
+        name: data.name,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        countryCode: data.countryCode,
+        password: data.password,
+      });
+      setManualPassword("");
+      setShowPassword(true);
+      toast.success("Password saved");
+    } catch (error: unknown) {
+      console.error("Error saving password:", error);
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to save password.";
+      toast.danger(message);
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  const handleLoginAsUser = async () => {
+    const userId = credentialsUser?._id || credentialsUser?.id || "";
+    if (!userId || !isSuperAdmin) return;
+
+    const userName = credentialsDetails?.name || credentialsUser?.name || "this user";
+
+    // Close Login Details first so SweetAlert isn't blocked by the modal overlay
+    setCredentialsUser(null);
+    setCredentialsDetails(null);
+    setManualPassword("");
+    setCopiedField(null);
+    setShowPassword(false);
+
+    // Wait for modal unmount before opening SweetAlert
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
+
+    const confirmed = await swal({
+      title: "Login as this user?",
+      text: `You will leave Super Admin and continue as ${userName}. Log out and sign in again to return.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Login as user",
+      confirmButtonColor: "#FF6A3D",
+      cancelButtonColor: "#6B7280",
+    });
+
+    if (!confirmed.isConfirmed) return;
+
+    setIsLoggingAsUser(true);
+    try {
+      const session = await adminApi.loginAsAdmin(userId);
+      applyAdminSession({
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+        admin: session.admin as Admin,
+      });
+      toast.success(`Logged in as ${session.admin.name}`);
+      redirectAfterAuth("/dashboard");
+    } catch (error: unknown) {
+      console.error("Error logging in as user:", error);
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to login as this user.";
+      toast.danger(message);
+      setIsLoggingAsUser(false);
+    }
+  };
+
+  const handleCopy = async (field: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(field);
+      window.setTimeout(() => setCopiedField(null), 1500);
+    } catch {
+      toast.danger("Could not copy to clipboard");
+    }
+  };
+
   const formatTimeAgo = (dateString: string): string => {
     const date = new Date(dateString);
     const now = new Date();
@@ -320,6 +479,159 @@ export default function UserManagement({
                     loadData();
                   }}
                 />
+              </Modal.Body>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
+
+      <Modal state={credentialsModalState}>
+        <Modal.Backdrop className="bg-black/50 backdrop-blur-sm">
+          <Modal.Container placement="center" className="p-4">
+            <Modal.Dialog className="flex w-full max-w-md flex-col overflow-hidden rounded-xl bg-white shadow-2xl outline-none">
+              <Modal.Header className="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4">
+                <Modal.Heading className="text-lg font-semibold text-black">
+                  Login Details
+                </Modal.Heading>
+                <Modal.CloseTrigger
+                  className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                  aria-label="Close modal"
+                />
+              </Modal.Header>
+              <Modal.Body className="px-6 py-5 text-gray-700 space-y-4">
+                {isLoadingCredentials ? (
+                  <p className="text-sm text-gray-500">Loading details...</p>
+                ) : (
+                  <>
+                    {[
+                      {
+                        key: "name",
+                        label: "Name",
+                        icon: <UsersIcon size={16} className="text-gray-400" />,
+                        value: credentialsDetails?.name || "—",
+                      },
+                      {
+                        key: "phone",
+                        label: "Phone",
+                        icon: <Phone size={16} className="text-gray-400" />,
+                        value: credentialsDetails?.phoneNumber
+                          ? `${credentialsDetails.countryCode || "+91"} ${credentialsDetails.phoneNumber}`
+                          : "—",
+                      },
+                      {
+                        key: "email",
+                        label: "Email",
+                        icon: <Mail size={16} className="text-gray-400" />,
+                        value: credentialsDetails?.email || "—",
+                      },
+                      {
+                        key: "password",
+                        label: "Login Password",
+                        icon: <KeyRound size={16} className="text-gray-400" />,
+                        value: credentialsDetails?.password || null,
+                      },
+                    ].map((row) => (
+                      <div
+                        key={row.key}
+                        className="rounded-lg border border-gray-150 bg-gray-50 px-4 py-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1 flex items-center gap-1.5">
+                              {row.icon}
+                              {row.label}
+                            </p>
+                            {row.key === "password" ? (
+                              row.value ? (
+                                <p className="text-sm font-medium text-gray-900 break-all font-mono tracking-wide">
+                                  {showPassword ? row.value : "••••••••••••"}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-amber-800">
+                                  Not stored yet for this user. Set their exact
+                                  password below to view/share it.
+                                </p>
+                              )
+                            ) : (
+                              <p className="text-sm font-medium text-gray-900 break-all">
+                                {row.value || "—"}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {row.key === "password" && row.value ? (
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword((prev) => !prev)}
+                                className="rounded-md p-1.5 text-gray-500 hover:bg-white hover:text-[#3D63A4]"
+                                title={showPassword ? "Hide password" : "Show password"}
+                              >
+                                <Eye size={16} />
+                              </button>
+                            ) : null}
+                            {row.value && row.value !== "—" ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleCopy(row.key, String(row.value))
+                                }
+                                className="rounded-md p-1.5 text-gray-500 hover:bg-white hover:text-[#3D63A4]"
+                                title={`Copy ${row.label}`}
+                              >
+                                {copiedField === row.key ? (
+                                  <Check
+                                    size={16}
+                                    className="text-emerald-600"
+                                  />
+                                ) : (
+                                  <Copy size={16} />
+                                )}
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {!credentialsDetails?.password ? (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 space-y-3">
+                        <p className="text-sm text-amber-900">
+                          Enter the exact login password for this user so Super
+                          Admin can view it later.
+                        </p>
+                        <Input
+                          type="text"
+                          value={manualPassword}
+                          onChange={(e) => setManualPassword(e.target.value)}
+                          placeholder="Enter exact password"
+                          className="w-full"
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleSaveExactPassword}
+                          isDisabled={isSavingPassword}
+                          className="w-full rounded-lg bg-[#FF6A3D] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#e55a35]"
+                        >
+                          {isSavingPassword ? "Saving..." : "Save Password"}
+                        </Button>
+                      </div>
+                    ) : null}
+
+                    {isSuperAdmin && !credentialsUser?.isSuperAdmin ? (
+                      <Button
+                        type="button"
+                        onClick={handleLoginAsUser}
+                        isDisabled={isLoggingAsUser || isLoadingCredentials}
+                        className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg bg-[#3D63A4] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#345789]"
+                      >
+                        <LogIn size={16} />
+                        {isLoggingAsUser
+                          ? "Switching..."
+                          : "Login as this user"}
+                      </Button>
+                    ) : null}
+                  </>
+                )}
               </Modal.Body>
             </Modal.Dialog>
           </Modal.Container>
@@ -558,6 +870,20 @@ export default function UserManagement({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
+                        {isSuperAdmin && (
+                          <span title="View login details" className="inline-flex">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => handleViewCredentials(user)}
+                              aria-label="View login details"
+                              className="min-h-0 min-w-0 p-2 text-gray-600 hover:bg-amber-50 hover:text-amber-700"
+                            >
+                              <Eye size={16} />
+                            </Button>
+                          </span>
+                        )}
+
                         {canEditUsers() && (
                           <span title="Edit User" className="inline-flex">
                             <Button
