@@ -135,6 +135,24 @@ export async function registerSuperAdmin({
   }
 }
 
+function persistAdminSession({
+  accessToken,
+  refreshToken,
+  admin,
+}: {
+  accessToken: string;
+  refreshToken: string;
+  admin: Admin;
+}) {
+  localStorage.setItem("accessToken", accessToken);
+  localStorage.setItem("refreshToken", refreshToken);
+  localStorage.setItem("adminInfo", JSON.stringify(admin));
+  Cookies.set("accessToken", accessToken, { expires: 7 });
+  Cookies.set("refreshToken", refreshToken, { expires: 30 });
+  store.dispatch(setAuthData({ accessToken, refreshToken, admin }));
+  resetLogoutState();
+}
+
 export async function loginAdmin({
   email,
   password,
@@ -148,17 +166,20 @@ export async function loginAdmin({
   });
   if (response.data.success) {
     const { accessToken, refreshToken, admin } = response.data.data;
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-    localStorage.setItem("adminInfo", JSON.stringify(admin));
-    Cookies.set("accessToken", accessToken, { expires: 7 });
-    Cookies.set("refreshToken", refreshToken, { expires: 30 });
-    store.dispatch(setAuthData({ accessToken, refreshToken, admin }));
-    resetLogoutState();
+    persistAdminSession({ accessToken, refreshToken, admin });
     return true;
   } else {
     throw new Error(response.data.message || "Login failed");
   }
+}
+
+/** Apply tokens from Super Admin "login as" (replaces current session). */
+export function applyAdminSession(session: {
+  accessToken: string;
+  refreshToken: string;
+  admin: Admin;
+}) {
+  persistAdminSession(session);
 }
 
 export async function refreshAdminSession(): Promise<Admin | null> {
