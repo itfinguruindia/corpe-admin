@@ -4,6 +4,7 @@ import { Eye } from "lucide-react";
 import { useClientAssignment } from "@/contexts/ClientAssignmentContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
+import { hasFullAdminAccess } from "@/utils/elevatedAdmin";
 
 const CLIENT_EDIT_PERMISSIONS = [
   PERMISSIONS.CLIENT_EDIT,
@@ -32,10 +33,10 @@ const CLIENT_EDIT_PERMISSIONS = [
 ] as const;
 
 export default function ClientViewOnlyBanner() {
-  const { admin, isSuperAdmin, hasPermission } = usePermissions();
+  const { admin, hasPermission } = usePermissions();
   const { isLoading, canMutate } = useClientAssignment();
 
-  if (!admin || isSuperAdmin || isLoading || canMutate) {
+  if (!admin || hasFullAdminAccess(admin) || isLoading || canMutate) {
     return null;
   }
 
