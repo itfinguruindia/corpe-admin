@@ -389,7 +389,7 @@ export default function PricingAndPaymentContent({
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
                         Step
                       </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 min-w-[240px]">
                         Installment Name
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
@@ -427,7 +427,7 @@ export default function PricingAndPaymentContent({
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {step.step}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
+                        <td className="px-4 py-3 text-sm text-gray-700 min-w-[240px]">
                           <div className="font-medium text-gray-900">
                             {step.installmentName}
                           </div>
