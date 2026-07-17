@@ -9,6 +9,8 @@ export const LLP_NAME_APPLICATION_REVIEW_TITLE =
   "ROC/MCA reviewed the name application";
 export const SPICE_FORM_FILING_SECTION_LABEL = "SPICe+ Form Filing";
 export const FILLIP_FORM_FILING_SECTION_LABEL = "FiLLiP Form Filing";
+export const ROC_APPROVAL_SECTION_LABEL = "ROC Approval";
+export const MCA_APPROVAL_SECTION_LABEL = "MCA Approval";
 export const FULL_SPICE_PACKAGE_SUBMITTED_TITLE =
   "Full SPICe+ package submitted to MCA";
 export const FULL_FILLIP_PACKAGE_SUBMITTED_TITLE =
@@ -141,11 +143,18 @@ export const getFormFilingProseLabel = (
 export const getTrackerSectionDisplayLabel = (
   label: string,
   companyType?: string | null,
-): string =>
-  isLlpCompanyType(companyType) &&
-  label.trim().toLowerCase() === SPICE_FORM_FILING_SECTION_LABEL.toLowerCase()
-    ? FILLIP_FORM_FILING_SECTION_LABEL
-    : label;
+): string => {
+  if (!isLlpCompanyType(companyType)) return label;
+
+  const normalizedLabel = label.trim().toLowerCase();
+  if (normalizedLabel === SPICE_FORM_FILING_SECTION_LABEL.toLowerCase()) {
+    return FILLIP_FORM_FILING_SECTION_LABEL;
+  }
+  if (normalizedLabel === ROC_APPROVAL_SECTION_LABEL.toLowerCase()) {
+    return MCA_APPROVAL_SECTION_LABEL;
+  }
+  return label;
+};
 
 export const getTrackerStepOwnerLabel = (
   title: string,
@@ -193,6 +202,12 @@ export const getTrackerStepDisplayDescription = (
   stepTitle: string,
   companyType?: string | null,
 ): string => {
+  if (
+    isLlpCompanyType(companyType) &&
+    description.trim() === "Review under process by ROC"
+  ) {
+    return "Review under process by MCA";
+  }
   if (
     isLlpCompanyType(companyType) &&
     (isRunFilingStepTitle(stepTitle) ||
