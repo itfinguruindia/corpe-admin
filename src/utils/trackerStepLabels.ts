@@ -3,6 +3,18 @@ export const RUN_FILING_STEP_CANONICAL_DESCRIPTION = "RUN / SPICe+ Part A filing
 export const RUN_LLP_NAME_RESERVATION_TITLE =
   "Run LLP - Name Reservation filed on MCA";
 export const RUN_LLP_NAME_RESERVATION_DESCRIPTION = "Run LLP - Name Reservation";
+export const ROC_NAME_APPLICATION_REVIEW_TITLE =
+  "ROC reviewed the name application";
+export const LLP_NAME_APPLICATION_REVIEW_TITLE =
+  "ROC/MCA reviewed the name application";
+export const SPICE_FORM_FILING_SECTION_LABEL = "SPICe+ Form Filing";
+export const FILLIP_FORM_FILING_SECTION_LABEL = "FiLLiP Form Filing";
+export const FULL_SPICE_PACKAGE_SUBMITTED_TITLE =
+  "Full SPICe+ package submitted to MCA";
+export const FULL_FILLIP_PACKAGE_SUBMITTED_TITLE =
+  "Full FiLLiP package submitted to MCA";
+export const LLP_AGREEMENT_APPROVED_TITLE =
+  "Designated Partner reviewed and approved LLP Agreement";
 
 export const SPICE_PART_B_STEP_CANONICAL_TITLE = "SPICe+ Part B form";
 export const SPICE_PART_B_STEP_CANONICAL_DESCRIPTION = "Form preparation & check";
@@ -126,10 +138,41 @@ export const getFormFilingProseLabel = (
 ): string =>
   isLlpCompanyType(companyType) ? "FiLLiP Form" : "SPICe+ Part B";
 
+export const getTrackerSectionDisplayLabel = (
+  label: string,
+  companyType?: string | null,
+): string =>
+  isLlpCompanyType(companyType) &&
+  label.trim().toLowerCase() === SPICE_FORM_FILING_SECTION_LABEL.toLowerCase()
+    ? FILLIP_FORM_FILING_SECTION_LABEL
+    : label;
+
+export const getTrackerStepOwnerLabel = (
+  title: string,
+  ownerType: string,
+  companyType?: string | null,
+): string =>
+  isLlpCompanyType(companyType) &&
+  title.trim() === LLP_AGREEMENT_APPROVED_TITLE
+    ? "DESIGNATED PARTNER"
+    : ownerType.toUpperCase();
+
 export const getTrackerStepDisplayTitle = (
   title: string,
   companyType?: string | null,
 ): string => {
+  if (
+    isLlpCompanyType(companyType) &&
+    title.trim() === ROC_NAME_APPLICATION_REVIEW_TITLE
+  ) {
+    return LLP_NAME_APPLICATION_REVIEW_TITLE;
+  }
+  if (
+    isLlpCompanyType(companyType) &&
+    title.trim() === FULL_SPICE_PACKAGE_SUBMITTED_TITLE
+  ) {
+    return FULL_FILLIP_PACKAGE_SUBMITTED_TITLE;
+  }
   if (isLlpCompanyType(companyType) && isRunFilingStepTitle(title)) {
     return RUN_LLP_NAME_RESERVATION_TITLE;
   }
