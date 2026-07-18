@@ -19,6 +19,7 @@ import NameApplicationContent from "@/components/clients/tabs/NameApplicationCon
 import ShareholdersContent from "@/components/clients/tabs/ShareholdersContent";
 import UploadedDocumentsContent from "@/components/clients/tabs/UploadedDocumentsContent";
 import RegistrationDocumentsContent from "@/components/clients/tabs/RegistrationDocumentsContent";
+import AddonServicesContent from "@/components/clients/tabs/AddonServicesContent";
 import PricingAndPaymentContent from "@/components/clients/tabs/PricingAndPaymentContent";
 import CommentsContent from "@/components/clients/tabs/CommentsContent";
 import { safeRouterReplace } from "@/utils/navigation";
@@ -58,6 +59,11 @@ const TABS = [
     key: "registration-documents",
     label: "Registration Documents",
     component: RegistrationDocumentsContent,
+  },
+  {
+    key: "addon-services",
+    label: "Addon Services",
+    component: AddonServicesContent,
   },
   { key: "comments", label: "Comments", component: CommentsContent },
   {

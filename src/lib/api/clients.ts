@@ -1140,4 +1140,34 @@ export const clientsApi = {
     const response = await axiosInstance.get(`/admin/clients/archived/${orgId}`);
     return response.data?.data ?? response.data;
   },
+
+  // ── GST Registration (Add-on) ──
+
+  getGstRegistration: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/gst-registration`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  uploadGstAdminDocument: async (
+    applicationNo: string,
+    docType: string,
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/gst-registration/upload-admin-doc?docType=${encodeURIComponent(docType)}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  getGstBusinessDocDownloadUrl: (applicationNo: string, docId: string) =>
+    `/admin/clients/${applicationNo}/gst-registration/business-doc/download?docId=${encodeURIComponent(docId)}`,
 };
