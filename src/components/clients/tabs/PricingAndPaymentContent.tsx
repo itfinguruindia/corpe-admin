@@ -226,6 +226,7 @@ export default function PricingAndPaymentContent({
       discount: summary.discountAmount,
       paymentSteps,
       currency: summary.currency || "INR",
+      addons: (data as any).addons || [],
     };
   };
 
@@ -893,6 +894,117 @@ export default function PricingAndPaymentContent({
               </div>
             </div>
           )}
+          {/* Add-on Services Payments */}
+          <div className="mt-12 pt-8 border-t border-gray-200">
+            <h3 className="text-xl font-semibold mb-4 text-secondary flex items-center gap-2">
+              Add-on Services Payments
+            </h3>
+            
+            {pricingData.addons && pricingData.addons.length > 0 ? (
+              <div className="space-y-4">
+                {pricingData.addons.map((addon, index) => (
+                  <div
+                    key={addon.orderId || index}
+                    className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 rounded-xl border border-dashed border-blue-300 bg-blue-50/15 p-6 shadow-xs"
+                  >
+                    <div className="flex flex-col gap-1 w-full lg:w-auto">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-[#1E3A6E] text-white">
+                          {addon.serviceDescription || "Add-on Service"}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1.5 text-sm text-gray-600 mt-2">
+                        <div>
+                          <span className="text-gray-400 font-medium">Order ID:</span>{" "}
+                          <span className="font-mono font-medium text-gray-900">{addon.orderId || "-"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 font-medium">Payment ID:</span>{" "}
+                          <span className="font-mono font-medium text-gray-900">{addon.paymentId || "-"}</span>
+                        </div>
+                        {addon.paidAt && (
+                          <div className="col-span-1 md:col-span-2 mt-1">
+                            <span className="text-gray-400 font-medium">Paid on:</span>{" "}
+                            <span className="font-medium text-gray-900">
+                              {new Date(addon.paidAt).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {addon.breakdown && (
+                        <div className="mt-4 p-4 bg-white rounded-lg border border-slate-200 w-full max-w-lg shadow-2xs">
+                          <h4 className="text-[11px] font-bold text-slate-800 mb-3 uppercase tracking-wider">
+                            Pricing Breakdown
+                          </h4>
+                          <div className="space-y-1.5 text-sm text-slate-700">
+                            <div className="flex justify-between gap-12">
+                              <span className="text-gray-500">GST Registration filing:</span>
+                              <span className="font-semibold">{formatCurrency(addon.breakdown.baseFee, pricingData.currency)}</span>
+                            </div>
+                            {addon.breakdown.pricingDetails?.dscFee > 0 && (
+                              <div className="flex justify-between gap-12">
+                                <span className="text-gray-500">DSC Add-on ({addon.breakdown.pricingDetails.dsc}):</span>
+                                <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails.dscFee, pricingData.currency)}</span>
+                              </div>
+                            )}
+                            {addon.breakdown.pricingDetails?.statesFee > 0 && (
+                              <div className="flex justify-between gap-12">
+                                <span className="text-gray-500">Additional States ({addon.breakdown.pricingDetails.states} count):</span>
+                                <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails.statesFee, pricingData.currency)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between border-t border-slate-100 pt-2 mt-2 font-medium text-slate-900">
+                              <span>Subtotal:</span>
+                              <span>{formatCurrency(
+                                (addon.breakdown.baseFee || 0) + 
+                                (addon.breakdown.pricingDetails?.dscFee || 0) + 
+                                (addon.breakdown.pricingDetails?.statesFee || 0), 
+                                pricingData.currency
+                              )}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-500 text-xs">
+                              <span>GST (18%):</span>
+                              <span>{formatCurrency(addon.breakdown.gstFee, pricingData.currency)}</span>
+                            </div>
+                            <div className="flex justify-between border-t border-slate-200 pt-2 mt-2 font-bold text-blue-700 text-base">
+                              <span>Total Paid:</span>
+                              <span>{formatCurrency(addon.breakdown.amountPaid, pricingData.currency)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col items-start lg:items-end gap-1">
+                      <p className="text-xl font-bold text-[#1E3A6E] mb-0">
+                        {formatCurrency(addon.amount, pricingData.currency)}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-500" />
+                        <span className="text-sm font-semibold text-green-700 capitalize">
+                          Paid (Success)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-dashed border-gray-200 rounded-xl bg-slate-50/50">
+                <p className="text-sm text-gray-500 max-w-sm">
+                  No independent add-on services have been purchased for this client yet.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </Card>
 

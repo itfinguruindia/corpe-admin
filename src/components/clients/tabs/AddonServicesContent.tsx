@@ -74,15 +74,22 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
   const [adminDocs, setAdminDocs] = useState<GstDocEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // ARN States
+  const [arnInput, setArnInput] = useState("");
+  const [arnError, setArnError] = useState("");
+  const [savingArn, setSavingArn] = useState(false);
+
   const loadGst = useCallback(async () => {
     setLoading(true);
     try {
       const data = await clientsApi.getGstRegistration(appNo);
       setGstData(data);
       setAdminDocs(data?.adminDocs ?? []);
+      setArnInput((data as any)?.arn ?? "");
     } catch {
       setGstData(null);
       setAdminDocs([]);
+      setArnInput("");
     } finally {
       setLoading(false);
     }
@@ -91,6 +98,32 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
   useEffect(() => {
     if (selected === "gst-registration") loadGst();
   }, [selected, loadGst]);
+
+  const handleSaveArn = async () => {
+    if (!arnInput) {
+      setArnError("ARN is required");
+      return;
+    }
+
+    // Validate ARN (15 characters: 2 letters, 12 digits, 1 alphanumeric character)
+    const isValid = /^[a-zA-Z]{2}[0-9]{12}[a-zA-Z0-9]$/.test(arnInput);
+    if (!isValid) {
+      setArnError("Invalid ARN format. E.g. AA060826000001Z (15 characters alphanumeric).");
+      return;
+    }
+
+    try {
+      setSavingArn(true);
+      setArnError("");
+      await clientsApi.updateGstArn(appNo, arnInput.toUpperCase());
+      toast.success("GST Application Reference Number (ARN) saved successfully!");
+      loadGst();
+    } catch (error) {
+      notifyApiError(error, { fallback: "Failed to save ARN." });
+    } finally {
+      setSavingArn(false);
+    }
+  };
 
   const handleUpload = async (slotId: string, file: File) => {
     try {
@@ -108,21 +141,43 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
     try {
       const url = clientsApi.getGstBusinessDocDownloadUrl(appNo, docId);
       const response = await axiosInstance.get(url, { responseType: "blob" });
-      const blob = new Blob([response.data]);
+      const blob = response.data;
       const objectUrl = URL.createObjectURL(blob);
       if (mode === "preview") {
         window.open(objectUrl, "_blank");
       } else {
+        const contentDisposition = response.headers["content-disposition"];
+        let filename = docId;
+        if (contentDisposition) {
+          const matches = /filename\*?=(?:UTF-8'')?([^;]+)/.exec(contentDisposition);
+          if (matches && matches[1]) {
+            filename = decodeURIComponent(matches[1].replace(/['"]/g, ""));
+          } else {
+            const legacyMatches = /filename="?([^";]+)"?/.exec(contentDisposition);
+            if (legacyMatches && legacyMatches[1]) {
+              filename = legacyMatches[1];
+            }
+          }
+        } else {
+          const extensionMap: Record<string, string> = {
+            "application/pdf": ".pdf",
+            "image/png": ".png",
+            "image/jpeg": ".jpg",
+          };
+          const ext = extensionMap[blob.type] || "";
+          filename = `${docId}${ext}`;
+        }
+
         const a = document.createElement("a");
         a.href = objectUrl;
-        a.download = docId;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
       }
       setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch {
-      toast.error("Failed to download document");
+      toast.danger("Failed to download document");
     }
   };
 
@@ -366,6 +421,43 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
                     )}
                   />
                 </div>
+
+                {slot.id === "arn-acknowledgement" && (
+                  <div className="mt-4 pt-3 border-t border-gray-100">
+                    <label className="text-[11px] font-semibold text-gray-500 block mb-1">
+                      GST Application Reference Number (ARN)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="e.g. AA060826000001Z"
+                        className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-800 focus:border-primary focus:outline-none uppercase font-mono"
+                        maxLength={15}
+                        value={arnInput}
+                        onChange={(e) => {
+                          setArnInput(e.target.value.toUpperCase());
+                          setArnError("");
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveArn}
+                        disabled={savingArn}
+                        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+                      >
+                        {savingArn ? "Saving..." : "Save"}
+                      </button>
+                    </div>
+                    {arnError && (
+                      <p className="text-[10px] text-red-500 mt-1 font-medium">{arnError}</p>
+                    )}
+                    {gstData?.arn && !arnError && (
+                      <p className="text-[10px] text-green-600 mt-1 font-medium">
+                        Current ARN: <span className="font-mono">{gstData.arn}</span> (Saved)
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

@@ -1170,4 +1170,12 @@ export const clientsApi = {
 
   getGstBusinessDocDownloadUrl: (applicationNo: string, docId: string) =>
     `/admin/clients/${applicationNo}/gst-registration/business-doc/download?docId=${encodeURIComponent(docId)}`,
+
+  updateGstArn: async (applicationNo: string, arn: string) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/gst-registration/arn`,
+      { arn }
+    );
+    return response.data?.data ?? response.data;
+  },
 };
