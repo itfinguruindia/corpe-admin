@@ -181,6 +181,14 @@ const ROUTE_RULES: RouteRule[] = [
     },
   },
   {
+    pattern: /^\/accounting\/razorpay$/,
+    meta: {
+      title: "Razorpay Accounting",
+      description:
+        "View Razorpay payments, orders, refunds and settlements from your account.",
+    },
+  },
+  {
     pattern: /^\/documents\/templates$/,
     meta: {
       title: "Document Templates",

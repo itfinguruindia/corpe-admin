@@ -44,6 +44,8 @@ export const ALL_DOCUMENTS_DELIVERED_DESCRIPTION =
   "COI, MoA/AoA delivered to dashboard";
 export const ALL_DOCUMENTS_DELIVERED_OPC_DESCRIPTION =
   "COI delivered to dashboard";
+export const ALL_DOCUMENTS_DELIVERED_LLP_DESCRIPTION =
+  "COI, PAN, TAN, LLP Agreement delivered to dashboard";
 
 export const isLlpCompanyType = (
   companyType: string | null | undefined,
@@ -234,6 +236,12 @@ export const getTrackerStepDisplayDescription = (
       description.trim() === INC_FORMS_STEP_DESCRIPTION)
   ) {
     return SUBSCRIBER_SHEET_DESCRIPTION;
+  }
+  if (
+    isLlpCompanyType(companyType) &&
+    isAllDocumentsDeliveredStepTitle(stepTitle)
+  ) {
+    return ALL_DOCUMENTS_DELIVERED_LLP_DESCRIPTION;
   }
   if (
     isMoaAoaExcludedCompanyType(companyType) &&

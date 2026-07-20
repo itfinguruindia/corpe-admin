@@ -27,6 +27,7 @@ export default function ClientsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { admin, isSuperAdmin, hasPermission } = usePermissions();
+  const canExportClients = hasPermission(PERMISSIONS.CLIENT_EXPORT);
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
 
   // Debounced search handler - fires API call with current filters
@@ -249,6 +250,7 @@ export default function ClientsPage() {
     dateFrom?: string,
     dateTo?: string,
   ) => {
+    if (!canExportClients) return;
     try {
       setIsExporting(true);
       let exportFilters: Filters & { dateFrom?: string; dateTo?: string } = {
@@ -347,17 +349,19 @@ export default function ClientsPage() {
                 isLoading={loading}
                 ariaLabel="Refresh clients"
               />
-              <div className="relative group/export">
-                <ExportDropdown
-                  title="Export Clients"
-                  isExporting={isExporting}
-                  onInvalidDateRange={showInvalidDateRangeAlert}
-                  onExportDateRange={(dateFrom, dateTo) =>
-                    handleExportClients(true, dateFrom, dateTo)
-                  }
-                  onExportAll={() => handleExportClients(false)}
-                />
-              </div>
+              {canExportClients && (
+                <div className="relative group/export">
+                  <ExportDropdown
+                    title="Export Clients"
+                    isExporting={isExporting}
+                    onInvalidDateRange={showInvalidDateRangeAlert}
+                    onExportDateRange={(dateFrom, dateTo) =>
+                      handleExportClients(true, dateFrom, dateTo)
+                    }
+                    onExportAll={() => handleExportClients(false)}
+                  />
+                </div>
+              )}
 
               <FilterDropdown
                 onApply={handleApply}

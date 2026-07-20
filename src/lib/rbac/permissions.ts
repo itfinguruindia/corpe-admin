@@ -97,6 +97,10 @@ export const PERMISSIONS = {
   NEWSLETTER_DELETE: "newsletter-delete",
   NEWSLETTER_EXPORT: "newsletter-export",
 
+  // Accounting / Razorpay
+  ACCOUNTING_VIEW: "accounting-view",
+  ACCOUNTING_EXPORT: "accounting-export",
+
   // Feedbacks
   FEEDBACK_VIEW: "feedback-view",
 
