@@ -18,21 +18,21 @@ const STEP_OPTIONS = [
   { id: "", label: "All steps" },
   { id: "0", label: "Phone verified" },
   { id: "1", label: "Company type" },
-  { id: "2", label: "Personal details" },
-  { id: "3", label: "Business names" },
-  { id: "4", label: "Additional details" },
-  { id: "5", label: "Review" },
-  { id: "6", label: "Payment" },
+  { id: "2", label: "Resident country" },
+  { id: "3", label: "Registration state" },
+  { id: "4", label: "Name suggestions" },
+  { id: "5", label: "Personal details" },
+  { id: "6", label: "Review & payment" },
 ];
 
 const STEP_LABELS: Record<number, string> = {
   0: "Phone verified",
   1: "Company type",
-  2: "Personal details",
-  3: "Business names",
-  4: "Additional details",
-  5: "Review",
-  6: "Payment",
+  2: "Resident country",
+  3: "Registration state",
+  4: "Name suggestions",
+  5: "Personal details",
+  6: "Review & payment",
 };
 
 export default function PendingRegistrationsPage() {
