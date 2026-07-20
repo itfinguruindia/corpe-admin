@@ -22,6 +22,8 @@ import {
 import { adminApi } from "@/lib/api";
 import CustomSelect from "@/components/ui/CustomSelect";
 import Link from "next/link";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -77,6 +79,9 @@ const capitalizeFirst = (str: string) => {
 };
 
 export default function RaisedTicketsPage() {
+  const { hasPermission } = usePermissions();
+  const canEditTickets = hasPermission(PERMISSIONS.TICKET_EDIT);
+  const canExportTickets = hasPermission(PERMISSIONS.TICKET_EDIT);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
@@ -145,6 +150,7 @@ export default function RaisedTicketsPage() {
   };
 
   const handleStatusChange = async (ticketId: string, status: TicketStatus) => {
+    if (!canEditTickets) return;
     try {
       await TicketApi.updateTicket({ ticketId, status });
       await loadTickets();
@@ -157,6 +163,7 @@ export default function RaisedTicketsPage() {
     ticketId: string,
     priority: TicketPriority,
   ) => {
+    if (!canEditTickets) return;
     try {
       await TicketApi.updateTicket({ ticketId, priority });
       await loadTickets();
@@ -169,6 +176,7 @@ export default function RaisedTicketsPage() {
     ticketId: string,
     opt: SearchSelectOption | null,
   ) => {
+    if (!canEditTickets) return;
     try {
       await TicketApi.updateTicket({ ticketId, assignee: opt?.id || null });
       await loadTickets();
@@ -182,6 +190,7 @@ export default function RaisedTicketsPage() {
     dateFrom?: string,
     dateTo?: string,
   ) => {
+    if (!canExportTickets) return;
     try {
       setIsExporting(true);
       let page = 1;
@@ -268,60 +277,77 @@ export default function RaisedTicketsPage() {
     {
       id: "status",
       label: "Status",
-      render: (row) => (
-        <CustomSelect
-          ariaLabel={`Status for ticket ${row.applicationNo || row.id}`}
-          value={row.status}
-          onChange={(value) =>
-            handleStatusChange(row.id, value as TicketStatus)
-          }
-          options={StatusSelectOptions.filter((opt) => opt.id !== "all")}
-          renderValue={(val) => (
-            <Chip
-              label={capitalizeFirst(val)}
-              variant={getStatusVariant(val as TicketStatus)}
-            />
-          )}
-        />
-      ),
+      render: (row) =>
+        canEditTickets ? (
+          <CustomSelect
+            ariaLabel={`Status for ticket ${row.applicationNo || row.id}`}
+            value={row.status}
+            onChange={(value) =>
+              handleStatusChange(row.id, value as TicketStatus)
+            }
+            options={StatusSelectOptions.filter((opt) => opt.id !== "all")}
+            renderValue={(val) => (
+              <Chip
+                label={capitalizeFirst(val)}
+                variant={getStatusVariant(val as TicketStatus)}
+              />
+            )}
+          />
+        ) : (
+          <Chip
+            label={capitalizeFirst(row.status)}
+            variant={getStatusVariant(row.status)}
+          />
+        ),
     },
     {
       id: "assignee",
       label: "Assignee",
-      render: (row) => (
-        <SearchSelect
-          options={assigneeOptions}
-          value={
-            row.assignee
-              ? { id: row.assignee._id, name: row.assignee.name }
-              : null
-          }
-          onChange={(opt) => {
-            handleAssigneeChange(row.id, opt);
-          }}
-          placeholder="Assignee"
-        />
-      ),
+      render: (row) =>
+        canEditTickets ? (
+          <SearchSelect
+            options={assigneeOptions}
+            value={
+              row.assignee
+                ? { id: row.assignee._id, name: row.assignee.name }
+                : null
+            }
+            onChange={(opt) => {
+              handleAssigneeChange(row.id, opt);
+            }}
+            placeholder="Assignee"
+          />
+        ) : (
+          <span className="text-base text-gray-700">
+            {row.assignee?.name || "-"}
+          </span>
+        ),
     },
     {
       id: "priority",
       label: "Priority",
-      render: (row) => (
-        <CustomSelect
-          ariaLabel={`Priority for ticket ${row.applicationNo || row.id}`}
-          value={row.priority}
-          onChange={(value) =>
-            handlePriorityChange(row.id, value as TicketPriority)
-          }
-          options={PrioritySelectOptions.filter((opt) => opt.id !== "all")}
-          renderValue={(val) => (
-            <Chip
-              label={capitalizeFirst(val)}
-              variant={getPriorityVariant(val as TicketPriority)}
-            />
-          )}
-        />
-      ),
+      render: (row) =>
+        canEditTickets ? (
+          <CustomSelect
+            ariaLabel={`Priority for ticket ${row.applicationNo || row.id}`}
+            value={row.priority}
+            onChange={(value) =>
+              handlePriorityChange(row.id, value as TicketPriority)
+            }
+            options={PrioritySelectOptions.filter((opt) => opt.id !== "all")}
+            renderValue={(val) => (
+              <Chip
+                label={capitalizeFirst(val)}
+                variant={getPriorityVariant(val as TicketPriority)}
+              />
+            )}
+          />
+        ) : (
+          <Chip
+            label={capitalizeFirst(row.priority)}
+            variant={getPriorityVariant(row.priority)}
+          />
+        ),
     },
     {
       id: "createdOn",
@@ -424,17 +450,19 @@ export default function RaisedTicketsPage() {
                     />
                   </Button>
                 </span>
-                <ExportDropdown
-                  title="Export Tickets"
-                  isExporting={isExporting}
-                  onInvalidDateRange={() =>
-                    alert("From date cannot be after To date.")
-                  }
-                  onExportDateRange={(dateFrom, dateTo) =>
-                    handleExportTickets(true, dateFrom, dateTo)
-                  }
-                  onExportAll={() => handleExportTickets(false)}
-                />
+                {canExportTickets && (
+                  <ExportDropdown
+                    title="Export Tickets"
+                    isExporting={isExporting}
+                    onInvalidDateRange={() =>
+                      alert("From date cannot be after To date.")
+                    }
+                    onExportDateRange={(dateFrom, dateTo) =>
+                      handleExportTickets(true, dateFrom, dateTo)
+                    }
+                    onExportAll={() => handleExportTickets(false)}
+                  />
+                )}
               </div>
             </div>
           </div>

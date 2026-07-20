@@ -108,9 +108,15 @@ export const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     pathRegex: /^\/clients\/[^/]+\/pricing-and-payment$/,
     permissions: [PERMISSIONS.PRICING_VIEW],
   },
-  // Client detail hub (/clients/:appNo)
+  // Archived clients (list + detail)
+  { path: "/clients/archived", permissions: [PERMISSIONS.CLIENT_VIEW] },
   {
-    pathRegex: /^\/clients\/[^/]+$/,
+    pathRegex: /^\/clients\/archived\/[^/]+$/,
+    permissions: [PERMISSIONS.CLIENT_VIEW],
+  },
+  // Client detail hub (/clients/:appNo) — not archived paths
+  {
+    pathRegex: /^\/clients\/(?!archived)[^/]+$/,
     permissions: [PERMISSIONS.CLIENT_VIEW],
   },
   // Clients list
@@ -210,6 +216,11 @@ export const NAV_PERMISSION_ITEMS: NavPermissionItem[] = [
   {
     href: "/crm/newsletter",
     permissions: [PERMISSIONS.NEWSLETTER_VIEW],
+    prefix: true,
+  },
+  {
+    href: "/accounting/razorpay",
+    permissions: [PERMISSIONS.ACCOUNTING_VIEW],
     prefix: true,
   },
   {

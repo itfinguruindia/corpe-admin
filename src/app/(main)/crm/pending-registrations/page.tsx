@@ -13,6 +13,8 @@ import useSwal from "@/utils/useSwal";
 import { useDebouncedCallback } from "@/utils/helpers";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import CustomSelect from "@/components/ui/CustomSelect";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 const STEP_OPTIONS = [
   { id: "", label: "All steps" },
@@ -36,6 +38,8 @@ const STEP_LABELS: Record<number, string> = {
 };
 
 export default function PendingRegistrationsPage() {
+  const { hasPermission } = usePermissions();
+  const canDeletePending = hasPermission(PERMISSIONS.MARKETING_DELETE);
   const [records, setRecords] = useState<PendingRegistrationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +95,7 @@ export default function PendingRegistrationsPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!canDeletePending) return;
     const result = await swal({
       title: "Remove this entry?",
       text: "This pending registration record will be deleted.",
@@ -212,20 +217,22 @@ export default function PendingRegistrationsPage() {
             >
               <Eye size={18} />
             </Button>
-            <Button
-              onClick={() => handleDelete(row._id)}
-              className="min-w-0 h-auto p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
-              aria-label="Delete pending registration"
-              variant="ghost"
-              type="button"
-            >
-              <Trash2 size={18} />
-            </Button>
+            {canDeletePending ? (
+              <Button
+                onClick={() => handleDelete(row._id)}
+                className="min-w-0 h-auto p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
+                aria-label="Delete pending registration"
+                variant="ghost"
+                type="button"
+              >
+                <Trash2 size={18} />
+              </Button>
+            ) : null}
           </div>
         ),
       },
     ],
-    [currentPage],
+    [currentPage, canDeletePending],
   );
 
   return (

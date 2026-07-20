@@ -8,8 +8,14 @@ import { newsletterApi, Newsletter } from "@/lib/api/newsletter";
 import useSwal from "@/utils/useSwal";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import ExportDropdown from "@/components/ui/ExportDropdown";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 export default function NewsLetter() {
+  const { hasPermission } = usePermissions();
+  const canEditNewsletter = hasPermission(PERMISSIONS.NEWSLETTER_EDIT);
+  const canDeleteNewsletter = hasPermission(PERMISSIONS.NEWSLETTER_DELETE);
+  const canExportNewsletter = hasPermission(PERMISSIONS.NEWSLETTER_EXPORT);
   const [data, setData] = useState<Newsletter[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +44,7 @@ export default function NewsLetter() {
   }, []);
 
   const handleAdd = async () => {
+    if (!canEditNewsletter) return;
     if (!email)
       return swal({ title: "Error", text: "Email required", icon: "error" });
     try {
@@ -50,6 +57,7 @@ export default function NewsLetter() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!canDeleteNewsletter) return;
     const result = await swal({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -76,6 +84,7 @@ export default function NewsLetter() {
     dateFrom?: string,
     dateTo?: string,
   ) => {
+    if (!canExportNewsletter) return;
     try {
       setIsExporting(true);
       const newsletters = data;
@@ -139,17 +148,19 @@ export default function NewsLetter() {
       label: "Action",
       render: (item) => (
         <div className="flex items-center gap-2">
-          <span title="Delete subscriber" className="inline-flex">
-            <Button
-              onClick={() => handleDelete(item._id)}
-              className="min-w-0 h-auto p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
-              aria-label="Delete subscriber"
-              variant="ghost"
-              type="button"
-            >
-              <Trash2 size={18} />
-            </Button>
-          </span>
+          {canDeleteNewsletter ? (
+            <span title="Delete subscriber" className="inline-flex">
+              <Button
+                onClick={() => handleDelete(item._id)}
+                className="min-w-0 h-auto p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
+                aria-label="Delete subscriber"
+                variant="ghost"
+                type="button"
+              >
+                <Trash2 size={18} />
+              </Button>
+            </span>
+          ) : null}
         </div>
       ),
     },
@@ -188,15 +199,17 @@ export default function NewsLetter() {
                   />
                 </TextField>
               </div>
-              <span title="Add/Subscribe" className="inline-flex">
-                <Button
-                  onClick={handleAdd}
-                  className="flex items-center justify-center h-[38px] px-3 font-medium text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors border shadow-sm border-transparent"
-                  type="button"
-                >
-                  <Plus size={18} className="mr-1 shrink-0" /> Add
-                </Button>
-              </span>
+              {canEditNewsletter ? (
+                <span title="Add/Subscribe" className="inline-flex">
+                  <Button
+                    onClick={handleAdd}
+                    className="flex items-center justify-center h-[38px] px-3 font-medium text-sm text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors border shadow-sm border-transparent"
+                    type="button"
+                  >
+                    <Plus size={18} className="mr-1 shrink-0" /> Add
+                  </Button>
+                </span>
+              ) : null}
             </div>
 
             <div className="h-8 w-px bg-gray-200 hidden sm:block"></div>
@@ -212,21 +225,23 @@ export default function NewsLetter() {
               >
                 <RefreshCw size={18} />
               </Button>
-              <ExportDropdown
-                title="Export Newsletters"
-                isExporting={isExporting}
-                onInvalidDateRange={async () => {
-                  await swal({
-                    title: "Invalid date range",
-                    text: "From date cannot be after To date.",
-                    icon: "warning",
-                  });
-                }}
-                onExportDateRange={(dateFrom, dateTo) =>
-                  handleExport(true, dateFrom, dateTo)
-                }
-                onExportAll={() => handleExport(false)}
-              />
+              {canExportNewsletter ? (
+                <ExportDropdown
+                  title="Export Newsletters"
+                  isExporting={isExporting}
+                  onInvalidDateRange={async () => {
+                    await swal({
+                      title: "Invalid date range",
+                      text: "From date cannot be after To date.",
+                      icon: "warning",
+                    });
+                  }}
+                  onExportDateRange={(dateFrom, dateTo) =>
+                    handleExport(true, dateFrom, dateTo)
+                  }
+                  onExportAll={() => handleExport(false)}
+                />
+              ) : null}
             </div>
           </div>
         </div>

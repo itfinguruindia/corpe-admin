@@ -17,6 +17,7 @@ import { Lock, MoreVertical, X } from "lucide-react";
 import { formatCurrency } from "@/utils/helpers";
 import useSwal from "@/utils/useSwal";
 import { Card, Spinner } from "@heroui/react";
+import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 
 interface PricingAndPaymentContentProps {
   appNo: string;
@@ -26,6 +27,7 @@ export default function PricingAndPaymentContent({
   appNo,
 }: PricingAndPaymentContentProps) {
   const swal = useSwal();
+  const { requireEdit, canEdit } = useClientTabEdit("pricing");
   const [pricingData, setPricingData] = useState<PricingPayment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [includeGST, setIncludeGST] = useState(false);
@@ -60,7 +62,7 @@ export default function PricingAndPaymentContent({
   }, [appNo]);
 
   const handleSendPaymentLink = async () => {
-    if (!selectedStep) return;
+    if (!selectedStep || !requireEdit()) return;
     try {
       setSendingLink(true);
       const success = await pricingPaymentService.sendPaymentLink(
@@ -751,6 +753,7 @@ export default function PricingAndPaymentContent({
                             "Send Payment Link",
                             "Resend Payment Link",
                           ].includes(step.action) ? (
+                            canEdit ? (
                             <div className="flex flex-col gap-1 items-start">
                               <button
                                 disabled={
@@ -766,6 +769,7 @@ export default function PricingAndPaymentContent({
                                       : "bg-[#F46A45] hover:bg-[#e55a35] text-white cursor-pointer"
                                 }`}
                                 onClick={async () => {
+                                  if (!requireEdit()) return;
                                   if (step.stepNumber === 7) {
                                     setSelectedStep(step);
                                     setPaymentLinkReason(
@@ -835,6 +839,9 @@ export default function PricingAndPaymentContent({
                                 </span>
                               )}
                             </div>
+                            ) : (
+                              <span className="text-gray-500">{step.action}</span>
+                            )
                           ) : (
                             <span className="text-gray-700">{step.action}</span>
                           )}
