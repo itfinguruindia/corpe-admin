@@ -10,7 +10,9 @@ import {
   Landmark,
   Search,
   IndianRupee,
+  Download,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import {
   Button,
   Chip,
@@ -29,6 +31,8 @@ import {
   RazorpayEntity,
   RazorpayListResponse,
 } from "@/lib/api/accounting";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 type ResourceTab = "payments" | "orders" | "refunds" | "settlements";
 
@@ -87,6 +91,8 @@ function IdCell({ value }: { value?: string }) {
 }
 
 export default function RazorpayAccountingPage() {
+  const { hasPermission } = usePermissions();
+  const canExportAccounting = hasPermission(PERMISSIONS.ACCOUNTING_EXPORT);
   const [tab, setTab] = useState<ResourceTab>("payments");
   const [items, setItems] = useState<RazorpayEntity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +100,7 @@ export default function RazorpayAccountingPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [searchId, setSearchId] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailTitle, setDetailTitle] = useState("");
   const [detailData, setDetailData] = useState<RazorpayEntity | null>(null);
@@ -211,6 +218,105 @@ export default function RazorpayAccountingPage() {
       setItems([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAccountingPage = async (
+    resourceTab: ResourceTab,
+    skip: number,
+    forExport: boolean,
+  ): Promise<RazorpayListResponse> => {
+    const params = { count: 100, skip, export: forExport };
+    if (resourceTab === "payments") return accountingApi.listPayments(params);
+    if (resourceTab === "orders") return accountingApi.listOrders(params);
+    if (resourceTab === "refunds") return accountingApi.listRefunds(params);
+    return accountingApi.listSettlements(params);
+  };
+
+  const handleExportAccounting = async () => {
+    if (!canExportAccounting) return;
+
+    try {
+      setIsExporting(true);
+      let skip = 0;
+      const rows: RazorpayEntity[] = [];
+
+      while (true) {
+        const response = await fetchAccountingPage(tab, skip, true);
+        const batch = Array.isArray(response?.items) ? response.items : [];
+        rows.push(...batch);
+        if (batch.length < 100) break;
+        skip += 100;
+      }
+
+      const worksheetRows =
+        tab === "payments"
+          ? [
+              ["Payment ID", "Amount", "Status", "Method", "Email", "Contact", "Order ID", "Created"],
+              ...rows.map((row) => [
+                row.id || "",
+                formatAmount(row.amount as number, row.currency as string),
+                row.status || "",
+                row.method || "",
+                row.email || "",
+                row.contact || "",
+                row.order_id || "",
+                formatUnix(row.created_at as number),
+              ]),
+            ]
+          : tab === "orders"
+            ? [
+                ["Order ID", "Amount", "Paid", "Due", "Status", "Receipt", "Attempts", "Created"],
+                ...rows.map((row) => [
+                  row.id || "",
+                  formatAmount(row.amount as number, row.currency as string),
+                  formatAmount(row.amount_paid as number, row.currency as string),
+                  formatAmount(row.amount_due as number, row.currency as string),
+                  row.status || "",
+                  row.receipt || "",
+                  String(row.attempts ?? 0),
+                  formatUnix(row.created_at as number),
+                ]),
+              ]
+            : tab === "refunds"
+              ? [
+                  ["Refund ID", "Payment ID", "Amount", "Status", "Created"],
+                  ...rows.map((row) => [
+                    row.id || "",
+                    row.payment_id || "",
+                    formatAmount(row.amount as number, row.currency as string),
+                    row.status || "",
+                    formatUnix(row.created_at as number),
+                  ]),
+                ]
+              : [
+                  ["Settlement ID", "Amount", "Status", "Fees", "Tax", "Created"],
+                  ...rows.map((row) => [
+                    row.id || "",
+                    formatAmount(row.amount as number, row.currency as string),
+                    row.status || "",
+                    formatAmount(row.fees as number, row.currency as string),
+                    formatAmount(row.tax as number, row.currency as string),
+                    formatUnix(row.created_at as number),
+                  ]),
+                ];
+
+      const ws = XLSX.utils.aoa_to_sheet(worksheetRows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, tab);
+      XLSX.writeFile(
+        wb,
+        `razorpay-${tab}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+      );
+    } catch (err) {
+      console.error("Failed to export accounting data:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to export accounting data. Please try again.",
+      );
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -525,6 +631,17 @@ export default function RazorpayAccountingPage() {
             <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
             Refresh
           </Button>
+          {canExportAccounting && (
+            <Button
+              variant="secondary"
+              className="border border-slate-200 bg-white"
+              onPress={handleExportAccounting}
+              isDisabled={loading || isExporting}
+            >
+              <Download size={15} className={isExporting ? "animate-pulse" : ""} />
+              {isExporting ? "Exporting..." : "Export"}
+            </Button>
+          )}
         </div>
       </div>
 

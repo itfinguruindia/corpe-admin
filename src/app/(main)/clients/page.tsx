@@ -272,7 +272,12 @@ export default function ClientsPage() {
       const rows: Client[] = [];
 
       while (page <= totalPagesForExport) {
-        const data = await clientsApi.getAllClients(page, 100, exportFilters);
+        const data = await clientsApi.getAllClients(
+          page,
+          100,
+          exportFilters,
+          true,
+        );
         rows.push(...(data.clients || []));
         totalPagesForExport = data.totalPages || 1;
         page += 1;

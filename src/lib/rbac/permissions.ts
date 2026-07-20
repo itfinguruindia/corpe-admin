@@ -103,6 +103,7 @@ export const PERMISSIONS = {
 
   // Feedbacks
   FEEDBACK_VIEW: "feedback-view",
+  FEEDBACK_EXPORT: "feedback-export",
 
   // Settings
   SETTINGS_VIEW: "settings-view",

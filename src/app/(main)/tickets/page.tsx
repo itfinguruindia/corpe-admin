@@ -81,7 +81,7 @@ const capitalizeFirst = (str: string) => {
 export default function RaisedTicketsPage() {
   const { hasPermission } = usePermissions();
   const canEditTickets = hasPermission(PERMISSIONS.TICKET_EDIT);
-  const canExportTickets = hasPermission(PERMISSIONS.TICKET_EDIT);
+  const canExportTickets = hasPermission(PERMISSIONS.TICKET_VIEW);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");

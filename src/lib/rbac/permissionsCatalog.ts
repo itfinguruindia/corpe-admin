@@ -396,6 +396,12 @@ const rawPermissions: Permission[] = [
     action: "view",
     description: "View client feedbacks",
   },
+  {
+    id: "feedback-export",
+    module: "Feedbacks",
+    action: "export",
+    description: "Export client feedbacks to Excel",
+  },
 
   // Tickets
   {

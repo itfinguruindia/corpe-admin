@@ -24,9 +24,13 @@ export const clientsApi = {
     page: number = 1,
     limit: number = 10,
     filters?: Record<string, any>,
+    forExport = false,
   ) => {
     // Flatten filters for query params
     const params: Record<string, any> = { page, limit };
+    if (forExport) {
+      params.export = true;
+    }
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (typeof value === "object" && value !== null) {
