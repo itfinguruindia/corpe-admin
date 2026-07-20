@@ -30,11 +30,17 @@ export interface RazorpayListParams {
   skip?: number;
   from?: number;
   to?: number;
+  export?: boolean;
 }
 
 function unwrapData<T>(payload: unknown): T {
   const body = payload as { data?: T };
   return (body?.data ?? payload) as T;
+}
+
+function withExportParams(params: RazorpayListParams = {}): RazorpayListParams {
+  if (!params.export) return params;
+  return { ...params, export: true };
 }
 
 export const accountingApi = {
@@ -43,7 +49,7 @@ export const accountingApi = {
   ): Promise<RazorpayListResponse> => {
     const response = await axiosInstance.get(
       "/admin/accounting/razorpay/payments",
-      { params },
+      { params: withExportParams(params) },
     );
     return unwrapData(response.data);
   },
@@ -60,7 +66,7 @@ export const accountingApi = {
   ): Promise<RazorpayListResponse> => {
     const response = await axiosInstance.get(
       "/admin/accounting/razorpay/orders",
-      { params },
+      { params: withExportParams(params) },
     );
     return unwrapData(response.data);
   },
@@ -86,7 +92,7 @@ export const accountingApi = {
   ): Promise<RazorpayListResponse> => {
     const response = await axiosInstance.get(
       "/admin/accounting/razorpay/refunds",
-      { params },
+      { params: withExportParams(params) },
     );
     return unwrapData(response.data);
   },
@@ -103,7 +109,7 @@ export const accountingApi = {
   ): Promise<RazorpayListResponse> => {
     const response = await axiosInstance.get(
       "/admin/accounting/razorpay/settlements",
-      { params },
+      { params: withExportParams(params) },
     );
     return unwrapData(response.data);
   },

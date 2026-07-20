@@ -11,6 +11,8 @@ import RefreshButton from "@/components/ui/RefreshButton";
 import { Input, Label, TextField } from "@heroui/react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 const RatingFilterOptions = [
   { label: "All", value: "" },
@@ -35,6 +37,8 @@ const emojis = [
 ];
  
 export default function FeedbacksPage() {
+  const { hasPermission } = usePermissions();
+  const canExportFeedbacks = hasPermission(PERMISSIONS.FEEDBACK_EXPORT);
   const [feedbacks, setFeedbacks] = useState<IFeedbackItem[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -96,6 +100,7 @@ export default function FeedbacksPage() {
     dateFrom?: string,
     dateTo?: string,
   ) => {
+    if (!canExportFeedbacks) return;
     try {
       setIsExporting(true);
 
@@ -109,6 +114,7 @@ export default function FeedbacksPage() {
           limit: 100,
           search: search || undefined,
           rating: rating || undefined,
+          export: true,
           ...(withDateRange && dateFrom ? { dateFrom } : {}),
           ...(withDateRange && dateTo ? { dateTo } : {}),
         });
@@ -272,19 +278,21 @@ export default function FeedbacksPage() {
               ariaLabel="Refresh feedbacks"
             />
 
-            <ExportDropdown
-              title="Export Feedbacks"
-              isExporting={isExporting}
-              onExportDateRange={(dateFrom, dateTo) =>
-                handleExportFeedbacks(true, dateFrom, dateTo)
-              }
-              onExportAll={() => handleExportFeedbacks(false)}
-            />
+            {canExportFeedbacks && (
+              <ExportDropdown
+                title="Export Feedbacks"
+                isExporting={isExporting}
+                onExportDateRange={(dateFrom, dateTo) =>
+                  handleExportFeedbacks(true, dateFrom, dateTo)
+                }
+                onExportAll={() => handleExportFeedbacks(false)}
+              />
+            )}
           </div>
         </div>
       </div>
     );
-  }, [search, rating, total, isLoading, fetchFeedbacks]);
+  }, [search, rating, total, isLoading, fetchFeedbacks, canExportFeedbacks]);
 
   return (
     <div>
