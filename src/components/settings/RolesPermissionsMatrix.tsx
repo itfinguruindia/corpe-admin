@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Role, Permission, PermissionModule } from "@/types/roles";
+import { Role, Permission, PermissionModule, User } from "@/types/roles";
 import {
   allPermissions,
   getPermissionsByModule,
 } from "@/lib/rbac/permissionsCatalog";
-import { roleApi } from "@/lib/api";
+import { adminApi, roleApi } from "@/lib/api";
 import { Chip } from "@/components/ui";
 import PermissionGate from "@/components/rbac/PermissionGate";
 import { PERMISSIONS } from "@/utils/permissions";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Check, X, Plus, Edit2, Trash2, Users, Shield } from "lucide-react";
-import { Button, toast } from "@heroui/react";
+import { Button, Tooltip, toast } from "@heroui/react";
 import RefreshButton from "@/components/ui/RefreshButton";
 
 interface RolesPermissionsMatrixProps {
@@ -28,6 +28,7 @@ export default function RolesPermissionsMatrix({
 }: RolesPermissionsMatrixProps) {
   const { canCreateRoles, canEditRoles, canDeleteRoles } = usePermissions();
   const [roles, setRoles] = useState<Role[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [permissionsByModule, setPermissionsByModule] = useState<
     Record<PermissionModule, Permission[]>
@@ -52,6 +53,13 @@ export default function RolesPermissionsMatrix({
       const permsByModule = getPermissionsByModule();
 
       setRoles(fetchedRoles);
+      try {
+        const fetchedUsers = await adminApi.getAllAdmins();
+        setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []);
+      } catch (userError) {
+        console.error("Error loading users assigned to roles:", userError);
+        setUsers([]);
+      }
       setPermissions(allPerms);
       setPermissionsByModule(permsByModule);
     } catch (error) {
@@ -77,6 +85,16 @@ export default function RolesPermissionsMatrix({
   };
 
   const modules = Object.keys(permissionsByModule) as PermissionModule[];
+
+  const getUsersForRole = (role: Role): User[] => {
+    const roleId = String(role._id || role.id || "");
+
+    return users.filter((user) => {
+      if (!user.role) return false;
+      if (typeof user.role === "string") return user.role === roleId;
+      return String(user.role._id || user.role.id || "") === roleId;
+    });
+  };
 
   const handleDeleteRole = async (role: Role) => {
     if (role.isSystemRole) {
@@ -194,51 +212,17 @@ export default function RolesPermissionsMatrix({
         </div>
       </div>
 
-      {/* Module Filter */}
-      <div className="bg-white rounded-lg shadow-sm p-4">
-        <label className="text-sm font-semibold text-gray-700 mb-2 block">
-          Filter by Module:
-        </label>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            onClick={() => setSelectedModule("all")}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              selectedModule === "all"
-                ? "bg-[#3D63A4] text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            All Modules
-          </Button>
-          {modules.map((module) => (
-            <Button
-              type="button"
-              key={module}
-              onClick={() => setSelectedModule(module)}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-                selectedModule === module
-                  ? "bg-[#3D63A4] text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              {module}{" "}
-              <span className="text-xs opacity-75">
-                ({permissionsByModule[module]?.length || 0})
-              </span>
-            </Button>
-          ))}
-        </div>
-      </div>
-
       {/* Roles Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {roles.map((role) => (
-          <div
-            key={role._id}
-            className="bg-white rounded-lg shadow-sm p-5 border-t-4"
-            style={{ borderTopColor: role.color }}
-          >
+        {roles.map((role) => {
+          const assignedUsers = getUsersForRole(role);
+
+          return (
+            <div
+              key={role._id}
+              className="bg-white rounded-lg shadow-sm p-5 border-t-4"
+              style={{ borderTopColor: role.color }}
+            >
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-gray-900">{role.name}</h3>
@@ -282,18 +266,92 @@ export default function RolesPermissionsMatrix({
               {role.description}
             </p>
 
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2 text-gray-700">
-                <Users size={16} />
-                <span>{role.userCount} users</span>
-              </div>
+              <div className="flex items-center justify-between text-sm">
+                <Tooltip>
+                  <Tooltip.Trigger>
+                    <button
+                      type="button"
+                      className="flex cursor-help items-center gap-2 rounded-md text-gray-700 outline-none transition-colors hover:text-secondary focus-visible:ring-2 focus-visible:ring-secondary/40"
+                      aria-label={`View users assigned to ${role.name}`}
+                    >
+                      <Users size={16} />
+                      <span>{assignedUsers.length} users</span>
+                    </button>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content>
+                    <div className="max-h-64 min-w-56 max-w-80 overflow-y-auto p-1">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Users with {role.name} role
+                      </p>
+                      {assignedUsers.length > 0 ? (
+                        <div className="space-y-2">
+                          {assignedUsers.map((user) => (
+                            <div
+                              key={user._id || user.id || user.email}
+                              className="border-b border-gray-100 pb-2 last:border-0 last:pb-0"
+                            >
+                              <p className="text-sm font-semibold text-gray-900">
+                                {user.name}
+                              </p>
+                              <p className="break-all text-xs text-gray-500">
+                                {user.email}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">
+                          No users are assigned to this role.
+                        </p>
+                      )}
+                    </div>
+                  </Tooltip.Content>
+                </Tooltip>
               <div className="flex items-center gap-2 text-gray-700">
                 <Shield size={16} />
                 <span>{role.permissions.length} permissions</span>
               </div>
             </div>
-          </div>
-        ))}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Module Filter */}
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <label className="text-sm font-semibold text-gray-700 mb-2 block">
+          Filter by Module:
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            onClick={() => setSelectedModule("all")}
+            className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+              selectedModule === "all"
+                ? "bg-[#3D63A4] text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            All Modules
+          </Button>
+          {modules.map((module) => (
+            <Button
+              type="button"
+              key={module}
+              onClick={() => setSelectedModule(module)}
+              className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                selectedModule === module
+                  ? "bg-[#3D63A4] text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {module}{" "}
+              <span className="text-xs opacity-75">
+                ({permissionsByModule[module]?.length || 0})
+              </span>
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Permissions Matrix Table */}

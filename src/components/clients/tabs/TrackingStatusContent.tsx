@@ -27,9 +27,12 @@ import {
 
 import CustomSelect from "@/components/ui/CustomSelect";
 import { FileUploadComponent } from "@/components/upload";
+import { PanTanEmailDisclaimer } from "@/components/clients/tabs/PanTanEmailDisclaimer";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import {
   getFormFilingProseLabel,
+  getTrackerSectionDisplayLabel,
+  getTrackerStepOwnerLabel,
   getTrackerStepDisplayTitle,
   resolveTrackerStepLabels,
 } from "@/utils/trackerStepLabels";
@@ -1111,7 +1114,11 @@ export default function TrackingStatusContent({
                           <div className="px-4 py-2 bg-slate-50 flex items-center justify-between border-b border-slate-100">
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                Section: {section.label}
+                                Section:{" "}
+                                {getTrackerSectionDisplayLabel(
+                                  section.label,
+                                  tracker.companyType,
+                                )}
                               </span>
                               {(section.label ===
                                 "Digital Signature Certificate (DSC)" ||
@@ -1172,7 +1179,7 @@ export default function TrackingStatusContent({
                                 return (
                                   <div
                                     key={step._id}
-                                    className={`p-3.5 flex flex-col md:flex-row md:items-start justify-between gap-4 transition-colors ${
+                                    className={`p-3.5 flex flex-col md:flex-row md:flex-wrap md:items-start justify-between gap-4 transition-colors ${
                                       isUrgent
                                         ? "bg-amber-50/30"
                                         : "hover:bg-slate-50/50"
@@ -1232,7 +1239,11 @@ export default function TrackingStatusContent({
                                                   : "bg-blue-100 text-blue-800"
                                             }`}
                                           >
-                                            {step.ownerType.toUpperCase()}
+                                            {getTrackerStepOwnerLabel(
+                                              step.title,
+                                              step.ownerType,
+                                              tracker.companyType,
+                                            )}
                                           </span>
                                           {step.visibleTo === "admin-only" && (
                                             <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono">
@@ -1253,7 +1264,6 @@ export default function TrackingStatusContent({
                                         <p className="text-slate-500 text-sm mt-0.5">
                                           {formatStepLabels(step).description}
                                         </p>
-
                                         {/* Extension Metadata - countdown + attempt history */}
                                         {(step as any).extensionMetadata && (
                                           <div className="mt-2 flex flex-col gap-2">
@@ -2565,6 +2575,19 @@ export default function TrackingStatusContent({
                                         )}
                                       </div>
                                     </div>
+                                      {step.title === "COI issued" && (
+                                        <div className="w-full basis-full">
+                                          <PanTanEmailDisclaimer
+                                            variant="admin"
+                                            context="coi-tracker"
+                                            officeEmail={
+                                              companyOverview
+                                                ?.corporateStructure
+                                                ?.registeredOffice?.officeEmail
+                                            }
+                                          />
+                                        </div>
+                                      )}
                                   </div>
                                 );
                               })}
