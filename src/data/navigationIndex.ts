@@ -42,6 +42,22 @@ export const navigationIndex: SearchItem[] = [
     description: "Manage newsletter subscriptions and campaigns.",
   },
   {
+    id: "accounting-razorpay",
+    title: "Razorpay Accounting",
+    category: "Accounting",
+    path: "/accounting/razorpay",
+    keywords: [
+      "razorpay",
+      "payments",
+      "orders",
+      "refunds",
+      "settlements",
+      "accounting",
+      "transactions",
+    ],
+    description: "View Razorpay payments, orders, refunds and settlements.",
+  },
+  {
     id: "templates",
     title: "Document Templates",
     category: "Documents",

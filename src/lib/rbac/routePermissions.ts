@@ -121,6 +121,11 @@ export const ROUTE_PERMISSION_RULES: RoutePermissionRule[] = [
     permissions: [PERMISSIONS.MARKETING_VIEW],
   },
   {
+    path: "/accounting",
+    prefix: true,
+    permissions: [PERMISSIONS.ACCOUNTING_VIEW],
+  },
+  {
     path: "/documents",
     prefix: true,
     permissions: [PERMISSIONS.DOC_VIEW],
