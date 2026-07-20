@@ -3,13 +3,40 @@ import { Mail } from "lucide-react";
 interface PanTanEmailDisclaimerProps {
   officeEmail?: string;
   variant?: "admin" | "client";
+  context?: "document" | "coi-tracker";
 }
 
 export function PanTanEmailDisclaimer({
   officeEmail,
   variant = "client",
+  context = "document",
 }: PanTanEmailDisclaimerProps) {
   const trimmedEmail = officeEmail?.trim() || "";
+
+  if (context === "coi-tracker") {
+    const trackerText = trimmedEmail ? (
+      <>
+        PAN and TAN will be delivered directly to the client&apos;s company
+        email address:{" "}
+        <strong className="text-[#F46A45]">{trimmedEmail}</strong>.
+      </>
+    ) : (
+      <>
+        PAN and TAN will be delivered directly to the client&apos;s company
+        email address. No company email is on file yet — ask the client to
+        complete the Company Email field in Corporate Structure.
+      </>
+    );
+
+    return (
+      <div className="mt-1 w-full rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
+        <div className="flex items-start gap-2">
+          <Mail size={16} className="mt-0.5 shrink-0 text-sky-600" aria-hidden />
+          <p className="mb-0">{trackerText}</p>
+        </div>
+      </div>
+    );
+  }
 
   const clientText = trimmedEmail ? (
     <>
