@@ -6,11 +6,11 @@ import type { PendingRegistrationItem } from "@/lib/api/marketing";
 const STEP_LABELS: Record<number, string> = {
   0: "Phone verified",
   1: "Company type",
-  2: "Personal details",
-  3: "Business names",
-  4: "Additional details",
-  5: "Review",
-  6: "Payment",
+  2: "Resident country",
+  3: "Registration state",
+  4: "Name suggestions",
+  5: "Personal details",
+  6: "Review & payment",
 };
 
 const COMPANY_TYPE_LABELS: Record<string, string> = {

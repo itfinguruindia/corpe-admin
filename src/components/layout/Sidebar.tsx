@@ -25,6 +25,8 @@ import {
   Rss,
   LogOut,
   UserRoundX,
+  Calculator,
+  CreditCard,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
@@ -56,6 +58,7 @@ export default function Sidebar() {
   const showFeedbacks = hasPermission(PERMISSIONS.FEEDBACK_VIEW);
   const showMarketing = hasPermission(PERMISSIONS.MARKETING_VIEW);
   const showNewsletter = hasPermission(PERMISSIONS.NEWSLETTER_VIEW);
+  const showAccounting = hasPermission(PERMISSIONS.ACCOUNTING_VIEW);
   const showDocuments = hasPermission(PERMISSIONS.DOC_VIEW);
   const showMessages = hasPermission(PERMISSIONS.MSG_VIEW);
   const showTickets = hasPermission(PERMISSIONS.TICKET_VIEW);
@@ -339,6 +342,25 @@ export default function Sidebar() {
                   collapsed={effectiveCollapsed}
                 />
               )}
+            </SidebarSection>
+          )}
+
+          {showAccounting && <Divider />}
+
+          {showAccounting && (
+            <SidebarSection
+              title="Accounting"
+              icon={<Calculator size={18} />}
+              active={pathname.startsWith("/accounting")}
+              collapsed={effectiveCollapsed}
+            >
+              <SubItem
+                label="Razorpay"
+                href="/accounting/razorpay"
+                icon={<CreditCard size={15} />}
+                active={pathname === "/accounting/razorpay"}
+                collapsed={effectiveCollapsed}
+              />
             </SidebarSection>
           )}
 

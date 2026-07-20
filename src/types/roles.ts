@@ -16,6 +16,7 @@ export type PermissionModule =
   | "Tickets"
   | "Marketing"
   | "Newsletter"
+  | "Accounting"
   | "Feedbacks"
   | "Settings"
   | "User Management"

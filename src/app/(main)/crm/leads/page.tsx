@@ -11,8 +11,13 @@ import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import { Button, Input, Label, TextField } from "@heroui/react";
 import CustomSelect from "@/components/ui/CustomSelect";
 import ExportDropdown from "@/components/ui/ExportDropdown";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 
 export default function LeadsPage() {
+  const { hasPermission } = usePermissions();
+  const canDeleteLeads = hasPermission(PERMISSIONS.MARKETING_DELETE);
+  const canExportLeads = hasPermission(PERMISSIONS.MARKETING_EXPORT);
   const [leadsData, setLeadsData] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +70,7 @@ export default function LeadsPage() {
   }, [search, country]);
 
   const handleDelete = async (id: string) => {
+    if (!canDeleteLeads) return;
     const result = await swal({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -106,6 +112,7 @@ export default function LeadsPage() {
     dateFrom?: string,
     dateTo?: string,
   ) => {
+    if (!canExportLeads) return;
     try {
       setIsExporting(true);
       let page = 1;
@@ -289,17 +296,19 @@ export default function LeadsPage() {
       label: "Action",
       render: (lead) => (
         <div className="flex items-center gap-2">
-          <span title="Delete lead" className="inline-flex">
-            <Button
-              onClick={() => handleDelete(lead._id)}
-              className="min-w-0 h-auto p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
-              aria-label="Delete lead"
-              variant="ghost"
-              type="button"
-            >
-              <Trash2 size={18} />
-            </Button>
-          </span>
+          {canDeleteLeads ? (
+            <span title="Delete lead" className="inline-flex">
+              <Button
+                onClick={() => handleDelete(lead._id)}
+                className="min-w-0 h-auto p-2 text-red-600 hover:text-red-800 hover:bg-red-50"
+                aria-label="Delete lead"
+                variant="ghost"
+                type="button"
+              >
+                <Trash2 size={18} />
+              </Button>
+            </span>
+          ) : null}
         </div>
       ),
     },
@@ -357,21 +366,23 @@ export default function LeadsPage() {
               >
                 <RefreshCw size={18} />
               </Button>
-              <ExportDropdown
-                title="Export Leads"
-                isExporting={isExporting}
-                onInvalidDateRange={async () => {
-                  await swal({
-                    title: "Invalid date range",
-                    text: "From date cannot be after To date.",
-                    icon: "warning",
-                  });
-                }}
-                onExportDateRange={(dateFrom, dateTo) =>
-                  handleExport(true, dateFrom, dateTo)
-                }
-                onExportAll={() => handleExport(false)}
-              />
+              {canExportLeads ? (
+                <ExportDropdown
+                  title="Export Leads"
+                  isExporting={isExporting}
+                  onInvalidDateRange={async () => {
+                    await swal({
+                      title: "Invalid date range",
+                      text: "From date cannot be after To date.",
+                      icon: "warning",
+                    });
+                  }}
+                  onExportDateRange={(dateFrom, dateTo) =>
+                    handleExport(true, dateFrom, dateTo)
+                  }
+                  onExportAll={() => handleExport(false)}
+                />
+              ) : null}
             </div>
           </div>
         </div>

@@ -30,6 +30,8 @@ import {
   type ComplianceInput,
   type CompliancePenalty,
 } from "@/lib/api/compliance";
+import { usePermissions } from "@/hooks/usePermissions";
+import { PERMISSIONS } from "@/utils/permissions";
 const MONTH_NAMES = [
   "January",
   "February",
@@ -112,6 +114,8 @@ function isRequestAborted(err: unknown): boolean {
 export default function ComplianceCalendarPage() {
   const router = useRouter();
   const swal = useSwal();
+  const { hasPermission } = usePermissions();
+  const canEditCompliance = hasPermission(PERMISSIONS.SETTINGS_EDIT);
 
   const [entries, setEntries] = useState<ComplianceEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -232,16 +236,22 @@ export default function ComplianceCalendarPage() {
   );
 
   const handleCreate = () => {
+    if (!canEditCompliance) return;
     setEditingEntry(null);
     setIsModalOpen(true);
   };
 
-  const handleEdit = useCallback((entry: ComplianceEntry) => {
-    setEditingEntry(entry);
-    setIsModalOpen(true);
-  }, []);
+  const handleEdit = useCallback(
+    (entry: ComplianceEntry) => {
+      if (!canEditCompliance) return;
+      setEditingEntry(entry);
+      setIsModalOpen(true);
+    },
+    [canEditCompliance],
+  );
 
   const handleFormSubmit = async (data: ComplianceInput) => {
+    if (!canEditCompliance) return;
     setIsSubmitting(true);
     try {
       if (editingEntry) {
@@ -275,6 +285,7 @@ export default function ComplianceCalendarPage() {
 
   const handleDelete = useCallback(
     async (entry: ComplianceEntry) => {
+      if (!canEditCompliance) return;
       const result = await swal({
         title: "Delete entry?",
         text: `Remove "${entry.formName}" from the compliance calendar?`,
@@ -300,35 +311,39 @@ export default function ComplianceCalendarPage() {
         console.error("Error deleting entry:", err);
       }
     },
-    [currentPage, fetchEntries, swal],
+    [canEditCompliance, currentPage, fetchEntries, swal],
   );
 
-  const handleStatusToggle = useCallback(async (entry: ComplianceEntry) => {
-    const newStatus = entry.status === "done" ? "pending" : "done";
-    setTogglingId(entry.id);
-    try {
-      const penalty = safePenalty(entry.penalty);
-      await complianceApi.update(entry.id, {
-        day: entry.day,
-        month: entry.month,
-        category: entry.category,
-        companyType: entry.companyType,
-        formName: entry.formName,
-        description: entry.description,
-        period: entry.period,
-        locationEnabled: entry.locationEnabled,
-        status: newStatus,
-        penalty,
-      });
-      setEntries((prev) =>
-        prev.map((e) => (e.id === entry.id ? { ...e, status: newStatus } : e)),
-      );
-    } catch (err) {
-      console.error("Error toggling status:", err);
-    } finally {
-      setTogglingId(null);
-    }
-  }, []);
+  const handleStatusToggle = useCallback(
+    async (entry: ComplianceEntry) => {
+      if (!canEditCompliance) return;
+      const newStatus = entry.status === "done" ? "pending" : "done";
+      setTogglingId(entry.id);
+      try {
+        const penalty = safePenalty(entry.penalty);
+        await complianceApi.update(entry.id, {
+          day: entry.day,
+          month: entry.month,
+          category: entry.category,
+          companyType: entry.companyType,
+          formName: entry.formName,
+          description: entry.description,
+          period: entry.period,
+          locationEnabled: entry.locationEnabled,
+          status: newStatus,
+          penalty,
+        });
+        setEntries((prev) =>
+          prev.map((e) => (e.id === entry.id ? { ...e, status: newStatus } : e)),
+        );
+      } catch (err) {
+        console.error("Error toggling status:", err);
+      } finally {
+        setTogglingId(null);
+      }
+    },
+    [canEditCompliance],
+  );
 
   const columns: ColumnDef<ComplianceEntry>[] = useMemo(
     () => [
@@ -427,50 +442,64 @@ export default function ComplianceCalendarPage() {
       {
         id: "status",
         label: "Status",
-        render: (row) => (
-          <button
-            type="button"
-            disabled={togglingId === row.id}
-            onClick={() => handleStatusToggle(row)}
-            className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-              row.status === "done"
-                ? "bg-green-100 text-green-800 hover:bg-green-200"
-                : "bg-amber-100 text-amber-800 hover:bg-amber-200"
-            } ${togglingId === row.id ? "opacity-50 cursor-wait" : "cursor-pointer"}`}
-          >
-            {row.status === "done" ? "Done" : "Pending"}
-          </button>
-        ),
+        render: (row) =>
+          canEditCompliance ? (
+            <button
+              type="button"
+              disabled={togglingId === row.id}
+              onClick={() => handleStatusToggle(row)}
+              className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                row.status === "done"
+                  ? "bg-green-100 text-green-800 hover:bg-green-200"
+                  : "bg-amber-100 text-amber-800 hover:bg-amber-200"
+              } ${togglingId === row.id ? "opacity-50 cursor-wait" : "cursor-pointer"}`}
+            >
+              {row.status === "done" ? "Done" : "Pending"}
+            </button>
+          ) : (
+            <span
+              className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
+                row.status === "done"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-amber-100 text-amber-800"
+              }`}
+            >
+              {row.status === "done" ? "Done" : "Pending"}
+            </span>
+          ),
       },
       {
         id: "actions",
         label: "Actions",
         canHide: false,
-        render: (row) => (
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => handleEdit(row)}
-              className="min-w-0 h-auto p-2 text-[#3D63A4] hover:bg-blue-50"
-              aria-label="Edit entry"
-            >
-              <Pencil size={16} />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => handleDelete(row)}
-              className="min-w-0 h-auto p-2 text-red-600 hover:bg-red-50"
-              aria-label="Delete entry"
-            >
-              <Trash2 size={16} />
-            </Button>
-          </div>
-        ),
+        render: (row) =>
+          canEditCompliance ? (
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => handleEdit(row)}
+                className="min-w-0 h-auto p-2 text-[#3D63A4] hover:bg-blue-50"
+                aria-label="Edit entry"
+              >
+                <Pencil size={16} />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => handleDelete(row)}
+                className="min-w-0 h-auto p-2 text-red-600 hover:bg-red-50"
+                aria-label="Delete entry"
+              >
+                <Trash2 size={16} />
+              </Button>
+            </div>
+          ) : (
+            <span className="text-sm text-gray-400">—</span>
+          ),
       },
     ],
-    [handleDelete, handleEdit, handleStatusToggle, togglingId],
+    [canEditCompliance, handleDelete, handleEdit, handleStatusToggle, togglingId],
   );
 
   return (
@@ -497,14 +526,16 @@ export default function ComplianceCalendarPage() {
             )}
           </p>
         </div>
-        <Button
-          type="button"
-          onClick={handleCreate}
-          className="rounded-lg bg-[#FF6A3D] text-white hover:bg-[#e55a2d] shrink-0"
-        >
-          <Plus size={18} />
-          Add Entry
-        </Button>
+        {canEditCompliance && (
+          <Button
+            type="button"
+            onClick={handleCreate}
+            className="rounded-lg bg-[#FF6A3D] text-white hover:bg-[#e55a2d] shrink-0"
+          >
+            <Plus size={18} />
+            Add Entry
+          </Button>
+        )}
       </div>
 
       <div className="w-full min-w-0 rounded-xl bg-white shadow-sm p-4 sm:p-6">

@@ -375,12 +375,32 @@ const rawPermissions: Permission[] = [
     description: "Export newsletter data",
   },
 
+  // Accounting
+  {
+    id: "accounting-view",
+    module: "Accounting",
+    action: "view",
+    description: "View Razorpay payments, orders, refunds and settlements",
+  },
+  {
+    id: "accounting-export",
+    module: "Accounting",
+    action: "export",
+    description: "Export Razorpay accounting data",
+  },
+
   // Feedbacks
   {
     id: "feedback-view",
     module: "Feedbacks",
     action: "view",
     description: "View client feedbacks",
+  },
+  {
+    id: "feedback-export",
+    module: "Feedbacks",
+    action: "export",
+    description: "Export client feedbacks to Excel",
   },
 
   // Tickets

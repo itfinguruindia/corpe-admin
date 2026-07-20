@@ -25,6 +25,7 @@ export interface IFeedbackQueryParams {
   limit?: number;
   dateFrom?: string;
   dateTo?: string;
+  export?: boolean;
 }
 
 export const feedbackService = {
