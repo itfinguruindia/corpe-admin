@@ -345,7 +345,7 @@ export default function Sidebar() {
             </SidebarSection>
           )}
 
-          {showAccounting && <Divider />}
+          {/* {showAccounting && <Divider />}
 
           {showAccounting && (
             <SidebarSection
@@ -362,7 +362,7 @@ export default function Sidebar() {
                 collapsed={effectiveCollapsed}
               />
             </SidebarSection>
-          )}
+          )} */}
 
           {showDocuments && <Divider />}
 

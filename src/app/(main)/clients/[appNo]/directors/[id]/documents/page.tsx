@@ -9,7 +9,10 @@ import { Director } from "@/types/director";
 import { DirectorDocument } from "@/types/directorDocuments";
 import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
-import { getFileType } from "@/utils/helpers";
+import DocumentPreviewBody from "@/components/ui/DocumentPreviewBody";
+import {
+  createPreviewObjectUrlFromBlob,
+} from "@/utils/documentPreview";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
@@ -79,6 +82,7 @@ export default function DirectorDocumentsPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>("");
   const [previewFileName, setPreviewFileName] = useState<string>("");
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   // Dual-source document states
   const [dir2Files, setDir2Files] = useState<DualSourceState>({
@@ -336,12 +340,30 @@ export default function DirectorDocumentsPage() {
      ACTIONS
   ======================= */
 
+  const clearPreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setPreviewFileName("");
+    setPreviewTitle("");
+    setPreviewLoading(false);
+    setSelectedDoc(null);
+  };
+
   const handleView = (doc: DirectorDocument) => {
     if (dualSourceDocLabels.includes(doc.documentType)) {
       return; // Handled in separate section
     }
     if (!doc.fileUrl) return;
+
+    clearPreview();
     setSelectedDoc(doc);
+    setPreviewTitle(doc.documentType);
+    // Use signed S3 URL directly (inline Content-Type). Do not fetch —
+    // cross-origin S3 blocks browser fetch and surfaces "Failed to fetch".
+    setPreviewUrl(doc.fileUrl);
+    setPreviewFileName(doc.fileName || doc.fileUrl);
     setIsPreviewOpen(true);
   };
 
@@ -354,6 +376,8 @@ export default function DirectorDocumentsPage() {
     const link = document.createElement("a");
     link.href = doc.fileUrl;
     link.download = doc.fileName;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
     link.click();
   };
 
@@ -364,6 +388,13 @@ export default function DirectorDocumentsPage() {
     fileName: string,
   ) => {
     if (!appNo || !id) return;
+    clearPreview();
+    setPreviewTitle(
+      `${documentType} - ${source === "admin" ? "Admin Upload" : "Client Upload"}`,
+    );
+    setPreviewFileName(fileName);
+    setIsPreviewOpen(true);
+    setPreviewLoading(true);
     try {
       const blob = await clientsApi.downloadDirectorDocument(
         appNo as string,
@@ -371,15 +402,14 @@ export default function DirectorDocumentsPage() {
         docTypeKey,
         source,
       );
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
-      setPreviewFileName(fileName);
-      setPreviewTitle(
-        `${documentType} - ${source === "admin" ? "Admin Upload" : "Client Upload"}`,
-      );
-      setIsPreviewOpen(true);
+      const preview = createPreviewObjectUrlFromBlob(blob, fileName);
+      setPreviewUrl(preview.url);
+      setPreviewFileName(preview.fileName);
     } catch {
       toast.danger("Could not open document.");
+      setIsPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -857,54 +887,16 @@ export default function DirectorDocumentsPage() {
         isOpen={isPreviewOpen}
         onClose={() => {
           setIsPreviewOpen(false);
-          setSelectedDoc(null);
-          if (previewUrl) {
-            URL.revokeObjectURL(previewUrl);
-            setPreviewUrl(null);
-            setPreviewFileName("");
-          }
+          clearPreview();
         }}
-        title={selectedDoc?.documentType || previewTitle}
+        title={previewTitle || selectedDoc?.documentType || "Document Preview"}
+        maxWidth="md:max-w-[90vw]"
       >
-        {/* Regular document preview */}
-        {selectedDoc?.fileUrl && !previewUrl ? (
-          <>
-            {getFileType(selectedDoc.fileUrl) === "image" && (
-              <img
-                src={selectedDoc.fileUrl}
-                className="w-full max-h-[70vh] object-contain rounded"
-              />
-            )}
-
-            {getFileType(selectedDoc.fileUrl) === "pdf" && (
-              <iframe
-                src={selectedDoc.fileUrl}
-                className="w-full h-[70vh] border rounded"
-              />
-            )}
-          </>
-        ) : null}
-
-        {/* Dual-source document preview */}
-        {previewUrl ? (
-          <>
-            {getFileType(previewFileName) === "image" && (
-              <img
-                src={previewUrl}
-                className="w-full max-h-[70vh] object-contain rounded"
-              />
-            )}
-
-            {getFileType(previewFileName) === "pdf" && (
-              <iframe
-                src={previewUrl}
-                className="w-full h-[70vh] border rounded"
-              />
-            )}
-          </>
-        ) : null}
-
-        {!selectedDoc?.fileUrl && !previewUrl && <p>No preview available</p>}
+        <DocumentPreviewBody
+          url={previewUrl}
+          fileName={previewFileName || selectedDoc?.fileName || ""}
+          loading={previewLoading}
+        />
       </Modal>
     </div>
   );

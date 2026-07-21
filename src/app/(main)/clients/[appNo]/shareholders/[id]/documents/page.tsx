@@ -9,7 +9,10 @@ import { Shareholder } from "@/types/shareholder";
 import { ShareholderDocument } from "@/types/shareholderDocuments";
 import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
-import { getFileType } from "@/utils/helpers";
+import DocumentPreviewBody from "@/components/ui/DocumentPreviewBody";
+import {
+  createPreviewObjectUrlFromBlob,
+} from "@/utils/documentPreview";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
@@ -36,6 +39,9 @@ export default function ShareholderDocumentsPage() {
   const [selectedDoc, setSelectedDoc] = useState<ShareholderDocument | null>(
     null,
   );
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [inc9AdminFile, setInc9AdminFile] = useState<{
     name: string;
     path: string;
@@ -203,12 +209,27 @@ export default function ShareholderDocumentsPage() {
     void loadInc9Status();
   }, [appNo, id, isLoading, isCompanyTypeLoading, showInc9Shareholder]);
 
-  const handleView = async (doc: ShareholderDocument) => {
+  const clearPreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setPreviewFileName("");
+    setPreviewLoading(false);
+    setSelectedDoc(null);
+  };
+
+  const handleView = (doc: ShareholderDocument) => {
     if (doc.documentType === "INC-9 Shareholder") {
       return; // Handled in separate section
     }
     if (!doc.fileUrl) return;
+
+    clearPreview();
     setSelectedDoc(doc);
+    // Use signed S3 URL directly — do not fetch (CORS would throw Failed to fetch)
+    setPreviewUrl(doc.fileUrl);
+    setPreviewFileName(doc.fileName || doc.fileUrl);
     setIsPreviewOpen(true);
   };
 
@@ -220,22 +241,43 @@ export default function ShareholderDocumentsPage() {
     const link = document.createElement("a");
     link.href = doc.fileUrl;
     link.download = doc.fileName;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
     link.click();
   };
 
   const handleInc9Preview = async (source: "admin" | "client") => {
     if (!appNo || !id) return;
+    clearPreview();
+    setSelectedDoc({
+      id: "inc9",
+      shareholderId: id as string,
+      fieldKey: "inc9Shareholder",
+      documentType: "INC-9 Shareholder",
+      status: "uploaded",
+      fileName: "INC-9 Shareholder.pdf",
+    });
+    setPreviewFileName("INC-9 Shareholder.pdf");
+    setIsPreviewOpen(true);
+    setPreviewLoading(true);
     try {
       const blob = await clientsApi.downloadInc9ShareholderDocument(
         appNo as string,
         id as string,
         source,
       );
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-      toast.success("Opening INC-9 Shareholder document");
+      const preview = createPreviewObjectUrlFromBlob(
+        blob,
+        "INC-9 Shareholder.pdf",
+      );
+      setPreviewUrl(preview.url);
+      setPreviewFileName(preview.fileName);
     } catch {
       toast.danger("Could not open INC-9 Shareholder document.");
+      setIsPreviewOpen(false);
+      clearPreview();
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -271,7 +313,8 @@ export default function ShareholderDocumentsPage() {
     if (!appNo || !id) return;
     if (!requireEdit()) return;
 
-    if (isLocked) {
+    // Admin templates stay editable during stage lock; only client uploads are gated.
+    if (source === "client" && isLocked) {
       toast.danger("Action locked. Installment payment is due.");
       return;
     }
@@ -308,10 +351,6 @@ export default function ShareholderDocumentsPage() {
   const handleAdminFileUpload = async (documentType: string, file: File) => {
     if (!requireEdit()) return;
     if (documentType === "INC-9 Shareholder") {
-      if (isLocked) {
-        toast.danger("Action locked. Installment payment is due.");
-        return;
-      }
       if (!appNo || !id) return;
       try {
         await clientsApi.uploadInc9ShareholderDocument(
@@ -376,10 +415,12 @@ export default function ShareholderDocumentsPage() {
         </div>
 
         {isLocked && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 text-sm font-semibold">
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3 text-amber-900 text-sm font-semibold">
             <span>
-              ⚠️ Stage locked. Outstanding installment payments are due for this
-              client. Document upload actions are disabled.
+              ⚠️ Outstanding installment payments are due for this client.
+              Client document actions are locked, but you can still upload INC-9
+              templates (Admin Upload) so the client can download, sign, and
+              re-upload after payment.
             </span>
           </div>
         )}
@@ -511,35 +552,16 @@ export default function ShareholderDocumentsPage() {
                       allowedFileTypes=".pdf,.doc,.docx"
                       title="Upload INC-9 Shareholder"
                       subtitle="Upload from your computer, Google Drive, or existing documents."
-                      disabled={isLocked}
-                      onBeforeOpen={() => {
-                        if (isLocked) {
-                          toast.danger(
-                            "Action locked. Installment payment is due.",
-                          );
-                          return false;
-                        }
-                        return requireEdit();
-                      }}
+                      onBeforeOpen={() => requireEdit()}
                       onFileSelect={(file) =>
                         handleAdminFileUpload("INC-9 Shareholder", file)
                       }
                       renderTrigger={(openPicker) => (
-                        <div
-                          title={
-                            isLocked
-                              ? "Locked - installment due"
-                              : "Upload INC-9 (Admin)"
-                          }
-                        >
+                        <div title="Upload INC-9 (Admin)">
                           <Upload
                             size={20}
-                            onClick={isLocked ? undefined : openPicker}
-                            className={
-                              isLocked
-                                ? "text-gray-300 cursor-not-allowed"
-                                : "cursor-pointer text-primary hover:text-secondary"
-                            }
+                            onClick={openPicker}
+                            className="cursor-pointer text-primary hover:text-secondary"
                           />
                         </div>
                       )}
@@ -570,23 +592,11 @@ export default function ShareholderDocumentsPage() {
                               className="cursor-pointer text-orange-600 hover:text-orange-700"
                             />
                           </div>
-                          <div
-                            title={
-                              isLocked ? "Locked - installment due" : "Delete"
-                            }
-                          >
+                          <div title="Delete">
                             <Trash2
                               size={16}
-                              onClick={
-                                isLocked
-                                  ? undefined
-                                  : () => handleInc9Delete("admin")
-                              }
-                              className={
-                                isLocked
-                                  ? "text-gray-300 cursor-not-allowed"
-                                  : "cursor-pointer text-red-600 hover:text-red-700"
-                              }
+                              onClick={() => handleInc9Delete("admin")}
+                              className="cursor-pointer text-red-600 hover:text-red-700"
                             />
                           </div>
                         </div>
@@ -688,29 +698,16 @@ export default function ShareholderDocumentsPage() {
         isOpen={isPreviewOpen}
         onClose={() => {
           setIsPreviewOpen(false);
-          setSelectedDoc(null);
+          clearPreview();
         }}
-        title={selectedDoc?.documentType}
+        title={selectedDoc?.documentType || "Document Preview"}
+        maxWidth="md:max-w-[90vw]"
       >
-        {!selectedDoc?.fileUrl ? (
-          <p>No preview available</p>
-        ) : (
-          <>
-            {getFileType(selectedDoc.fileUrl) === "image" && (
-              <img
-                src={selectedDoc.fileUrl}
-                className="w-full max-h-[70vh] object-contain rounded"
-              />
-            )}
-
-            {getFileType(selectedDoc.fileUrl) === "pdf" && (
-              <iframe
-                src={selectedDoc.fileUrl}
-                className="w-full h-[70vh] border rounded"
-              />
-            )}
-          </>
-        )}
+        <DocumentPreviewBody
+          url={previewUrl}
+          fileName={previewFileName || selectedDoc?.fileName || ""}
+          loading={previewLoading}
+        />
       </Modal>
     </div>
   );
