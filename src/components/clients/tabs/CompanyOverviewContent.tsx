@@ -224,7 +224,9 @@ export default function CompanyOverviewContent({
           )}
           <InfoField
             label={labels.cinLlpinLabel}
-            value={companyData.isIncorporated ? companyData.cinLlpin : "-"}
+            value={
+              companyData.isIncorporated ? (companyData.cinLlpin ?? "-") : "-"
+            }
             sublabel={
               !companyData.isIncorporated
                 ? '(will show "-" if not incorporated )'
