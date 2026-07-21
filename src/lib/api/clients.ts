@@ -777,10 +777,11 @@ export const clientsApi = {
     applicationNo: string,
     cin: string,
     companyStatus: string,
+    incorporationDate?: string | null,
   ) => {
     const response = await axiosInstance.post(
       `/admin/clients/${applicationNo}/registration-data/cin-status`,
-      { cin, companyStatus },
+      { cin, companyStatus, incorporationDate },
     );
     return response.data;
   },

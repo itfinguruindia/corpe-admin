@@ -10,6 +10,7 @@ export interface RegistrationDocument {
 export interface RegistrationData {
   appNo: string;
   cin: string;
+  incorporationDate?: string | null;
   companyStatus: string;
   companyType?: string;
   officeEmail?: string;

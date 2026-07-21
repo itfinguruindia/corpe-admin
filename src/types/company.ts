@@ -13,10 +13,10 @@ export interface CompanyOverview {
   state: string;
   policeStationJurisdiction: string;
   entityType: string;
-  cinLlpin: string;
+  cinLlpin: string | null;
   isIncorporated: boolean;
-  industry: string;
-  incorporationDate: string;
+  industry?: string;
+  incorporationDate: string | null;
   registeredOffice: string;
   branchOffice?: string;
   status: CompanyStatus;
@@ -29,8 +29,8 @@ export interface CompanyOverview {
   clientName: string;
   capitalDetails: number;
   paidUpCapital: number;
-  planChoose: "Basic" | "Advance";
-  packageType: "Full payment" | "Instalment";
+  planChoose: string;
+  packageType: string;
   createdAt?: string;
   updatedAt?: string;
 }
