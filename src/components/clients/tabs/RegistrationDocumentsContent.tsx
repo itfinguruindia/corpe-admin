@@ -59,6 +59,8 @@ export default function RegistrationDocumentsContent({
   const [cinInput, setCinInput] = useState("");
   const [isCinEditable, setIsCinEditable] = useState(true);
   const [cinError, setCinError] = useState("");
+  const [incorporationDateInput, setIncorporationDateInput] = useState("");
+  const [incorporationDateError, setIncorporationDateError] = useState("");
   const [companyStatus, setCompanyStatus] = useState<string>("pending");
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -97,6 +99,11 @@ export default function RegistrationDocumentsContent({
         setCinInput(result.cin);
         setIsCinEditable(false);
       }
+      setIncorporationDateInput(
+        result?.incorporationDate
+          ? new Date(result.incorporationDate).toISOString().slice(0, 10)
+          : "",
+      );
       if (result?.companyStatus) setCompanyStatus(result.companyStatus);
       if (trackerResponse && trackerResponse.installmentInfo) {
         setInstallmentInfo(trackerResponse.installmentInfo);
@@ -178,18 +185,30 @@ export default function RegistrationDocumentsContent({
       );
       return;
     }
+    if (incorporationDateInput && !cinInput.trim()) {
+      setIncorporationDateError(
+        `Please enter ${getStakeholderLabels(data?.companyType).cinLlpinLabel} first.`,
+      );
+      return;
+    }
     setCinError("");
+    setIncorporationDateError("");
     setIsCinEditable(false);
     try {
-      await clientsApi.updateCinAndStatus(appNo, cinInput, companyStatus);
+      await clientsApi.updateCinAndStatus(
+        appNo,
+        cinInput,
+        companyStatus,
+        incorporationDateInput || null,
+      );
       toast.success(
-        `${getStakeholderLabels(data?.companyType).cinLlpinLabel} updated successfully!`,
+        `${getStakeholderLabels(data?.companyType).cinLlpinLabel} and incorporation date updated successfully!`,
       );
       loadData();
     } catch (error) {
       console.error("Failed to update CIN:", error);
       notifyApiError(error, {
-        fallback: `Failed to update ${getStakeholderLabels(data?.companyType).cinLlpinLabel}.`,
+        fallback: `Failed to update ${getStakeholderLabels(data?.companyType).cinLlpinLabel} and incorporation date.`,
         actionLabel: "update registration details",
       });
     }
@@ -203,7 +222,12 @@ export default function RegistrationDocumentsContent({
     }
     try {
       setCompanyStatus(status);
-      await clientsApi.updateCinAndStatus(appNo, cinInput, status);
+      await clientsApi.updateCinAndStatus(
+        appNo,
+        cinInput,
+        status,
+        incorporationDateInput || null,
+      );
       toast.success(`Company status updated to ${formatStatusLabel(status)}!`);
       loadData();
     } catch (error) {
@@ -423,6 +447,7 @@ export default function RegistrationDocumentsContent({
 
   const labels = getStakeholderLabels(data.companyType);
   const registrationIdLabel = labels.cinLlpinLabel;
+  const hasValidCin = CIN_REGEX.test(cinInput);
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans p-6">
@@ -502,8 +527,12 @@ export default function RegistrationDocumentsContent({
                 disabled={!isCinEditable || isLocked}
                 value={cinInput}
                 onChange={(e) => {
-                  setCinInput(e.target.value.trim());
+                  const nextCin = e.target.value.trim();
+                  setCinInput(nextCin);
                   setCinError("");
+                  if (!CIN_REGEX.test(nextCin)) {
+                    setIncorporationDateInput("");
+                  }
                 }}
                 className="disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all focus:border-[#F46A45] focus:outline-none focus:ring-2 focus:ring-[#F46A45]/20 scheme-light"
                 placeholder={
@@ -544,6 +573,34 @@ export default function RegistrationDocumentsContent({
           {cinError && (
             <p className="ml-20 mt-1 text-xs font-medium text-red-600">
               {cinError}
+            </p>
+          )}
+          <div className="flex items-center mt-3">
+            <label className="text-lg font-bold text-black min-w-20">
+              Incorporation Date
+            </label>
+            <div className="flex items-center gap-4 flex-1 max-w-xl">
+              <input
+                type="date"
+                value={incorporationDateInput}
+                disabled={isLocked || !hasValidCin}
+                onChange={(e) => {
+                  setIncorporationDateInput(e.target.value);
+                  setIncorporationDateError("");
+                }}
+                className="disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-900 transition-all focus:border-[#F46A45] focus:outline-none focus:ring-2 focus:ring-[#F46A45]/20 scheme-light"
+              />
+            </div>
+          </div>
+          {!hasValidCin && (
+            <p className="ml-20 mt-1 text-xs font-medium text-amber-600">
+              * Please enter a valid {registrationIdLabel} first to enable
+              incorporation date.
+            </p>
+          )}
+          {incorporationDateError && (
+            <p className="ml-20 mt-1 text-xs font-medium text-red-600">
+              {incorporationDateError}
             </p>
           )}
         </div>
