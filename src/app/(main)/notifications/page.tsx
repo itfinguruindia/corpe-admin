@@ -36,6 +36,7 @@ import {
 import clsx from "clsx";
 import Link from "next/link";
 import RefreshButton from "@/components/ui/RefreshButton";
+import { resolveNotificationLink } from "@/utils/notificationLink";
 
 const CATEGORY_MAP: Record<
   string,
@@ -492,7 +493,7 @@ function NotificationCard({
             <Tooltip>
               <Tooltip.Trigger>
                 <Link
-                  href={notification.metadata.link}
+                  href={resolveNotificationLink(notification.metadata.link)}
                   className="flex items-center justify-center rounded-xl w-10 h-10 border border-primary-100 bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors"
                 >
                   <ExternalLink size={18} />
