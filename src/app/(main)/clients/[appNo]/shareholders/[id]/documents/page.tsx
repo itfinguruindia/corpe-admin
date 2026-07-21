@@ -9,7 +9,10 @@ import { Shareholder } from "@/types/shareholder";
 import { ShareholderDocument } from "@/types/shareholderDocuments";
 import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
-import { getFileType } from "@/utils/helpers";
+import DocumentPreviewBody from "@/components/ui/DocumentPreviewBody";
+import {
+  createPreviewObjectUrlFromBlob,
+} from "@/utils/documentPreview";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
@@ -36,6 +39,9 @@ export default function ShareholderDocumentsPage() {
   const [selectedDoc, setSelectedDoc] = useState<ShareholderDocument | null>(
     null,
   );
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFileName, setPreviewFileName] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [inc9AdminFile, setInc9AdminFile] = useState<{
     name: string;
     path: string;
@@ -203,12 +209,27 @@ export default function ShareholderDocumentsPage() {
     void loadInc9Status();
   }, [appNo, id, isLoading, isCompanyTypeLoading, showInc9Shareholder]);
 
-  const handleView = async (doc: ShareholderDocument) => {
+  const clearPreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl(null);
+    setPreviewFileName("");
+    setPreviewLoading(false);
+    setSelectedDoc(null);
+  };
+
+  const handleView = (doc: ShareholderDocument) => {
     if (doc.documentType === "INC-9 Shareholder") {
       return; // Handled in separate section
     }
     if (!doc.fileUrl) return;
+
+    clearPreview();
     setSelectedDoc(doc);
+    // Use signed S3 URL directly — do not fetch (CORS would throw Failed to fetch)
+    setPreviewUrl(doc.fileUrl);
+    setPreviewFileName(doc.fileName || doc.fileUrl);
     setIsPreviewOpen(true);
   };
 
@@ -220,22 +241,43 @@ export default function ShareholderDocumentsPage() {
     const link = document.createElement("a");
     link.href = doc.fileUrl;
     link.download = doc.fileName;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
     link.click();
   };
 
   const handleInc9Preview = async (source: "admin" | "client") => {
     if (!appNo || !id) return;
+    clearPreview();
+    setSelectedDoc({
+      id: "inc9",
+      shareholderId: id as string,
+      fieldKey: "inc9Shareholder",
+      documentType: "INC-9 Shareholder",
+      status: "uploaded",
+      fileName: "INC-9 Shareholder.pdf",
+    });
+    setPreviewFileName("INC-9 Shareholder.pdf");
+    setIsPreviewOpen(true);
+    setPreviewLoading(true);
     try {
       const blob = await clientsApi.downloadInc9ShareholderDocument(
         appNo as string,
         id as string,
         source,
       );
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-      toast.success("Opening INC-9 Shareholder document");
+      const preview = createPreviewObjectUrlFromBlob(
+        blob,
+        "INC-9 Shareholder.pdf",
+      );
+      setPreviewUrl(preview.url);
+      setPreviewFileName(preview.fileName);
     } catch {
       toast.danger("Could not open INC-9 Shareholder document.");
+      setIsPreviewOpen(false);
+      clearPreview();
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -688,29 +730,16 @@ export default function ShareholderDocumentsPage() {
         isOpen={isPreviewOpen}
         onClose={() => {
           setIsPreviewOpen(false);
-          setSelectedDoc(null);
+          clearPreview();
         }}
-        title={selectedDoc?.documentType}
+        title={selectedDoc?.documentType || "Document Preview"}
+        maxWidth="md:max-w-[90vw]"
       >
-        {!selectedDoc?.fileUrl ? (
-          <p>No preview available</p>
-        ) : (
-          <>
-            {getFileType(selectedDoc.fileUrl) === "image" && (
-              <img
-                src={selectedDoc.fileUrl}
-                className="w-full max-h-[70vh] object-contain rounded"
-              />
-            )}
-
-            {getFileType(selectedDoc.fileUrl) === "pdf" && (
-              <iframe
-                src={selectedDoc.fileUrl}
-                className="w-full h-[70vh] border rounded"
-              />
-            )}
-          </>
-        )}
+        <DocumentPreviewBody
+          url={previewUrl}
+          fileName={previewFileName || selectedDoc?.fileName || ""}
+          loading={previewLoading}
+        />
       </Modal>
     </div>
   );

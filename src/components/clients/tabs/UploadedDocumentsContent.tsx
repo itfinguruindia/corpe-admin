@@ -17,7 +17,8 @@ import { Spinner, toast } from "@heroui/react";
 import { clientsApi } from "@/lib/api/clients";
 import TabCard from "@/components/dashboard/TabCard";
 import Modal from "@/components/ui/Modal";
-import { getFileType } from "@/utils/helpers";
+import DocumentPreviewBody from "@/components/ui/DocumentPreviewBody";
+import { createPreviewObjectUrlFromBlob } from "@/utils/documentPreview";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 import { FileUploadComponent } from "@/components/upload";
@@ -141,9 +142,10 @@ export default function UploadedDocumentsContent({
         appNo,
         docType,
       );
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
-      setPreviewFileName(fileName);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      const preview = createPreviewObjectUrlFromBlob(blob, fileName);
+      setPreviewUrl(preview.url);
+      setPreviewFileName(preview.fileName);
       setPreviewTitle(documentType);
       setIsPreviewOpen(true);
     } catch (error) {
@@ -724,47 +726,9 @@ export default function UploadedDocumentsContent({
           }
         }}
         title={previewTitle}
+        maxWidth="md:max-w-[90vw]"
       >
-        {previewUrl ? (
-          <>
-            {getFileType(previewFileName) === "image" && (
-              <img
-                src={previewUrl}
-                alt="Document Preview"
-                className="w-full max-h-[70vh] object-contain rounded"
-              />
-            )}
-
-            {getFileType(previewFileName) === "pdf" && (
-              <iframe
-                src={previewUrl}
-                title="Document PDF Preview"
-                className="w-full h-[70vh] border rounded"
-              />
-            )}
-
-            {getFileType(previewFileName) === "other" && (
-              <div className="flex flex-col items-center justify-center p-8">
-                <p className="text-gray-500 mb-4">
-                  No online preview available for this file type.
-                </p>
-                <button
-                  onClick={() => {
-                    const link = document.createElement("a");
-                    link.href = previewUrl;
-                    link.download = previewFileName;
-                    link.click();
-                  }}
-                  className="bg-primary hover:bg-secondary text-white font-medium px-4 py-2 rounded-lg transition-colors"
-                >
-                  Download to View
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <p>No preview available</p>
-        )}
+        <DocumentPreviewBody url={previewUrl} fileName={previewFileName} />
       </Modal>
     </div>
   );
