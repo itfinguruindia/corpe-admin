@@ -250,6 +250,20 @@ export default function PricingAndPaymentContent({
     }
   };
 
+  const getDisplayAmount = (step: FrontendPaymentStep): number => {
+    const bd = step.breakdown;
+
+    // Prefer backend-computed totals when available (matches breakdown rows).
+    if (bd && typeof bd.installmentTotal === "number" && bd.installmentTotal > 0) {
+      return bd.installmentTotal;
+    }
+    if (bd && typeof bd.dinTotal === "number" && bd.dinTotal > 0) {
+      return bd.dinTotal;
+    }
+
+    return step.amount;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -670,7 +684,10 @@ export default function PricingAndPaymentContent({
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
-                          {formatCurrency(step.amount, pricingData.currency)}
+                          {formatCurrency(
+                            getDisplayAmount(step),
+                            pricingData.currency,
+                          )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {step.triggerGate}
