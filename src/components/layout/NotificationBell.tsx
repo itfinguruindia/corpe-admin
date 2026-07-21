@@ -14,6 +14,7 @@ import notificationService from "@/services/notification.service";
 import { Notification, NotificationCategory } from "@/types/notification";
 import clsx from "clsx";
 import { Button } from "@heroui/react";
+import { resolveNotificationLink } from "@/utils/notificationLink";
 
 const CATEGORY_ICONS: Record<NotificationCategory, React.ReactNode> = {
   clients: <User size={16} className="text-blue-500" />,
@@ -262,7 +263,7 @@ function NotificationItem({
   
   return (
     <Link 
-      href={notification.metadata?.link || "/notifications"}
+      href={resolveNotificationLink(notification.metadata?.link)}
       prefetch={false}
       onClick={onClose}
       className={clsx(
