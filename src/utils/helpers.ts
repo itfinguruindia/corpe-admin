@@ -40,10 +40,16 @@ export function formatCurrency(amount: number, currency: string = "INR"): string
 
 export const getFileType = (url: string) => {
   // Strip query params before checking extension
-  const cleanUrl = url.split("?")[0];
+  const cleanUrl = (url || "").split("?")[0];
+  let decoded = cleanUrl;
+  try {
+    decoded = decodeURIComponent(cleanUrl);
+  } catch {
+    decoded = cleanUrl;
+  }
 
-  if (cleanUrl.match(/\.(jpeg|jpg|png|gif|webp|svg)$/i)) return "image";
-  if (cleanUrl.match(/\.pdf$/i)) return "pdf";
+  if (decoded.match(/\.(jpeg|jpg|png|gif|webp|svg|bmp)$/i)) return "image";
+  if (decoded.match(/\.pdf$/i)) return "pdf";
   return "other";
 };
 
