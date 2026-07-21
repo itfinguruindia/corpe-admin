@@ -63,7 +63,7 @@ export default function CompanyOverviewContent({
             cinLlpin: apiData.cinLlpin || null,
             isIncorporated: !!apiData.cinLlpin,
             industry: apiData.industry || "-",
-            incorporationDate: apiData.incorporationDate || apiData.createdAt || null,
+            incorporationDate: apiData.incorporationDate || null,
             registeredOffice:
               apiData.corporateStructure?.registeredOffice?.locality || "-",
             branchOffice: "-",
