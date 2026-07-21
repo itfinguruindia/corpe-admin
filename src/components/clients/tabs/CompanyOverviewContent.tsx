@@ -60,33 +60,33 @@ export default function CompanyOverviewContent({
               apiData.corporateStructure?.registeredOffice
                 ?.policeStationJurisdiction || "-",
             entityType: apiData.companyType || "-",
-            cinLlpin: "-", // Dummy
-            isIncorporated: false, // Dummy
-            industry: "-", // Dummy
-            incorporationDate: "2026-01-01", // Dummy
+            cinLlpin: apiData.cinLlpin || null,
+            isIncorporated: !!apiData.cinLlpin,
+            industry: apiData.industry || "-",
+            incorporationDate: apiData.incorporationDate || apiData.createdAt || null,
             registeredOffice:
               apiData.corporateStructure?.registeredOffice?.locality || "-",
-            branchOffice: "-", // Dummy
+            branchOffice: "-",
             status: apiData.companyStatus,
             paymentStatus,
-            planChosen: "-", // Dummy
+            planChosen: apiData.planName || "-",
             contactNo: apiData.client?.phoneNumber || "-",
             contactEmail: apiData.client?.email || "-",
             officePhone:
               apiData.corporateStructure?.registeredOffice?.officePhone || "-",
             officeEmail:
               apiData.corporateStructure?.registeredOffice?.officeEmail || "-",
-            clientName: `${apiData.client?.firstName || "-"} ${apiData.client?.lastName || "-"}`,
+            clientName: `${apiData.client?.firstName || ""} ${apiData.client?.lastName || ""}`.trim() || "-",
             capitalDetails: isLlp
               ? capitalDetails.obligationOfContribution || 0
               : capitalDetails.authorizedCapital || 0,
             paidUpCapital: isLlp
               ? 0
               : capitalDetails.paidUpCapital || 0,
-            planChoose: "Basic", // Dummy
-            packageType: "Full payment", // Dummy
-            createdAt: undefined,
-            updatedAt: undefined,
+            planChoose: apiData.planName || "-",
+            packageType: apiData.packageType || "-",
+            createdAt: apiData.createdAt,
+            updatedAt: apiData.updatedAt,
           };
           setResolvedCompanyType(apiData.companyType ?? null);
           setCompanyData(mapped);
@@ -119,8 +119,11 @@ export default function CompanyOverviewContent({
     return new Intl.NumberFormat("en-IN").format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-IN", {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return "-";
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return "-";
+    return d.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -186,8 +189,6 @@ export default function CompanyOverviewContent({
             )}
           />
 
-          <InfoField label="Industry" value={companyData.industry} />
-
           <InfoField
             label="Registered Office"
             value={companyData.registeredOffice}
@@ -196,8 +197,6 @@ export default function CompanyOverviewContent({
             label="Branch Office"
             value={companyData.branchOffice || "N/A"}
           />
-
-          <InfoField label="Plan Choose" value={companyData.planChosen} />
           <InfoField label="Contact No" value={companyData.contactNo} />
           <InfoField label="Contact Email" value={companyData.contactEmail} />
           <InfoField
