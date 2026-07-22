@@ -25,6 +25,8 @@ export interface Shareholder {
   kycVerified: boolean;
   dscApplication: boolean;
   isAlsoDirector?: boolean;
+  linkedDirectorId?: string | null;
+  linkedDirectorNumber?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }

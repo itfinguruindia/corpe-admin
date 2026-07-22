@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { toast } from "@heroui/react";
+import Link from "next/link";
 import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
@@ -10,27 +10,19 @@ import FixedBackButton from "@/components/ui/FixedBackButton";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { matchesStakeholderId, toStakeholderId } from "@/utils/stakeholderIds";
+import { isSameStakeholderPerson } from "@/utils/stakeholderMatch";
 
 export default function ShareholderDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
   const { labels } = useClientCompanyLabels();
-  const { requireEdit } = useClientTabEdit("shareholder");
+  const { requireEdit, canEdit } = useClientTabEdit("shareholder");
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
   const [allShareholders, setAllShareholders] = useState<Shareholder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [kycVerified, setKycVerified] = useState(false);
   const [dscApplication, setDscApplication] = useState(false);
-  const [isStage2Enabled, setIsStage2Enabled] = useState(false);
-  const [installmentInfo, setInstallmentInfo] = useState<{
-    firstInstallmentDue: boolean;
-    firstInstallmentPaid: boolean;
-    secondInstallmentDue: boolean;
-    secondInstallmentPaid: boolean;
-  } | null>(null);
-
-  const isLocked = !!installmentInfo?.firstInstallmentDue;
 
   useEffect(() => {
     const loadData = async () => {
@@ -46,29 +38,11 @@ export default function ShareholderDetailPage() {
           Array.isArray(response.data.shareholders)
         ) {
           const directors = response.data.directors || [];
-          const isSamePerson = (sh: any, dir: any) => {
-            const shPan = sh.panNumber?.toLowerCase()?.trim();
-            const dirPan = dir.panNumber?.toLowerCase()?.trim();
-            if (shPan && dirPan && shPan !== "-" && dirPan !== "-")
-              return shPan === dirPan;
-
-            const shEmail = sh.email?.toLowerCase()?.trim();
-            const dirEmail = dir.email?.toLowerCase()?.trim();
-            if (shEmail && dirEmail && shEmail !== "-" && dirEmail !== "-")
-              return shEmail === dirEmail;
-
-            const shName = sh.name?.toLowerCase()?.trim();
-            const dirName = dir.name?.toLowerCase()?.trim();
-            if (shName && dirName && shName !== "-" && dirName !== "-")
-              return shName === dirName;
-
-            return false;
-          };
 
           const mappedShareholders = response.data.shareholders.map(
             (s: any, idx: number) => {
-              const isAlsoDirector = directors.some((d: any) =>
-                isSamePerson(s, d),
+              const linkedDirIdx = directors.findIndex((d: any) =>
+                isSameStakeholderPerson(s, d),
               );
               return {
                 id: toStakeholderId(s, idx),
@@ -99,7 +73,13 @@ export default function ShareholderDetailPage() {
                   : 0,
                 kycVerified: s.kycVerified ?? false,
                 dscApplication: s.dscApplication ?? false,
-                isAlsoDirector,
+                isAlsoDirector: linkedDirIdx !== -1,
+                linkedDirectorId:
+                  linkedDirIdx !== -1
+                    ? toStakeholderId(directors[linkedDirIdx], linkedDirIdx)
+                    : null,
+                linkedDirectorNumber:
+                  linkedDirIdx !== -1 ? linkedDirIdx + 1 : null,
                 createdAt: undefined,
                 updatedAt: undefined,
               };
@@ -121,29 +101,6 @@ export default function ShareholderDetailPage() {
           setAllShareholders([]);
           setShareholder(null);
         }
-
-        try {
-          const trackerRes = await clientsApi.getTrackingStatus(
-            appNo as string,
-          );
-          if (trackerRes) {
-            const activeStage =
-              trackerRes.stages &&
-              typeof trackerRes.currentStageIndex === "number"
-                ? trackerRes.stages[trackerRes.currentStageIndex]
-                : null;
-            const isStage2 = activeStage?.stageId === "stage_2_documents_kyc";
-            setIsStage2Enabled(isStage2);
-            if (trackerRes.installmentInfo) {
-              setInstallmentInfo(trackerRes.installmentInfo);
-            }
-          } else {
-            setIsStage2Enabled(false);
-          }
-        } catch (trackerErr) {
-          console.error("Error fetching tracker status:", trackerErr);
-          setIsStage2Enabled(false);
-        }
       } catch (error) {
         console.error("Error fetching shareholder:", error);
         setAllShareholders([]);
@@ -159,7 +116,6 @@ export default function ShareholderDetailPage() {
   }, [appNo, id]);
 
   const handleKycToggle = async () => {
-    if (!isStage2Enabled) return;
     if (!requireEdit()) return;
     const newValue = !kycVerified;
     try {
@@ -173,7 +129,6 @@ export default function ShareholderDetailPage() {
   };
 
   const handleDscToggle = async () => {
-    if (!isStage2Enabled || isLocked) return;
     if (!requireEdit()) return;
     const newValue = !dscApplication;
     try {
@@ -224,7 +179,14 @@ export default function ShareholderDetailPage() {
             href={`/clients/${appNo}?tab=shareholders`}
             label={`Back to ${labels.shareholders}`}
           />
-          <h1 className="text-3xl font-bold text-primary">{appNo}</h1>
+          <h1 className="text-3xl font-bold text-primary">
+            <Link
+              href={`/clients/${appNo}?tab=tracking-status`}
+              className="hover:underline"
+            >
+              {appNo}
+            </Link>
+          </h1>
         </div>
 
         {/* Shareholder Tabs */}
@@ -343,43 +305,79 @@ export default function ShareholderDetailPage() {
           </div>
 
           {/* KYC and DSC Toggles */}
-          <div className="grid grid-cols-2 gap-8 mt-6 pt-6 border-t border-gray-100">
-            {/* KYC Verified */}
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-secondary">
-                KYC Verified
-              </span>
-
-              <Switch
-                checked={kycVerified}
-                onChange={handleKycToggle}
-                disabled={!isStage2Enabled || shareholder.isAlsoDirector}
-              />
+          {shareholder.isAlsoDirector ? (
+            <div className="mt-6 pt-6 border-t border-gray-100 space-y-3">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                <p className="font-semibold">
+                  KYC &amp; DSC are managed from the{" "}
+                  {labels.director.toLowerCase()} profile
+                </p>
+                <p className="mt-1 text-blue-800/90">
+                  This person is also{" "}
+                  {shareholder.linkedDirectorNumber
+                    ? labels.directorWithNumber(
+                        shareholder.linkedDirectorNumber,
+                      )
+                    : `a ${labels.director.toLowerCase()}`}
+                  . Changes made there sync automatically here and in tracking.
+                </p>
+                {shareholder.linkedDirectorId && (
+                  <Link
+                    href={`/clients/${appNo}/directors/${shareholder.linkedDirectorId}`}
+                    className="mt-2 inline-flex text-sm font-semibold text-[#F46A45] hover:underline"
+                  >
+                    Open {labels.director.toLowerCase()} profile →
+                  </Link>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-8">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-semibold text-secondary">
+                    KYC Verified
+                  </span>
+                  <span className="text-sm font-medium text-slate-700">
+                    {kycVerified ? "Verified" : "Pending"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-semibold text-secondary">
+                    DSC Application
+                  </span>
+                  <span className="text-sm font-medium text-slate-700">
+                    {dscApplication ? "Applied" : "Pending"}
+                  </span>
+                </div>
+              </div>
             </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-8 mt-6 pt-6 border-t border-gray-100">
+              {/* KYC Verified */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-semibold text-secondary">
+                  KYC Verified
+                </span>
 
-            {/* DSC Application */}
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-secondary">
-                DSC Application
-              </span>
+                <Switch
+                  checked={kycVerified}
+                  onChange={handleKycToggle}
+                  disabled={!canEdit}
+                />
+              </div>
 
-              <div
-                onClick={() => {
-                  if (isLocked) {
-                    toast.danger("Action locked. Installment payment is due.");
-                  }
-                }}
-              >
+              {/* DSC Application */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-semibold text-secondary">
+                  DSC Application
+                </span>
+
                 <Switch
                   checked={dscApplication}
                   onChange={handleDscToggle}
-                  disabled={
-                    !isStage2Enabled || shareholder.isAlsoDirector || isLocked
-                  }
+                  disabled={!canEdit}
                 />
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

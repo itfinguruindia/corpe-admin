@@ -1,7 +1,7 @@
 // Types for Raised Tickets features
 // These interfaces are designed to be compatible with future API integration
 
-export type TicketStatus = "open" | "close" | "resolving";
+export type TicketStatus = "open" | "under process" | "resolved";
 export type TicketPriority = "low" | "medium" | "high";
 
 export interface Ticket {

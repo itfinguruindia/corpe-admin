@@ -8,6 +8,7 @@ import { Card, Spinner } from "@heroui/react";
 import { Chip } from "@/components/ui";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { toStakeholderId } from "@/utils/stakeholderIds";
+import { isSameStakeholderPerson } from "@/utils/stakeholderMatch";
 
 interface DirectorsContentProps {
   appNo: string;
@@ -29,41 +30,50 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
           response.data &&
           Array.isArray(response.data.directors)
         ) {
+          const shareholders = response.data.shareholders || [];
           const mappedDirectors: Director[] = response.data.directors.map(
-            (d: any, idx: number) => ({
-              id: toStakeholderId(d, idx),
-              applicationNo: appNo,
-              directorNumber: idx + 1,
-              hasDIN: d.hasDIN || false,
-              din: d.dinNumber || "",
-              directorName: d.name || "-",
-              fatherName: d.fatherName || "-",
-              email: d.email || "-",
-              phoneNo: d.phoneNumber || "-",
-              gender: d.gender
-                ? d.gender.charAt(0).toUpperCase() + d.gender.slice(1)
-                : "Other",
-              dateOfBirth: d.dateOfBirth || "-",
-              nationality: d.nationality || "-",
-              passportNo: d.passportNumber || "-",
-              isForeignResident: Boolean(d.isForeignResident),
-              occupationType: d.occupationType || "-",
-              placeOfBirth: d.placeOfBirth?.city || "-",
-              educationQualification: d.educationQualification || "-",
-              presentAddress: d.presentAddress || "-",
-              permanentAddress: d.permanentAddress || "-",
-              pan: d.panNumber || "-",
-              durationOfStayAtPresentAddress: `${d.durationOfStay?.years || 0} years, ${d.durationOfStay?.months || 0} months`,
-              previousResidenceAddress: d.previousAddress || "-",
-              shareholdingPercentage: d.proposedShareholdingPercentage
-                ? Number(d.proposedShareholdingPercentage)
-                : 0,
-              kycVerified: d.kycVerified ?? false,
-              dscApplication: d.dscApplication ?? false,
-              isBankSigningAuthority: d.isBankSigningAuthority ?? false,
-              createdAt: undefined,
-              updatedAt: undefined,
-            }),
+            (d: any, idx: number) => {
+              const linkedShIdx = shareholders.findIndex((s: any) =>
+                isSameStakeholderPerson(d, s),
+              );
+              return {
+                id: toStakeholderId(d, idx),
+                applicationNo: appNo,
+                directorNumber: idx + 1,
+                hasDIN: d.hasDIN || false,
+                din: d.dinNumber || "",
+                directorName: d.name || "-",
+                fatherName: d.fatherName || "-",
+                email: d.email || "-",
+                phoneNo: d.phoneNumber || "-",
+                gender: d.gender
+                  ? d.gender.charAt(0).toUpperCase() + d.gender.slice(1)
+                  : "Other",
+                dateOfBirth: d.dateOfBirth || "-",
+                nationality: d.nationality || "-",
+                passportNo: d.passportNumber || "-",
+                isForeignResident: Boolean(d.isForeignResident),
+                occupationType: d.occupationType || "-",
+                placeOfBirth: d.placeOfBirth?.city || "-",
+                educationQualification: d.educationQualification || "-",
+                presentAddress: d.presentAddress || "-",
+                permanentAddress: d.permanentAddress || "-",
+                pan: d.panNumber || "-",
+                durationOfStayAtPresentAddress: `${d.durationOfStay?.years || 0} years, ${d.durationOfStay?.months || 0} months`,
+                previousResidenceAddress: d.previousAddress || "-",
+                shareholdingPercentage: d.proposedShareholdingPercentage
+                  ? Number(d.proposedShareholdingPercentage)
+                  : 0,
+                kycVerified: d.kycVerified ?? false,
+                dscApplication: d.dscApplication ?? false,
+                isBankSigningAuthority: d.isBankSigningAuthority ?? false,
+                isAlsoShareholder: linkedShIdx !== -1,
+                linkedShareholderNumber:
+                  linkedShIdx !== -1 ? linkedShIdx + 1 : null,
+                createdAt: undefined,
+                updatedAt: undefined,
+              };
+            },
           );
           setDirectors(mappedDirectors);
         } else {
@@ -111,7 +121,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-gray-900">
                         {labels.directorWithNumber(director.directorNumber)}
                       </h3>
@@ -121,6 +131,11 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                           variant="blue"
                           className="text-xs"
                         />
+                      )}
+                      {director.isAlsoShareholder && (
+                        <span className="text-[10px] bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded border border-blue-200">
+                          {labels.alsoAShareholder}
+                        </span>
                       )}
                     </div>
                     <p className="text-sm text-gray-600 mt-1">

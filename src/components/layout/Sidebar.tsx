@@ -442,15 +442,8 @@ export default function Sidebar() {
             active={false}
             collapsed={effectiveCollapsed}
             icon={<LogOut size={18} />}
-          >
-            <Button
-              onClick={handleLogout}
-              type="button"
-              className="text-left w-full justify-start bg-transparent shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none px-0 py-0 font-[inherit]"
-            >
-              Logout
-            </Button>
-          </SidebarTooltip>
+            onClick={handleLogout}
+          />
         </div>
       </aside>
     </>
@@ -468,15 +461,17 @@ function SidebarTooltip({
   label,
   active,
   icon,
-  children,
+  href,
+  onClick,
 }: {
   collapsed: boolean;
   label: string;
   active: boolean;
   icon: React.ReactNode;
-  children: React.ReactNode;
+  href?: string;
+  onClick?: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLElement>(null);
   const [tip, setTip] = useState<{ top: number; left: number } | null>(null);
 
   const showTip = useCallback(() => {
@@ -487,37 +482,55 @@ function SidebarTooltip({
 
   const hideTip = useCallback(() => setTip(null), []);
 
-  const handleRowClick = (e: React.MouseEvent) => {
-    if (collapsed && ref.current) {
-      const clickable = ref.current.querySelector("a, button") as HTMLElement;
-      if (clickable && !clickable.contains(e.target as Node)) {
-        clickable.click();
-      }
-    }
+  const className = clsx(
+    "sidebar-row relative z-0 w-full! shrink-0 gap-3 px-6 py-3.5 text-sm font-semibold transition-colors duration-150",
+    active
+      ? "text-yellow-400 bg-yellow-400/10"
+      : "text-blue-100 hover:bg-white/8 hover:text-white",
+    onClick &&
+      "cursor-pointer border-0 bg-transparent text-left font-[inherit] shadow-none ring-0 outline-none",
+  );
+
+  const content = (
+    <>
+      <span
+        className={clsx("shrink-0", active ? "opacity-100" : "opacity-70")}
+      >
+        {icon}
+      </span>
+      <div className="overflow-hidden">
+        <span className="sidebar-label">{label}</span>
+      </div>
+    </>
+  );
+
+  const sharedProps = {
+    className,
+    "data-collapsed": collapsed,
+    onMouseEnter: showTip,
+    onMouseLeave: hideTip,
   };
 
   return (
     <>
-      <div
-        ref={ref}
-        onClick={handleRowClick}
-        className={clsx(
-          "sidebar-row relative z-0 w-full! shrink-0 gap-3 px-6 py-3.5 text-sm font-semibold transition-colors duration-150",
-          active
-            ? "text-yellow-400 bg-yellow-400/10"
-            : "text-blue-100 hover:bg-white/8 hover:text-white",
-        )}
-        data-collapsed={collapsed}
-        onMouseEnter={showTip}
-        onMouseLeave={hideTip}
-      >
-        <span
-          className={clsx("shrink-0", active ? "opacity-100" : "opacity-70")}
+      {href ? (
+        <Link
+          ref={ref as React.RefObject<HTMLAnchorElement>}
+          href={href}
+          {...sharedProps}
         >
-          {icon}
-        </span>
-        <div className="overflow-hidden">{children}</div>
-      </div>
+          {content}
+        </Link>
+      ) : (
+        <button
+          ref={ref as React.RefObject<HTMLButtonElement>}
+          type="button"
+          onClick={onClick}
+          {...sharedProps}
+        >
+          {content}
+        </button>
+      )}
 
       {/* Fixed tooltip */}
       {collapsed && (
@@ -546,15 +559,7 @@ function SidebarLink(linkProps: {
   active: boolean;
   collapsed: boolean;
 }) {
-  return (
-    <SidebarTooltip {...linkProps}>
-      <div className="flex">
-        <Link href={linkProps.href} className="flex-1">
-          {linkProps.label}
-        </Link>
-      </div>
-    </SidebarTooltip>
-  );
+  return <SidebarTooltip {...linkProps} href={linkProps.href} />;
 }
 
 /* ---- SidebarSection ---- */
