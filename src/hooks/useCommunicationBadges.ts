@@ -27,7 +27,7 @@ function resolveAbsoluteTitle(pathname: string): string {
 }
 
 /**
- * Tracks unread client messages + open raised tickets for sidebar/browser badges.
+ * Tracks unread client messages + unseen open tickets (DB-backed seenAdmins).
  */
 export function useCommunicationBadges() {
   const pathname = usePathname();
@@ -46,19 +46,23 @@ export function useCommunicationBadges() {
     }
 
     try {
-      const [messageCount, ticketResult] = await Promise.all([
+      const viewingTickets = pathname?.startsWith("/tickets");
+
+      if (viewingTickets) {
+        await TicketApi.markTicketsSeen().catch(() => false);
+      }
+
+      const [messageCount, ticketCount] = await Promise.all([
         chatService.getUnreadCount().catch(() => 0),
-        TicketApi.getAllTickets(1, 1, "", "open", "all").catch(() => ({
-          totalItems: 0,
-        })),
+        TicketApi.getUnreadCount().catch(() => 0),
       ]);
 
       setUnreadMessages(Number(messageCount) || 0);
-      setOpenTickets(Number(ticketResult?.totalItems || 0));
+      setOpenTickets(viewingTickets ? 0 : Number(ticketCount) || 0);
     } catch (error) {
       console.warn("[useCommunicationBadges] Failed to refresh counts", error);
     }
-  }, [adminId]);
+  }, [adminId, pathname]);
 
   useEffect(() => {
     refresh();
@@ -84,10 +88,10 @@ export function useCommunicationBadges() {
 
   useEffect(() => {
     if (
-      pathname?.startsWith("/messages") ||
-      pathname?.startsWith("/tickets")
+      pathname?.startsWith("/tickets") ||
+      pathname?.startsWith("/messages")
     ) {
-      refresh();
+      void refresh();
     }
   }, [pathname, refresh]);
 

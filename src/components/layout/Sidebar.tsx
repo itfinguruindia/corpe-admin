@@ -776,12 +776,14 @@ function SubItem({
       <span className={clsx("shrink-0", active ? "opacity-100" : "opacity-60")}>
         {icon}
       </span>
-      <span className="sidebar-label flex-1 truncate">{label}</span>
-      {showBadge && (
-        <span className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#F46A45] px-1.5 text-[10px] font-bold text-white">
-          {badgeLabel}
-        </span>
-      )}
+      <span className="sidebar-label flex min-w-0 items-center gap-2">
+        <span className="truncate">{label}</span>
+        {showBadge && (
+          <span className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#F46A45] px-1.5 text-[10px] font-bold text-white">
+            {badgeLabel}
+          </span>
+        )}
+      </span>
     </Link>
   );
 }
