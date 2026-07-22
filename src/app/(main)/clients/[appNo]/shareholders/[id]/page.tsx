@@ -2,7 +2,6 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { toast } from "@heroui/react";
 import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
@@ -15,22 +14,13 @@ export default function ShareholderDetailPage() {
   const { appNo, id } = useParams();
   const router = useRouter();
   const { labels } = useClientCompanyLabels();
-  const { requireEdit } = useClientTabEdit("shareholder");
+  const { requireEdit, canEdit } = useClientTabEdit("shareholder");
   const [shareholder, setShareholder] = useState<Shareholder | null>(null);
   const [allShareholders, setAllShareholders] = useState<Shareholder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [kycVerified, setKycVerified] = useState(false);
   const [dscApplication, setDscApplication] = useState(false);
-  const [isStage2Enabled, setIsStage2Enabled] = useState(false);
-  const [installmentInfo, setInstallmentInfo] = useState<{
-    firstInstallmentDue: boolean;
-    firstInstallmentPaid: boolean;
-    secondInstallmentDue: boolean;
-    secondInstallmentPaid: boolean;
-  } | null>(null);
-
-  const isLocked = !!installmentInfo?.firstInstallmentDue;
 
   useEffect(() => {
     const loadData = async () => {
@@ -121,29 +111,6 @@ export default function ShareholderDetailPage() {
           setAllShareholders([]);
           setShareholder(null);
         }
-
-        try {
-          const trackerRes = await clientsApi.getTrackingStatus(
-            appNo as string,
-          );
-          if (trackerRes) {
-            const activeStage =
-              trackerRes.stages &&
-              typeof trackerRes.currentStageIndex === "number"
-                ? trackerRes.stages[trackerRes.currentStageIndex]
-                : null;
-            const isStage2 = activeStage?.stageId === "stage_2_documents_kyc";
-            setIsStage2Enabled(isStage2);
-            if (trackerRes.installmentInfo) {
-              setInstallmentInfo(trackerRes.installmentInfo);
-            }
-          } else {
-            setIsStage2Enabled(false);
-          }
-        } catch (trackerErr) {
-          console.error("Error fetching tracker status:", trackerErr);
-          setIsStage2Enabled(false);
-        }
       } catch (error) {
         console.error("Error fetching shareholder:", error);
         setAllShareholders([]);
@@ -159,7 +126,6 @@ export default function ShareholderDetailPage() {
   }, [appNo, id]);
 
   const handleKycToggle = async () => {
-    if (!isStage2Enabled) return;
     if (!requireEdit()) return;
     const newValue = !kycVerified;
     try {
@@ -173,7 +139,6 @@ export default function ShareholderDetailPage() {
   };
 
   const handleDscToggle = async () => {
-    if (!isStage2Enabled || isLocked) return;
     if (!requireEdit()) return;
     const newValue = !dscApplication;
     try {
@@ -353,7 +318,7 @@ export default function ShareholderDetailPage() {
               <Switch
                 checked={kycVerified}
                 onChange={handleKycToggle}
-                disabled={!isStage2Enabled || shareholder.isAlsoDirector}
+                disabled={!canEdit}
               />
             </div>
 
@@ -363,21 +328,11 @@ export default function ShareholderDetailPage() {
                 DSC Application
               </span>
 
-              <div
-                onClick={() => {
-                  if (isLocked) {
-                    toast.danger("Action locked. Installment payment is due.");
-                  }
-                }}
-              >
-                <Switch
-                  checked={dscApplication}
-                  onChange={handleDscToggle}
-                  disabled={
-                    !isStage2Enabled || shareholder.isAlsoDirector || isLocked
-                  }
-                />
-              </div>
+              <Switch
+                checked={dscApplication}
+                onChange={handleDscToggle}
+                disabled={!canEdit}
+              />
             </div>
           </div>
         </div>
