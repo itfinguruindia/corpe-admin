@@ -24,6 +24,10 @@ import {
   getDirectorRegularDocumentFields,
   resolveIsForeignResident,
 } from "@/utils/stakeholderDocumentFields";
+import {
+  matchesStakeholderId,
+  toStakeholderId,
+} from "@/utils/stakeholderIds";
 
 /* =======================
    CONFIG / RULES
@@ -297,31 +301,69 @@ export default function DirectorDocumentsPage() {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!appNo || !id) return;
       try {
         setIsLoading(true);
 
+        // Resolve via list first so numeric index routes (e.g. /directors/0) work
+        // even when Mongo directorId was missing from the URL.
+        const listRes = await clientsApi.getDirectorAndShareHolders(
+          appNo as string,
+          false,
+        );
+        const rawDirectors = listRes?.data?.directors || [];
+        const index = rawDirectors.findIndex((d: any, i: number) =>
+          matchesStakeholderId(d, String(id), i),
+        );
+        const raw = index >= 0 ? rawDirectors[index] : null;
+        const apiId =
+          (raw && toStakeholderId(raw, index)) || String(id);
+
         const [directorData, documentsData, trackerResponse] =
           await Promise.all([
-            clientsApi.getDirectorById(appNo as string, id as string),
-            clientsApi.getDirectorDocuments(appNo as string, id as string),
+            clientsApi.getDirectorById(appNo as string, apiId).catch(() => raw),
+            clientsApi
+              .getDirectorDocuments(appNo as string, apiId)
+              .catch(() => ({})),
             clientsApi.getTrackingStatus(appNo as string).catch(() => null),
           ]);
 
-        setDirector(directorData);
-        setRawDocumentsData(documentsData);
+        if (!directorData && !raw) {
+          setDirector(null);
+          return;
+        }
+
+        const source = directorData || raw;
+        setDirector({
+          ...(source as Director),
+          id: apiId,
+          directorId: String(
+            (source as any)?.directorId || (source as any)?._id || apiId,
+          ),
+          name:
+            (source as any)?.name ||
+            (source as any)?.directorName ||
+            labels.director,
+          directorName:
+            (source as any)?.directorName ||
+            (source as any)?.name ||
+            labels.director,
+        } as Director);
+        setRawDocumentsData(documentsData || {});
 
         if (trackerResponse && trackerResponse.installmentInfo) {
           setInstallmentInfo(trackerResponse.installmentInfo);
         }
       } catch (err) {
         console.error("Error loading director documents", err);
+        setDirector(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (appNo && id) loadData();
-  }, [appNo, id]);
+    void loadData();
+  }, [appNo, id, labels.director]);
 
   useEffect(() => {
     if (!appNo || !id || isLoading || isCompanyTypeLoading || !director) {
@@ -727,8 +769,16 @@ export default function DirectorDocumentsPage() {
 
   if (!director) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">{labels.directorNotFound}</div>
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <FixedBackButton
+            href={`/clients/${appNo}?tab=directors`}
+            label={`Back to ${labels.directors}`}
+          />
+          <div className="flex items-center justify-center min-h-[40vh]">
+            <div className="text-xl text-gray-600">{labels.directorNotFound}</div>
+          </div>
+        </div>
       </div>
     );
   }
