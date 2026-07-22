@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Eye, Download, Upload, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "@heroui/react";
 
@@ -10,6 +11,7 @@ import { ShareholderDocument } from "@/types/shareholderDocuments";
 import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
 import DocumentPreviewBody from "@/components/ui/DocumentPreviewBody";
+import FixedBackButton from "@/components/ui/FixedBackButton";
 import {
   createPreviewObjectUrlFromBlob,
 } from "@/utils/documentPreview";
@@ -23,6 +25,10 @@ import {
   resolveIsForeignResident,
   shouldShowShareholderInc9,
 } from "@/utils/stakeholderDocumentFields";
+import {
+  matchesStakeholderId,
+  toStakeholderId,
+} from "@/utils/stakeholderIds";
 
 export default function ShareholderDocumentsPage() {
   const { appNo, id } = useParams();
@@ -156,27 +162,64 @@ export default function ShareholderDocumentsPage() {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!appNo || !id) return;
       try {
         setIsLoading(true);
+
+        const listRes = await clientsApi.getDirectorAndShareHolders(
+          appNo as string,
+          false,
+        );
+        const rawShareholders = listRes?.data?.shareholders || [];
+        const index = rawShareholders.findIndex((s: any, i: number) =>
+          matchesStakeholderId(s, String(id), i),
+        );
+        const raw = index >= 0 ? rawShareholders[index] : null;
+        const apiId =
+          (raw && toStakeholderId(raw, index)) || String(id);
+
         const [shareholderData, documentsData, trackerResponse] =
           await Promise.all([
-            clientsApi.getShareholderById(appNo as string, id as string),
-            clientsApi.getShareholderDocuments(appNo as string, id as string),
+            clientsApi
+              .getShareholderById(appNo as string, apiId)
+              .catch(() => raw),
+            clientsApi
+              .getShareholderDocuments(appNo as string, apiId)
+              .catch(() => ({})),
             clientsApi.getTrackingStatus(appNo as string).catch(() => null),
           ]);
-        setShareholder(shareholderData);
-        setRawDocumentsData(documentsData);
+
+        if (!shareholderData && !raw) {
+          setShareholder(null);
+          return;
+        }
+
+        const source = shareholderData || raw;
+        setShareholder({
+          ...(source as Shareholder),
+          id: apiId,
+          name:
+            (source as any)?.name ||
+            (source as any)?.shareholderName ||
+            labels.shareholder,
+          shareholderName:
+            (source as any)?.shareholderName ||
+            (source as any)?.name ||
+            labels.shareholder,
+        } as Shareholder);
+        setRawDocumentsData(documentsData || {});
         if (trackerResponse && trackerResponse.installmentInfo) {
           setInstallmentInfo(trackerResponse.installmentInfo);
         }
       } catch (err) {
         console.error("Error loading shareholder documents", err);
+        setShareholder(null);
       } finally {
         setIsLoading(false);
       }
     };
-    if (appNo && id) loadData();
-  }, [appNo, id]);
+    void loadData();
+  }, [appNo, id, labels.shareholder]);
 
   useEffect(() => {
     if (
@@ -393,9 +436,17 @@ export default function ShareholderDocumentsPage() {
 
   if (!shareholder) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl text-gray-600">
-          {labels.shareholderNotFound}
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <FixedBackButton
+            href={`/clients/${appNo}?tab=shareholders`}
+            label={`Back to ${labels.shareholders}`}
+          />
+          <div className="flex items-center justify-center min-h-[40vh]">
+            <div className="text-xl text-gray-600">
+              {labels.shareholderNotFound}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -405,8 +456,21 @@ export default function ShareholderDocumentsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-primary">{appNo}</h1>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <FixedBackButton
+              href={`/clients/${appNo}/shareholders/${id}`}
+              label={`Back to ${labels.shareholder}`}
+            />
+            <h1 className="text-3xl font-bold text-primary">
+              <Link
+                href={`/clients/${appNo}?tab=tracking-status`}
+                className="hover:underline"
+              >
+                {appNo}
+              </Link>
+            </h1>
+          </div>
           {pendingCount > 0 && (
             <span className="bg-yellow-400 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium">
               highlights pending documents

@@ -105,4 +105,34 @@ export class TicketApi {
       return null;
     }
   }
+
+  /**
+   * Unread open tickets for the signed-in admin (not yet in seenAdmins).
+   */
+  static async getUnreadCount(): Promise<number> {
+    try {
+      const response = await axiosInstance.get(
+        "/admin/support/tickets/unread-count",
+      );
+      return Number(response.data?.data?.count || 0);
+    } catch (error) {
+      console.error("Error fetching unread ticket count:", error);
+      return 0;
+    }
+  }
+
+  /**
+   * Mark all currently open tickets as seen by the signed-in admin.
+   */
+  static async markTicketsSeen(): Promise<boolean> {
+    try {
+      const response = await axiosInstance.post(
+        "/admin/support/tickets/mark-seen",
+      );
+      return response.data?.success === true;
+    } catch (error) {
+      console.error("Error marking tickets as seen:", error);
+      return false;
+    }
+  }
 }

@@ -31,6 +31,9 @@ export interface Director {
   kycVerified: boolean;
   dscApplication: boolean;
   isBankSigningAuthority?: boolean;
+  isAlsoShareholder?: boolean;
+  linkedShareholderId?: string | null;
+  linkedShareholderNumber?: number | null;
   dinStatus?: string;
   isDinActivationFeePaid?: boolean;
   isCommitted?: boolean;

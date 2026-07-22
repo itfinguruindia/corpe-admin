@@ -8,6 +8,8 @@ import {
   usePathname,
 } from "next/navigation";
 import { Tabs, Spinner } from "@heroui/react";
+import Link from "next/link";
+import FixedBackButton from "@/components/ui/FixedBackButton";
 
 import CompanyOverviewContent from "@/components/clients/tabs/CompanyOverviewContent";
 import DirectorsContent from "@/components/clients/tabs/DirectorsContent";
@@ -207,7 +209,17 @@ function ClientDetailsTabs() {
   return (
     <div className="w-full p-4 sm:p-5">
       <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
-        <h1 className="text-xl font-bold text-primary sm:text-2xl">{appNoStr}</h1>
+        <div>
+          <FixedBackButton href="/clients" label="Back to Clients" />
+          <h1 className="text-xl font-bold text-primary sm:text-2xl">
+            <Link
+              href={`/clients/${appNoStr}?tab=tracking-status`}
+              className="hover:underline"
+            >
+              {appNoStr}
+            </Link>
+          </h1>
+        </div>
         {isLlp && form3Countdown && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
             Form 3 timer: {form3Countdown}

@@ -85,18 +85,42 @@ export default function MessagesPage() {
     if (roomParam && rooms.length > 0) {
       const found = rooms.find((r) => r._id === roomParam);
       if (found) {
-        setActiveRoom(found);
+        if (found.unreadByAdmin > 0) {
+          setRooms((prev) =>
+            prev.map((r) =>
+              r._id === found._id ? { ...r, unreadByAdmin: 0 } : r,
+            ),
+          );
+        }
+        setActiveRoom({ ...found, unreadByAdmin: 0 });
       }
     }
   }, [searchParams, rooms]);
 
   // Handle room selection
   const handleSelectRoom = useCallback((room: ChatRoom) => {
-    setActiveRoom(room);
+    // Optimistic UI: clear unread badge as soon as the chat is opened
+    setRooms((prev) =>
+      prev.map((r) =>
+        r._id === room._id ? { ...r, unreadByAdmin: 0 } : r,
+      ),
+    );
+    setActiveRoom({ ...room, unreadByAdmin: 0 });
     // Update URL without navigation
     const url = new URL(window.location.href);
     url.searchParams.set("room", room._id);
     window.history.replaceState({}, "", url.toString());
+  }, []);
+
+  const handleMarkedRead = useCallback((roomId: string) => {
+    setRooms((prev) =>
+      prev.map((r) =>
+        r._id === roomId ? { ...r, unreadByAdmin: 0 } : r,
+      ),
+    );
+    setActiveRoom((prev) =>
+      prev && prev._id === roomId ? { ...prev, unreadByAdmin: 0 } : prev,
+    );
   }, []);
 
   // Handle new chat room created
@@ -140,6 +164,7 @@ export default function MessagesPage() {
             socket={socketRef.current}
             adminId={adminId}
             onBack={() => setActiveRoom(null)}
+            onMarkedRead={handleMarkedRead}
           />
         </div>
       </div>

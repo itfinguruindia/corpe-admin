@@ -30,8 +30,8 @@ const ITEMS_PER_PAGE = 10;
 const StatusSelectOptions = [
   { id: "all", label: "All Status" },
   { id: "open", label: "Open" },
-  { id: "close", label: "Close" },
-  { id: "resolving", label: "Resolving" },
+  { id: "under process", label: "Under Process" },
+  { id: "resolved", label: "Resolved" },
 ];
 
 const PrioritySelectOptions = [
@@ -44,8 +44,8 @@ const PrioritySelectOptions = [
 const getStatusVariant = (status: TicketStatus): ChipVariant => {
   const variantMap: Record<TicketStatus, ChipVariant> = {
     open: "blue",
-    close: "gray",
-    resolving: "yellow",
+    "under process": "yellow",
+    resolved: "gray",
   };
   return variantMap[status];
 };
@@ -77,6 +77,10 @@ const capitalizeFirst = (str: string) => {
   if (!str) return "";
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
+
+const getStatusLabel = (status: string) =>
+  StatusSelectOptions.find((opt) => opt.id === status)?.label ??
+  capitalizeFirst(status);
 
 export default function RaisedTicketsPage() {
   const { hasPermission } = usePermissions();
@@ -288,14 +292,14 @@ export default function RaisedTicketsPage() {
             options={StatusSelectOptions.filter((opt) => opt.id !== "all")}
             renderValue={(val) => (
               <Chip
-                label={capitalizeFirst(val)}
+                label={getStatusLabel(val)}
                 variant={getStatusVariant(val as TicketStatus)}
               />
             )}
           />
         ) : (
           <Chip
-            label={capitalizeFirst(row.status)}
+            label={getStatusLabel(row.status)}
             variant={getStatusVariant(row.status)}
           />
         ),
@@ -410,7 +414,7 @@ export default function RaisedTicketsPage() {
                     "All Status"
                   ) : (
                     <Chip
-                      label={capitalizeFirst(val)}
+                      label={getStatusLabel(val)}
                       variant={getStatusVariant(val as TicketStatus)}
                     />
                   )

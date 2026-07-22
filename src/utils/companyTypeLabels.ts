@@ -56,6 +56,7 @@ export type StakeholderLabels = {
   totalDirectors: (count: number) => string;
   totalShareholders: (count: number) => string;
   alsoADirector: string;
+  alsoAShareholder: string;
   shareholdingLabel: string;
   viewMoreDirectors: string;
   viewMoreShareholders: string;
@@ -95,6 +96,7 @@ const DEFAULT_LABELS: StakeholderLabels = {
   totalDirectors: (count) => `Total Directors: ${count}`,
   totalShareholders: (count) => `Shareholders ${count}`,
   alsoADirector: "Also a director",
+  alsoAShareholder: "Also a shareholder",
   shareholdingLabel: "Shareholding",
   viewMoreDirectors: "View more Directors",
   viewMoreShareholders: "View more Shareholders",
@@ -135,6 +137,7 @@ const LLP_LABELS: StakeholderLabels = {
   totalDirectors: (count) => `Total Designated Partners: ${count}`,
   totalShareholders: (count) => `Partners ${count}`,
   alsoADirector: "Also a Designated Partner",
+  alsoAShareholder: "Also a Partner",
   shareholdingLabel: "Contribution",
   viewMoreDirectors: "View more Designated Partners",
   viewMoreShareholders: "View more Partners",
@@ -172,6 +175,7 @@ const OPC_LABELS: StakeholderLabels = {
   directorShareholdersStep: "Director & Nominee",
   totalShareholders: (count) => `Nominee ${count}`,
   alsoADirector: "Also a director",
+  alsoAShareholder: "Also a nominee",
   shareholdingLabel: "Shareholding",
   viewMoreShareholders: "View more Nominees",
   shareholderNotFound: "Nominee not found",

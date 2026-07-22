@@ -37,6 +37,7 @@ import useSwal from "@/utils/useSwal";
 import { Button } from "@heroui/react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
+import { useCommunicationBadges } from "@/hooks/useCommunicationBadges";
 
 const SIDEBAR_EXPANDED = 260;
 const SIDEBAR_COLLAPSED = 68;
@@ -63,6 +64,7 @@ export default function Sidebar() {
   const showMessages = hasPermission(PERMISSIONS.MSG_VIEW);
   const showTickets = hasPermission(PERMISSIONS.TICKET_VIEW);
   const showSettings = hasPermission(PERMISSIONS.SETTINGS_VIEW);
+  const { unreadMessages, openTickets } = useCommunicationBadges();
 
   /* Detect mobile to override collapsed behavior */
   const [isMobile, setIsMobile] = useState(false);
@@ -394,6 +396,7 @@ export default function Sidebar() {
                 pathname.startsWith("/tickets")
               }
               collapsed={effectiveCollapsed}
+              badge={unreadMessages + openTickets}
             >
               {showMessages && (
                 <SubItem
@@ -402,6 +405,7 @@ export default function Sidebar() {
                   icon={<MessageSquare size={15} />}
                   active={pathname === "/messages"}
                   collapsed={effectiveCollapsed}
+                  badge={unreadMessages}
                 />
               )}
               {showTickets && (
@@ -411,6 +415,7 @@ export default function Sidebar() {
                   icon={<Ticket size={15} />}
                   active={pathname === "/tickets"}
                   collapsed={effectiveCollapsed}
+                  badge={openTickets}
                 />
               )}
             </SidebarSection>
@@ -437,15 +442,8 @@ export default function Sidebar() {
             active={false}
             collapsed={effectiveCollapsed}
             icon={<LogOut size={18} />}
-          >
-            <Button
-              onClick={handleLogout}
-              type="button"
-              className="text-left w-full justify-start bg-transparent shadow-none border-0 ring-0 outline-none min-h-0 h-auto rounded-none px-0 py-0 font-[inherit]"
-            >
-              Logout
-            </Button>
-          </SidebarTooltip>
+            onClick={handleLogout}
+          />
         </div>
       </aside>
     </>
@@ -463,15 +461,17 @@ function SidebarTooltip({
   label,
   active,
   icon,
-  children,
+  href,
+  onClick,
 }: {
   collapsed: boolean;
   label: string;
   active: boolean;
   icon: React.ReactNode;
-  children: React.ReactNode;
+  href?: string;
+  onClick?: () => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLElement>(null);
   const [tip, setTip] = useState<{ top: number; left: number } | null>(null);
 
   const showTip = useCallback(() => {
@@ -482,37 +482,55 @@ function SidebarTooltip({
 
   const hideTip = useCallback(() => setTip(null), []);
 
-  const handleRowClick = (e: React.MouseEvent) => {
-    if (collapsed && ref.current) {
-      const clickable = ref.current.querySelector("a, button") as HTMLElement;
-      if (clickable && !clickable.contains(e.target as Node)) {
-        clickable.click();
-      }
-    }
+  const className = clsx(
+    "sidebar-row relative z-0 w-full! shrink-0 gap-3 px-6 py-3.5 text-sm font-semibold transition-colors duration-150",
+    active
+      ? "text-yellow-400 bg-yellow-400/10"
+      : "text-blue-100 hover:bg-white/8 hover:text-white",
+    onClick &&
+      "cursor-pointer border-0 bg-transparent text-left font-[inherit] shadow-none ring-0 outline-none",
+  );
+
+  const content = (
+    <>
+      <span
+        className={clsx("shrink-0", active ? "opacity-100" : "opacity-70")}
+      >
+        {icon}
+      </span>
+      <div className="overflow-hidden">
+        <span className="sidebar-label">{label}</span>
+      </div>
+    </>
+  );
+
+  const sharedProps = {
+    className,
+    "data-collapsed": collapsed,
+    onMouseEnter: showTip,
+    onMouseLeave: hideTip,
   };
 
   return (
     <>
-      <div
-        ref={ref}
-        onClick={handleRowClick}
-        className={clsx(
-          "sidebar-row relative z-0 w-full! shrink-0 gap-3 px-6 py-3.5 text-sm font-semibold transition-colors duration-150",
-          active
-            ? "text-yellow-400 bg-yellow-400/10"
-            : "text-blue-100 hover:bg-white/8 hover:text-white",
-        )}
-        data-collapsed={collapsed}
-        onMouseEnter={showTip}
-        onMouseLeave={hideTip}
-      >
-        <span
-          className={clsx("shrink-0", active ? "opacity-100" : "opacity-70")}
+      {href ? (
+        <Link
+          ref={ref as React.RefObject<HTMLAnchorElement>}
+          href={href}
+          {...sharedProps}
         >
-          {icon}
-        </span>
-        <div className="overflow-hidden">{children}</div>
-      </div>
+          {content}
+        </Link>
+      ) : (
+        <button
+          ref={ref as React.RefObject<HTMLButtonElement>}
+          type="button"
+          onClick={onClick}
+          {...sharedProps}
+        >
+          {content}
+        </button>
+      )}
 
       {/* Fixed tooltip */}
       {collapsed && (
@@ -541,15 +559,7 @@ function SidebarLink(linkProps: {
   active: boolean;
   collapsed: boolean;
 }) {
-  return (
-    <SidebarTooltip {...linkProps}>
-      <div className="flex">
-        <Link href={linkProps.href} className="flex-1">
-          {linkProps.label}
-        </Link>
-      </div>
-    </SidebarTooltip>
-  );
+  return <SidebarTooltip {...linkProps} href={linkProps.href} />;
 }
 
 /* ---- SidebarSection ---- */
@@ -559,15 +569,19 @@ function SidebarSection({
   icon,
   active,
   collapsed,
+  badge = 0,
   children,
 }: {
   title: string;
   icon: React.ReactNode;
   active: boolean;
   collapsed: boolean;
+  badge?: number;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const showBadge = badge > 0;
+  const badgeLabel = badge > 99 ? "99+" : String(badge);
 
   /* When expanded: normal accordion toggle. */
   const handleClick = () => {
@@ -611,9 +625,17 @@ function SidebarSection({
           onMouseLeave={hideFlyout}
         >
           <span
-            className={clsx("shrink-0", active ? "opacity-100" : "opacity-70")}
+            className={clsx(
+              "relative shrink-0",
+              active ? "opacity-100" : "opacity-70",
+            )}
           >
             {icon}
+            {showBadge && (
+              <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F46A45] px-1 text-[10px] font-bold leading-none text-white">
+                {badgeLabel}
+              </span>
+            )}
           </span>
           <span className="sidebar-label">{title}</span>
         </Button>
@@ -659,7 +681,14 @@ function SidebarSection({
           {icon}
         </span>
         <span className="sidebar-label flex items-center justify-between flex-1">
-          <span>{title}</span>
+          <span className="flex items-center gap-2">
+            <span>{title}</span>
+            {showBadge && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F46A45] px-1.5 text-[10px] font-bold text-white">
+                {badgeLabel}
+              </span>
+            )}
+          </span>
           {open ? (
             <ChevronDown size={14} className="opacity-40 shrink-0 ml-2" />
           ) : (
@@ -691,13 +720,18 @@ function SubItem({
   icon,
   active,
   collapsed,
+  badge = 0,
 }: {
   label: string;
   href: string;
   icon: React.ReactNode;
   active: boolean;
   collapsed: boolean;
+  badge?: number;
 }) {
+  const badgeLabel = badge > 99 ? "99+" : String(badge);
+  const showBadge = badge > 0;
+
   /* Inside a flyout (collapsed) - render as a simple styled link */
   if (collapsed) {
     return (
@@ -711,11 +745,24 @@ function SubItem({
         )}
       >
         <span
-          className={clsx("shrink-0", active ? "opacity-100" : "opacity-60")}
+          className={clsx(
+            "relative shrink-0",
+            active ? "opacity-100" : "opacity-60",
+          )}
         >
           {icon}
+          {showBadge && (
+            <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F46A45] px-1 text-[10px] font-bold leading-none text-white">
+              {badgeLabel}
+            </span>
+          )}
         </span>
-        {label}
+        <span className="flex-1 truncate">{label}</span>
+        {showBadge && (
+          <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F46A45] px-1.5 text-[10px] font-bold text-white">
+            {badgeLabel}
+          </span>
+        )}
       </Link>
     );
   }
@@ -734,7 +781,14 @@ function SubItem({
       <span className={clsx("shrink-0", active ? "opacity-100" : "opacity-60")}>
         {icon}
       </span>
-      <span className="sidebar-label">{label}</span>
+      <span className="sidebar-label flex min-w-0 items-center gap-2">
+        <span className="truncate">{label}</span>
+        {showBadge && (
+          <span className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#F46A45] px-1.5 text-[10px] font-bold text-white">
+            {badgeLabel}
+          </span>
+        )}
+      </span>
     </Link>
   );
 }
