@@ -21,6 +21,14 @@ const chatService = {
   },
 
   /**
+   * Fetch total unread client messages for the signed-in admin.
+   */
+  async getUnreadCount(): Promise<number> {
+    const response = await axiosInstance.get("/chat/rooms/unread-count");
+    return Number(response.data?.data?.count || 0);
+  },
+
+  /**
    * Get-or-create a chat room for a given org.
    */
   async getOrCreateRoom(orgId: string) {

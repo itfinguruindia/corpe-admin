@@ -37,6 +37,7 @@ import useSwal from "@/utils/useSwal";
 import { Button } from "@heroui/react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
+import { useCommunicationBadges } from "@/hooks/useCommunicationBadges";
 
 const SIDEBAR_EXPANDED = 260;
 const SIDEBAR_COLLAPSED = 68;
@@ -63,6 +64,7 @@ export default function Sidebar() {
   const showMessages = hasPermission(PERMISSIONS.MSG_VIEW);
   const showTickets = hasPermission(PERMISSIONS.TICKET_VIEW);
   const showSettings = hasPermission(PERMISSIONS.SETTINGS_VIEW);
+  const { unreadMessages, openTickets } = useCommunicationBadges();
 
   /* Detect mobile to override collapsed behavior */
   const [isMobile, setIsMobile] = useState(false);
@@ -394,6 +396,7 @@ export default function Sidebar() {
                 pathname.startsWith("/tickets")
               }
               collapsed={effectiveCollapsed}
+              badge={unreadMessages + openTickets}
             >
               {showMessages && (
                 <SubItem
@@ -402,6 +405,7 @@ export default function Sidebar() {
                   icon={<MessageSquare size={15} />}
                   active={pathname === "/messages"}
                   collapsed={effectiveCollapsed}
+                  badge={unreadMessages}
                 />
               )}
               {showTickets && (
@@ -411,6 +415,7 @@ export default function Sidebar() {
                   icon={<Ticket size={15} />}
                   active={pathname === "/tickets"}
                   collapsed={effectiveCollapsed}
+                  badge={openTickets}
                 />
               )}
             </SidebarSection>
@@ -559,15 +564,19 @@ function SidebarSection({
   icon,
   active,
   collapsed,
+  badge = 0,
   children,
 }: {
   title: string;
   icon: React.ReactNode;
   active: boolean;
   collapsed: boolean;
+  badge?: number;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const showBadge = badge > 0;
+  const badgeLabel = badge > 99 ? "99+" : String(badge);
 
   /* When expanded: normal accordion toggle. */
   const handleClick = () => {
@@ -611,9 +620,17 @@ function SidebarSection({
           onMouseLeave={hideFlyout}
         >
           <span
-            className={clsx("shrink-0", active ? "opacity-100" : "opacity-70")}
+            className={clsx(
+              "relative shrink-0",
+              active ? "opacity-100" : "opacity-70",
+            )}
           >
             {icon}
+            {showBadge && (
+              <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F46A45] px-1 text-[10px] font-bold leading-none text-white">
+                {badgeLabel}
+              </span>
+            )}
           </span>
           <span className="sidebar-label">{title}</span>
         </Button>
@@ -659,7 +676,14 @@ function SidebarSection({
           {icon}
         </span>
         <span className="sidebar-label flex items-center justify-between flex-1">
-          <span>{title}</span>
+          <span className="flex items-center gap-2">
+            <span>{title}</span>
+            {showBadge && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F46A45] px-1.5 text-[10px] font-bold text-white">
+                {badgeLabel}
+              </span>
+            )}
+          </span>
           {open ? (
             <ChevronDown size={14} className="opacity-40 shrink-0 ml-2" />
           ) : (
@@ -691,13 +715,18 @@ function SubItem({
   icon,
   active,
   collapsed,
+  badge = 0,
 }: {
   label: string;
   href: string;
   icon: React.ReactNode;
   active: boolean;
   collapsed: boolean;
+  badge?: number;
 }) {
+  const badgeLabel = badge > 99 ? "99+" : String(badge);
+  const showBadge = badge > 0;
+
   /* Inside a flyout (collapsed) - render as a simple styled link */
   if (collapsed) {
     return (
@@ -711,11 +740,24 @@ function SubItem({
         )}
       >
         <span
-          className={clsx("shrink-0", active ? "opacity-100" : "opacity-60")}
+          className={clsx(
+            "relative shrink-0",
+            active ? "opacity-100" : "opacity-60",
+          )}
         >
           {icon}
+          {showBadge && (
+            <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#F46A45] px-1 text-[10px] font-bold leading-none text-white">
+              {badgeLabel}
+            </span>
+          )}
         </span>
-        {label}
+        <span className="flex-1 truncate">{label}</span>
+        {showBadge && (
+          <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F46A45] px-1.5 text-[10px] font-bold text-white">
+            {badgeLabel}
+          </span>
+        )}
       </Link>
     );
   }
@@ -734,7 +776,12 @@ function SubItem({
       <span className={clsx("shrink-0", active ? "opacity-100" : "opacity-60")}>
         {icon}
       </span>
-      <span className="sidebar-label">{label}</span>
+      <span className="sidebar-label flex-1 truncate">{label}</span>
+      {showBadge && (
+        <span className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#F46A45] px-1.5 text-[10px] font-bold text-white">
+          {badgeLabel}
+        </span>
+      )}
     </Link>
   );
 }
