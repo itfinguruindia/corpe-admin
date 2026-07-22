@@ -10,6 +10,7 @@ import { ShareholderDocument } from "@/types/shareholderDocuments";
 import { clientsApi } from "@/lib/api/clients";
 import Modal from "@/components/ui/Modal";
 import DocumentPreviewBody from "@/components/ui/DocumentPreviewBody";
+import FixedBackButton from "@/components/ui/FixedBackButton";
 import {
   createPreviewObjectUrlFromBlob,
 } from "@/utils/documentPreview";
@@ -405,8 +406,14 @@ export default function ShareholderDocumentsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-primary">{appNo}</h1>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <FixedBackButton
+              href={`/clients/${appNo}/shareholders/${id}`}
+              label={`Back to ${labels.shareholder}`}
+            />
+            <h1 className="text-3xl font-bold text-primary">{appNo}</h1>
+          </div>
           {pendingCount > 0 && (
             <span className="bg-yellow-400 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium">
               highlights pending documents

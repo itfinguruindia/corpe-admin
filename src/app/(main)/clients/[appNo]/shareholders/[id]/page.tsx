@@ -6,6 +6,7 @@ import { toast } from "@heroui/react";
 import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
+import FixedBackButton from "@/components/ui/FixedBackButton";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { matchesStakeholderId, toStakeholderId } from "@/utils/stakeholderIds";
@@ -217,7 +218,14 @@ export default function ShareholderDetailPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <h1 className="text-3xl font-bold text-primary mb-6">{appNo}</h1>
+        {/* Header */}
+        <div className="mb-6">
+          <FixedBackButton
+            href={`/clients/${appNo}?tab=shareholders`}
+            label={`Back to ${labels.shareholders}`}
+          />
+          <h1 className="text-3xl font-bold text-primary">{appNo}</h1>
+        </div>
 
         {/* Shareholder Tabs */}
         <div className="flex gap-4 mb-6">

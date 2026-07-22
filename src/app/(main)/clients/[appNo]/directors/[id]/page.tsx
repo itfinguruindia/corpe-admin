@@ -8,6 +8,7 @@ import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch, Chip } from "@/components/ui";
 import CustomSelect from "@/components/ui/CustomSelect";
+import FixedBackButton from "@/components/ui/FixedBackButton";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { matchesStakeholderId, toStakeholderId } from "@/utils/stakeholderIds";
@@ -219,7 +220,13 @@ export default function DirectorDetailPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <h1 className="text-3xl font-bold text-primary mb-6">{appNo}</h1>
+        <div className="mb-6">
+          <FixedBackButton
+            href={`/clients/${appNo}?tab=directors`}
+            label={`Back to ${labels.directors}`}
+          />
+          <h1 className="text-3xl font-bold text-primary">{appNo}</h1>
+        </div>
 
         {/* Director Tabs */}
         <div className="flex gap-4 mb-6">
