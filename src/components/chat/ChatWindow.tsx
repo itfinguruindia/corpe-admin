@@ -65,6 +65,7 @@ interface ChatWindowProps {
   socket: Socket | null;
   adminId: string;
   onBack?: () => void;
+  onMarkedRead?: (roomId: string) => void;
 }
 
 interface InputAreaProps {
@@ -426,6 +427,7 @@ export default function ChatWindow({
   socket,
   adminId,
   onBack,
+  onMarkedRead,
 }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -467,6 +469,7 @@ export default function ChatWindow({
 
         // Mark as read
         await chatService.markAsRead(room._id);
+        onMarkedRead?.(room._id);
       } catch (error) {
         console.error("Failed to load messages:", error);
       } finally {
@@ -476,7 +479,7 @@ export default function ChatWindow({
 
     textareaRef.current?.focus();
     loadMessages();
-  }, [room?._id]);
+  }, [room?._id, onMarkedRead]);
 
   // Socket.IO event listeners
   useEffect(() => {
@@ -497,6 +500,7 @@ export default function ChatWindow({
 
         // Mark as read since we're viewing
         socket.emit("chat:markRead", { roomId: room._id });
+        onMarkedRead?.(room._id);
       }
     };
 
