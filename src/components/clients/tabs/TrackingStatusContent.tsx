@@ -28,6 +28,7 @@ import {
 import CustomSelect from "@/components/ui/CustomSelect";
 import { FileUploadComponent } from "@/components/upload";
 import { PanTanEmailDisclaimer } from "@/components/clients/tabs/PanTanEmailDisclaimer";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import {
   getFormFilingProseLabel,
@@ -42,6 +43,8 @@ interface TrackerNote {
   _id?: string;
   text: string;
   createdAt: string;
+  createdByName?: string | null;
+  isSystem?: boolean;
 }
 
 interface TrackerStep {
@@ -128,6 +131,7 @@ export default function TrackingStatusContent({
 }: TrackingStatusContentProps) {
   const router = useRouter();
   const { requireEdit, canEdit } = useClientTabEdit("track");
+  const { labels } = useClientCompanyLabels();
 
   const [tracker, setTracker] = useState<TrackerData | null>(null);
   const [companyOverview, setCompanyOverview] = useState<any | null>(null);
@@ -588,6 +592,25 @@ export default function TrackingStatusContent({
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
+
+  const isSystemAutoNote = (note: {
+    text?: string;
+    isSystem?: boolean;
+    createdByName?: string | null;
+  }) =>
+    note.isSystem === true ||
+    note.createdByName === "System" ||
+    String(note.text || "").includes("System auto-transitioned");
+
+  const adminNotes = allNotes.filter((note) => !isSystemAutoNote(note));
+  const systemAutoNotes = allNotes.filter((note) => isSystemAutoNote(note));
+
+  const pendingClientActionSteps = clientActionSteps.filter(
+    (step) => step.status !== "Done",
+  );
+  const completedClientActionCount = clientActionSteps.filter(
+    (step) => step.status === "Done",
+  ).length;
 
   const blockedCount = allSteps.filter(
     (s) => s.status === "Action Needed",
@@ -1340,24 +1363,46 @@ export default function TrackingStatusContent({
                                         {step.notes &&
                                           step.notes.length > 0 && (
                                             <div className="mt-2 pl-3 border-l-2 border-slate-200 space-y-1.5">
-                                              {step.notes.map((note, nIdx) => (
-                                                <div
-                                                  key={nIdx}
-                                                  className="bg-slate-50 p-2 rounded text-xs text-slate-600 border border-slate-100"
-                                                >
-                                                  <div className="flex items-center justify-between text-[10px] text-slate-400 mb-0.5 font-mono">
-                                                    <span>Admin Note</span>
-                                                    <span>
-                                                      {new Date(
-                                                        note.createdAt,
-                                                      ).toLocaleString()}
-                                                    </span>
+                                              {step.notes.map((note, nIdx) => {
+                                                const isSystem =
+                                                  note.isSystem === true ||
+                                                  note.createdByName ===
+                                                    "System" ||
+                                                  String(
+                                                    note.text || "",
+                                                  ).includes(
+                                                    "System auto-transitioned",
+                                                  );
+                                                return (
+                                                  <div
+                                                    key={nIdx}
+                                                    className="bg-slate-50 p-2 rounded text-xs text-slate-600 border border-slate-100"
+                                                  >
+                                                    <div className="flex items-center justify-between text-[10px] text-slate-400 mb-0.5 font-mono">
+                                                      <span
+                                                        className={
+                                                          isSystem
+                                                            ? "font-semibold text-slate-500"
+                                                            : "font-semibold text-blue-900"
+                                                        }
+                                                      >
+                                                        {isSystem
+                                                          ? "System"
+                                                          : note.createdByName ||
+                                                            "Admin"}
+                                                      </span>
+                                                      <span>
+                                                        {new Date(
+                                                          note.createdAt,
+                                                        ).toLocaleString()}
+                                                      </span>
+                                                    </div>
+                                                    <p className="whitespace-pre-wrap">
+                                                      {note.text}
+                                                    </p>
                                                   </div>
-                                                  <p className="whitespace-pre-wrap">
-                                                    {note.text}
-                                                  </p>
-                                                </div>
-                                              ))}
+                                                );
+                                              })}
                                             </div>
                                           )}
 
@@ -2566,7 +2611,7 @@ export default function TrackingStatusContent({
                     Company Name
                   </span>
                   <span className="font-semibold text-slate-800 text-right">
-                    {companyOverview?.companyName || "ABC Ventures"}
+                    {companyOverview?.companyName || "-"}
                   </span>
                 </div>
                 <div className="px-4 py-2 flex justify-between gap-3">
@@ -2583,7 +2628,14 @@ export default function TrackingStatusContent({
                   </span>
                   <span className="font-semibold text-slate-800 text-right">
                     {companyOverview?.clientName ||
-                      `${companyOverview?.client?.firstName || "-"} ${companyOverview?.client?.lastName || ""}`}
+                      [
+                        companyOverview?.client?.firstName,
+                        companyOverview?.client?.lastName,
+                      ]
+                        .filter(Boolean)
+                        .join(" ")
+                        .trim() ||
+                      "-"}
                   </span>
                 </div>
                 <div className="px-4 py-2 flex justify-between gap-3">
@@ -2591,7 +2643,9 @@ export default function TrackingStatusContent({
                     Entity Type
                   </span>
                   <span className="font-semibold text-slate-800 text-right">
-                    {tracker.companyType}
+                    {labels.formatEntityType(
+                      tracker.companyType || companyOverview?.companyType || "",
+                    ) || "-"}
                   </span>
                 </div>
                 <div className="px-4 py-2 flex justify-between gap-3">
@@ -2630,21 +2684,18 @@ export default function TrackingStatusContent({
                   Client Actions Required
                 </h3>
                 <span className="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full font-mono">
-                  {clientActionSteps.filter((s) => s.status === "Done").length}{" "}
-                  / {clientActionSteps.length}
+                  {completedClientActionCount} / {clientActionSteps.length}
                 </span>
               </div>
               <div className="p-0 divide-y divide-slate-50">
-                {clientActionSteps.map((step) => (
+                {pendingClientActionSteps.map((step) => (
                   <div
                     key={step._id}
                     className="p-3 flex items-start gap-2.5 justify-between"
                   >
                     <div className="flex gap-2 items-start">
                       <div className="mt-0.5 shrink-0">
-                        {step.status === "Done" ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-500" />
-                        ) : step.status === "Action Needed" ? (
+                        {step.status === "Action Needed" ? (
                           <AlertCircle className="w-3.5 h-3.5 text-rose-500 animate-pulse" />
                         ) : (
                           <Clock className="w-3.5 h-3.5 text-slate-300" />
@@ -2669,6 +2720,12 @@ export default function TrackingStatusContent({
                     No client-side action items configured.
                   </div>
                 )}
+                {clientActionSteps.length > 0 &&
+                  pendingClientActionSteps.length === 0 && (
+                    <div className="p-4 text-center text-emerald-600 text-sm font-medium">
+                      All client actions completed.
+                    </div>
+                  )}
               </div>
             </Card>
 
@@ -2735,13 +2792,13 @@ export default function TrackingStatusContent({
                 </div>
               </div>
 
-              {/* Note History */}
+              {/* Admin note history */}
               <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
-                {allNotes.map((note, nIdx) => (
+                {adminNotes.map((note, nIdx) => (
                   <div key={nIdx} className="p-3 text-[11px] leading-relaxed">
                     <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono mb-1">
                       <span className="font-semibold text-blue-900">
-                        Case Manager
+                        {note.createdByName || "Admin"}
                       </span>
                       <span>{new Date(note.createdAt).toLocaleString()}</span>
                     </div>
@@ -2754,11 +2811,52 @@ export default function TrackingStatusContent({
                   </div>
                 ))}
 
-                {allNotes.length === 0 && (
+                {adminNotes.length === 0 && (
                   <div className="p-6 text-center text-slate-400 text-xs">
-                    No notes logged for this case.
+                    No admin notes logged for this case.
                   </div>
                 )}
+              </div>
+
+              {/* System auto notes */}
+              <div className="border-t border-slate-200">
+                <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                  <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    System Auto Notes
+                  </h4>
+                  <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-2 py-0.5 rounded-full font-mono">
+                    {systemAutoNotes.length}
+                  </span>
+                </div>
+                <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
+                  {systemAutoNotes.map((note, nIdx) => (
+                    <div
+                      key={nIdx}
+                      className="p-3 text-[11px] leading-relaxed bg-slate-50/40"
+                    >
+                      <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono mb-1">
+                        <span className="font-semibold text-slate-500">
+                          System
+                        </span>
+                        <span>
+                          {new Date(note.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-500 bg-white border border-slate-100 px-1.5 py-0.5 rounded inline-block mb-1.5 font-mono max-w-full truncate">
+                        Step: {note.stepTitle}
+                      </div>
+                      <p className="text-slate-600 whitespace-pre-wrap">
+                        {note.text}
+                      </p>
+                    </div>
+                  ))}
+
+                  {systemAutoNotes.length === 0 && (
+                    <div className="p-4 text-center text-slate-400 text-xs">
+                      No system auto notes yet.
+                    </div>
+                  )}
+                </div>
               </div>
             </Card>
           </div>
