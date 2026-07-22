@@ -10,6 +10,7 @@ import FixedBackButton from "@/components/ui/FixedBackButton";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { matchesStakeholderId, toStakeholderId } from "@/utils/stakeholderIds";
+import { isSameStakeholderPerson } from "@/utils/stakeholderMatch";
 
 export default function ShareholderDetailPage() {
   const { appNo, id } = useParams();
@@ -37,29 +38,11 @@ export default function ShareholderDetailPage() {
           Array.isArray(response.data.shareholders)
         ) {
           const directors = response.data.directors || [];
-          const isSamePerson = (sh: any, dir: any) => {
-            const shPan = sh.panNumber?.toLowerCase()?.trim();
-            const dirPan = dir.panNumber?.toLowerCase()?.trim();
-            if (shPan && dirPan && shPan !== "-" && dirPan !== "-")
-              return shPan === dirPan;
-
-            const shEmail = sh.email?.toLowerCase()?.trim();
-            const dirEmail = dir.email?.toLowerCase()?.trim();
-            if (shEmail && dirEmail && shEmail !== "-" && dirEmail !== "-")
-              return shEmail === dirEmail;
-
-            const shName = sh.name?.toLowerCase()?.trim();
-            const dirName = dir.name?.toLowerCase()?.trim();
-            if (shName && dirName && shName !== "-" && dirName !== "-")
-              return shName === dirName;
-
-            return false;
-          };
 
           const mappedShareholders = response.data.shareholders.map(
             (s: any, idx: number) => {
-              const isAlsoDirector = directors.some((d: any) =>
-                isSamePerson(s, d),
+              const linkedDirIdx = directors.findIndex((d: any) =>
+                isSameStakeholderPerson(s, d),
               );
               return {
                 id: toStakeholderId(s, idx),
@@ -90,7 +73,13 @@ export default function ShareholderDetailPage() {
                   : 0,
                 kycVerified: s.kycVerified ?? false,
                 dscApplication: s.dscApplication ?? false,
-                isAlsoDirector,
+                isAlsoDirector: linkedDirIdx !== -1,
+                linkedDirectorId:
+                  linkedDirIdx !== -1
+                    ? toStakeholderId(directors[linkedDirIdx], linkedDirIdx)
+                    : null,
+                linkedDirectorNumber:
+                  linkedDirIdx !== -1 ? linkedDirIdx + 1 : null,
                 createdAt: undefined,
                 updatedAt: undefined,
               };
@@ -316,33 +305,79 @@ export default function ShareholderDetailPage() {
           </div>
 
           {/* KYC and DSC Toggles */}
-          <div className="grid grid-cols-2 gap-8 mt-6 pt-6 border-t border-gray-100">
-            {/* KYC Verified */}
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-secondary">
-                KYC Verified
-              </span>
-
-              <Switch
-                checked={kycVerified}
-                onChange={handleKycToggle}
-                disabled={!canEdit}
-              />
+          {shareholder.isAlsoDirector ? (
+            <div className="mt-6 pt-6 border-t border-gray-100 space-y-3">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                <p className="font-semibold">
+                  KYC &amp; DSC are managed from the{" "}
+                  {labels.director.toLowerCase()} profile
+                </p>
+                <p className="mt-1 text-blue-800/90">
+                  This person is also{" "}
+                  {shareholder.linkedDirectorNumber
+                    ? labels.directorWithNumber(
+                        shareholder.linkedDirectorNumber,
+                      )
+                    : `a ${labels.director.toLowerCase()}`}
+                  . Changes made there sync automatically here and in tracking.
+                </p>
+                {shareholder.linkedDirectorId && (
+                  <Link
+                    href={`/clients/${appNo}/directors/${shareholder.linkedDirectorId}`}
+                    className="mt-2 inline-flex text-sm font-semibold text-[#F46A45] hover:underline"
+                  >
+                    Open {labels.director.toLowerCase()} profile →
+                  </Link>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-8">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-semibold text-secondary">
+                    KYC Verified
+                  </span>
+                  <span className="text-sm font-medium text-slate-700">
+                    {kycVerified ? "Verified" : "Pending"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-semibold text-secondary">
+                    DSC Application
+                  </span>
+                  <span className="text-sm font-medium text-slate-700">
+                    {dscApplication ? "Applied" : "Pending"}
+                  </span>
+                </div>
+              </div>
             </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-8 mt-6 pt-6 border-t border-gray-100">
+              {/* KYC Verified */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-semibold text-secondary">
+                  KYC Verified
+                </span>
 
-            {/* DSC Application */}
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-secondary">
-                DSC Application
-              </span>
+                <Switch
+                  checked={kycVerified}
+                  onChange={handleKycToggle}
+                  disabled={!canEdit}
+                />
+              </div>
 
-              <Switch
-                checked={dscApplication}
-                onChange={handleDscToggle}
-                disabled={!canEdit}
-              />
+              {/* DSC Application */}
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-semibold text-secondary">
+                  DSC Application
+                </span>
+
+                <Switch
+                  checked={dscApplication}
+                  onChange={handleDscToggle}
+                  disabled={!canEdit}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -12,6 +12,7 @@ import FixedBackButton from "@/components/ui/FixedBackButton";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { matchesStakeholderId, toStakeholderId } from "@/utils/stakeholderIds";
+import { isSameStakeholderPerson } from "@/utils/stakeholderMatch";
 
 export default function DirectorDetailPage() {
   const { appNo, id } = useParams();
@@ -26,6 +27,10 @@ export default function DirectorDetailPage() {
   const [dscApplication, setDscApplication] = useState(false);
   const [dinStatus, setDinStatus] = useState<string>("Pending");
   const [isStage2Enabled, setIsStage2Enabled] = useState(false);
+  const [isAlsoShareholder, setIsAlsoShareholder] = useState(false);
+  const [linkedShareholderNumber, setLinkedShareholderNumber] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -41,43 +46,56 @@ export default function DirectorDetailPage() {
           response.data &&
           Array.isArray(response.data.directors)
         ) {
+          const shareholders = response.data.shareholders || [];
           const mappedDirectors = response.data.directors.map(
-            (d: any, idx: number) => ({
-              id: toStakeholderId(d, idx),
-              applicationNo: appNo as string,
-              directorNumber: idx + 1,
-              hasDIN: d.hasDIN || false,
-              din: d.dinNumber || "",
-              directorName: d.name || "-",
-              fatherName: d.fatherName || "-",
-              email: d.email || "-",
-              phoneNo: d.phoneNumber || "-",
-              gender: d.gender
-                ? d.gender.charAt(0).toUpperCase() + d.gender.slice(1)
-                : "Other",
-              dateOfBirth: d.dateOfBirth || "-",
-              nationality: d.nationality || "-",
-              passportNo: d.passportNumber || "-",
-              occupationType: d.occupationType || "-",
-              placeOfBirth: d.placeOfBirth?.city || "-",
-              educationQualification: d.educationQualification || "-",
-              presentAddress: d.presentAddress || "-",
-              permanentAddress: d.permanentAddress || "-",
-              pan: d.panNumber || "-",
-              durationOfStayAtPresentAddress: `${d.durationOfStay?.years || 0} years, ${d.durationOfStay?.months || 0} months`,
-              previousResidenceAddress: d.previousAddress || "-",
-              shareholdingPercentage: d.proposedShareholdingPercentage
-                ? Number(d.proposedShareholdingPercentage)
-                : 0,
-              kycVerified: d.kycVerified ?? false,
-              dscApplication: d.dscApplication ?? false,
-              isBankSigningAuthority: d.isBankSigningAuthority ?? false,
-              dinStatus: d.dinStatus || "Pending",
-              isDinActivationFeePaid: d.isDinActivationFeePaid ?? false,
-              isCommitted: d.isCommitted ?? false,
-              createdAt: undefined,
-              updatedAt: undefined,
-            }),
+            (d: any, idx: number) => {
+              const linkedShIdx = shareholders.findIndex((s: any) =>
+                isSameStakeholderPerson(d, s),
+              );
+              return {
+                id: toStakeholderId(d, idx),
+                applicationNo: appNo as string,
+                directorNumber: idx + 1,
+                hasDIN: d.hasDIN || false,
+                din: d.dinNumber || "",
+                directorName: d.name || "-",
+                fatherName: d.fatherName || "-",
+                email: d.email || "-",
+                phoneNo: d.phoneNumber || "-",
+                gender: d.gender
+                  ? d.gender.charAt(0).toUpperCase() + d.gender.slice(1)
+                  : "Other",
+                dateOfBirth: d.dateOfBirth || "-",
+                nationality: d.nationality || "-",
+                passportNo: d.passportNumber || "-",
+                occupationType: d.occupationType || "-",
+                placeOfBirth: d.placeOfBirth?.city || "-",
+                educationQualification: d.educationQualification || "-",
+                presentAddress: d.presentAddress || "-",
+                permanentAddress: d.permanentAddress || "-",
+                pan: d.panNumber || "-",
+                durationOfStayAtPresentAddress: `${d.durationOfStay?.years || 0} years, ${d.durationOfStay?.months || 0} months`,
+                previousResidenceAddress: d.previousAddress || "-",
+                shareholdingPercentage: d.proposedShareholdingPercentage
+                  ? Number(d.proposedShareholdingPercentage)
+                  : 0,
+                kycVerified: d.kycVerified ?? false,
+                dscApplication: d.dscApplication ?? false,
+                isBankSigningAuthority: d.isBankSigningAuthority ?? false,
+                isAlsoShareholder: linkedShIdx !== -1,
+                linkedShareholderId:
+                  linkedShIdx !== -1
+                    ? toStakeholderId(shareholders[linkedShIdx], linkedShIdx)
+                    : null,
+                linkedShareholderNumber:
+                  linkedShIdx !== -1 ? linkedShIdx + 1 : null,
+                dinStatus: d.dinStatus || "Pending",
+                isDinActivationFeePaid: d.isDinActivationFeePaid ?? false,
+                isCommitted: d.isCommitted ?? false,
+                createdAt: undefined,
+                updatedAt: undefined,
+              };
+            },
           );
           setAllDirectors(mappedDirectors);
           // Find the director by id
@@ -91,12 +109,19 @@ export default function DirectorDetailPage() {
             setHasDIN(foundDirector.hasDIN);
             setKycVerified(foundDirector.kycVerified);
             setDscApplication(foundDirector.dscApplication);
+            setIsAlsoShareholder(Boolean(foundDirector.isAlsoShareholder));
+            setLinkedShareholderNumber(
+              foundDirector.linkedShareholderNumber ?? null,
+            );
             const effectiveDinStatus =
               foundDirector.dinStatus === "Inactive" &&
               foundDirector.isDinActivationFeePaid
                 ? "In Progress"
                 : foundDirector.dinStatus || "Pending";
             setDinStatus(effectiveDinStatus);
+          } else {
+            setIsAlsoShareholder(false);
+            setLinkedShareholderNumber(null);
           }
         } else {
           setAllDirectors([]);
@@ -385,7 +410,7 @@ export default function DirectorDetailPage() {
             /> */}
           </div>
 
-          <div className="grid grid-cols-2 gap-8 mt-6 pt-6g">
+          <div className="grid grid-cols-2 gap-8 mt-6 pt-6 border-t border-gray-100">
             {/* KYC Verified */}
             <div className="flex items-center gap-4">
               <span className="text-sm font-semibold text-secondary">
@@ -411,6 +436,17 @@ export default function DirectorDetailPage() {
                 disabled={!canEdit}
               />
             </div>
+
+            {isAlsoShareholder && (
+              <div className="col-span-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                This person is also{" "}
+                {linkedShareholderNumber
+                  ? labels.shareholderWithNumber(linkedShareholderNumber)
+                  : `a ${labels.shareholder.toLowerCase()}`}
+                . KYC and DSC toggled here automatically sync to their{" "}
+                {labels.shareholder.toLowerCase()} profile and tracking steps.
+              </div>
+            )}
           </div>
         </div>
       </div>

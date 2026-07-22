@@ -29,6 +29,11 @@ import CustomSelect from "@/components/ui/CustomSelect";
 import { FileUploadComponent } from "@/components/upload";
 import { PanTanEmailDisclaimer } from "@/components/clients/tabs/PanTanEmailDisclaimer";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
+import {
+  isDirectorKycOrDscStepTitle,
+  isSameStakeholderPerson,
+  isShareholderKycOrDscStepTitle,
+} from "@/utils/stakeholderMatch";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import {
   getFormFilingProseLabel,
@@ -135,6 +140,14 @@ export default function TrackingStatusContent({
 
   const [tracker, setTracker] = useState<TrackerData | null>(null);
   const [companyOverview, setCompanyOverview] = useState<any | null>(null);
+  /** 1-based shareholder numbers that are also directors (KYC/DSC managed on director). */
+  const [dualRoleShareholderNumbers, setDualRoleShareholderNumbers] = useState<
+    number[]
+  >([]);
+  /** directorNumber -> shareholderNumber for dual-role people */
+  const [directorCoversShareholder, setDirectorCoversShareholder] = useState<
+    Record<number, number>
+  >({});
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
   const [collapsedStages, setCollapsedStages] = useState<
@@ -280,6 +293,33 @@ export default function TrackingStatusContent({
         }
       } catch (err) {
         console.error("Error fetching company overview:", err);
+      }
+
+      // Map dual-role director/shareholder pairs for KYC/DSC UX
+      try {
+        const roster = await clientsApi.getDirectorAndShareHolders(
+          appNo,
+          false,
+        );
+        const directors = roster?.data?.directors || [];
+        const shareholders = roster?.data?.shareholders || [];
+        const dualShNums: number[] = [];
+        const covers: Record<number, number> = {};
+        shareholders.forEach((s: any, shIdx: number) => {
+          const dirIdx = directors.findIndex((d: any) =>
+            isSameStakeholderPerson(s, d),
+          );
+          if (dirIdx !== -1) {
+            dualShNums.push(shIdx + 1);
+            covers[dirIdx + 1] = shIdx + 1;
+          }
+        });
+        setDualRoleShareholderNumbers(dualShNums);
+        setDirectorCoversShareholder(covers);
+      } catch (err) {
+        console.error("Error fetching dual-role stakeholders:", err);
+        setDualRoleShareholderNumbers([]);
+        setDirectorCoversShareholder({});
       }
 
       let trackerData = null;
@@ -567,12 +607,28 @@ export default function TrackingStatusContent({
     resolveTrackerStepLabels(step.title, step.description, tracker.companyType);
   const formFilingLabel = getFormFilingProseLabel(tracker.companyType);
 
+  const isDualRoleShareholderStep = (step: TrackerStep) =>
+    dualRoleShareholderNumbers.some((n) =>
+      isShareholderKycOrDscStepTitle(step.title, n),
+    );
+
+  const getDirectorCoverageNote = (step: TrackerStep): string | null => {
+    for (const [dirNum, shNum] of Object.entries(directorCoversShareholder)) {
+      if (isDirectorKycOrDscStepTitle(step.title, Number(dirNum))) {
+        return `Also covers ${labels.shareholderWithNumber(Number(shNum))} (same person)`;
+      }
+    }
+    return null;
+  };
+
   const allSteps: TrackerStep[] = [];
   const clientActionSteps: TrackerStep[] = [];
   tracker.stages.forEach((stage) => {
     stage.sections.forEach((section) => {
       section.steps.forEach((step) => {
         if (step.isHidden) return;
+        // Dual-role: KYC/DSC are managed on the director steps — hide duplicates
+        if (isDualRoleShareholderStep(step)) return;
         allSteps.push(step);
         if (step.ownerType === "client") {
           clientActionSteps.push(step);
@@ -620,7 +676,9 @@ export default function TrackingStatusContent({
   const stepSelectItems = tracker.stages.flatMap((stage) =>
     stage.sections.flatMap((section) =>
       section.steps
-        .filter((step) => !step.isHidden)
+        .filter(
+          (step) => !step.isHidden && !isDualRoleShareholderStep(step),
+        )
         .map((step) => ({
           key: step._id,
           label: `Stage ${stage.order} - ${getTrackerStepDisplayTitle(step.title, tracker.companyType)}`,
@@ -1135,7 +1193,11 @@ export default function TrackingStatusContent({
                           {/* Steps Checklist */}
                           <div className="divide-y divide-slate-100">
                             {section.steps
-                              .filter((step) => !step.isHidden)
+                              .filter(
+                                (step) =>
+                                  !step.isHidden &&
+                                  !isDualRoleShareholderStep(step),
+                              )
                               .map((step) => {
                                 const isRocStep =
                                   step.title.toLowerCase() ===
@@ -1144,6 +1206,8 @@ export default function TrackingStatusContent({
                                     "query resolution / resubmission";
                                 const isUrgent =
                                   step.status === "Action Needed";
+                                const coverageNote =
+                                  getDirectorCoverageNote(step);
                                 const extCurrentAttNum =
                                   extensionStatus?.currentAttempt || 1;
                                 const extActiveAtt =
@@ -1206,6 +1270,11 @@ export default function TrackingStatusContent({
                                                 </span>
                                               )}
                                           </h4>
+                                          {coverageNote && (
+                                            <span className="text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded">
+                                              {coverageNote}
+                                            </span>
+                                          )}
                                           <span
                                             className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
                                               step.ownerType === "client"
