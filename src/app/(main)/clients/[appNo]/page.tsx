@@ -8,6 +8,7 @@ import {
   usePathname,
 } from "next/navigation";
 import { Tabs, Spinner } from "@heroui/react";
+import Link from "next/link";
 import FixedBackButton from "@/components/ui/FixedBackButton";
 
 import CompanyOverviewContent from "@/components/clients/tabs/CompanyOverviewContent";
@@ -211,7 +212,12 @@ function ClientDetailsTabs() {
         <div>
           <FixedBackButton href="/clients" label="Back to Clients" />
           <h1 className="text-xl font-bold text-primary sm:text-2xl">
-            {appNoStr}
+            <Link
+              href={`/clients/${appNoStr}?tab=tracking-status`}
+              className="hover:underline"
+            >
+              {appNoStr}
+            </Link>
           </h1>
         </div>
         {isLlp && form3Countdown && (

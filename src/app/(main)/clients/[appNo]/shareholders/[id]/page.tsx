@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Shareholder } from "@/types/shareholder";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField, Switch } from "@/components/ui";
@@ -189,7 +190,14 @@ export default function ShareholderDetailPage() {
             href={`/clients/${appNo}?tab=shareholders`}
             label={`Back to ${labels.shareholders}`}
           />
-          <h1 className="text-3xl font-bold text-primary">{appNo}</h1>
+          <h1 className="text-3xl font-bold text-primary">
+            <Link
+              href={`/clients/${appNo}?tab=tracking-status`}
+              className="hover:underline"
+            >
+              {appNo}
+            </Link>
+          </h1>
         </div>
 
         {/* Shareholder Tabs */}

@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
@@ -211,7 +212,14 @@ export default function DirectorDetailPage() {
             href={`/clients/${appNo}?tab=directors`}
             label={`Back to ${labels.directors}`}
           />
-          <h1 className="text-3xl font-bold text-primary">{appNo}</h1>
+          <h1 className="text-3xl font-bold text-primary">
+            <Link
+              href={`/clients/${appNo}?tab=tracking-status`}
+              className="hover:underline"
+            >
+              {appNo}
+            </Link>
+          </h1>
         </div>
 
         {/* Director Tabs */}

@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Eye, Download, Upload, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "@heroui/react";
 
@@ -461,7 +462,14 @@ export default function ShareholderDocumentsPage() {
               href={`/clients/${appNo}/shareholders/${id}`}
               label={`Back to ${labels.shareholder}`}
             />
-            <h1 className="text-3xl font-bold text-primary">{appNo}</h1>
+            <h1 className="text-3xl font-bold text-primary">
+              <Link
+                href={`/clients/${appNo}?tab=tracking-status`}
+                className="hover:underline"
+              >
+                {appNo}
+              </Link>
+            </h1>
           </div>
           {pendingCount > 0 && (
             <span className="bg-yellow-400 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium">
