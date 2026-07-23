@@ -27,6 +27,8 @@ import {
   UserRoundX,
   Calculator,
   CreditCard,
+  Puzzle,
+  Receipt,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
@@ -306,6 +308,39 @@ export default function Sidebar() {
               active={pathname.startsWith("/feedbacks")}
               collapsed={effectiveCollapsed}
             />
+          )}
+
+          {showClients && <Divider />}
+
+          {showClients && (
+            <SidebarSection
+              title="Add-on Services"
+              icon={<Puzzle size={18} />}
+              active={pathname.startsWith("/addon-services")}
+              collapsed={effectiveCollapsed}
+            >
+              <SubItem
+                label="GST Registration"
+                href="/addon-services/gst-registration"
+                icon={<Receipt size={15} />}
+                active={pathname === "/addon-services/gst-registration"}
+                collapsed={effectiveCollapsed}
+              />
+              <SubItem
+                label="EPF / ESI Registration"
+                href="/addon-services/epf-esi"
+                icon={<Receipt size={15} />}
+                active={pathname === "/addon-services/epf-esi"}
+                collapsed={effectiveCollapsed}
+              />
+              <SubItem
+                label="MSME Registration"
+                href="/addon-services/msme"
+                icon={<Receipt size={15} />}
+                active={pathname === "/addon-services/msme"}
+                collapsed={effectiveCollapsed}
+              />
+            </SidebarSection>
           )}
 
           {(showMarketing || showNewsletter) && <Divider />}

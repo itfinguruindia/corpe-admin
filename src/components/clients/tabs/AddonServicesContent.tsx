@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Upload, Download, Eye, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { toast } from "@heroui/react";
 
 import { clientsApi } from "@/lib/api/clients";
-import { FileUploadComponent } from "@/components/upload";
 import { notifyApiError } from "@/utils/apiErrors";
 import axiosInstance from "@/lib/axios";
+import AdminAddonTrackerView from "./AdminAddonTrackerView";
+import GstDetailsContent from "./GstDetailsContent";
 
 interface AddonServicesContentProps {
   appNo: string;
@@ -73,6 +74,11 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
   const [gstData, setGstData] = useState<GstRegistrationView | null>(null);
   const [adminDocs, setAdminDocs] = useState<GstDocEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [subTab, setSubTab] = useState<"details" | "tracker">("details");
+
+  // KYC Verified state
+  const [kycVerified, setKycVerified] = useState(false);
+  const [kycLoading, setKycLoading] = useState(false);
 
   // ARN States
   const [arnInput, setArnInput] = useState("");
@@ -94,6 +100,43 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
       setLoading(false);
     }
   }, [appNo]);
+
+  // Load KYC state from tracker
+  const loadKycState = useCallback(async () => {
+    if (!gstData?.org) return;
+    try {
+      const tracker = await clientsApi.getAddonTrackingStatus(appNo, "gst-registration");
+      if (tracker?.stages) {
+        for (const stage of tracker.stages) {
+          for (const section of stage.sections) {
+            for (const step of section.steps) {
+              if (step.title === "Details and Document verification") {
+                setKycVerified(step.status === "Done");
+                return;
+              }
+            }
+          }
+        }
+      }
+      setKycVerified(false);
+    } catch {
+      setKycVerified(false);
+    }
+  }, [appNo, gstData?.org]);
+
+  // Load KYC state when GST data loads or switching to details tab
+  useEffect(() => {
+    if (subTab === "details" && gstData?.org) {
+      loadKycState();
+    }
+  }, [subTab, gstData?.org, loadKycState]);
+
+  // Load KYC state on initial load
+  useEffect(() => {
+    if (gstData?.org) {
+      loadKycState();
+    }
+  }, [gstData?.org, loadKycState]);
 
   useEffect(() => {
     if (selected === "gst-registration") loadGst();
@@ -181,6 +224,70 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
     }
   };
 
+  const handleKycVerifiedChange = async (checked: boolean) => {
+    if (!gstData?.org) return;
+    setKycLoading(true);
+    try {
+      const tracker = await clientsApi.getAddonTrackingStatus(appNo, "gst-registration");
+      if (!tracker?.stages) {
+        toast.danger("Tracker not initialized. Please initialize the GST tracker first.");
+        return;
+      }
+      for (const stage of tracker.stages) {
+        for (const section of stage.sections) {
+          for (const step of section.steps) {
+            if (step.title === "Details and Document verification") {
+              await clientsApi.updateAddonStepStatus(
+                gstData.org,
+                "gst-registration",
+                stage.stageId,
+                section._id,
+                step._id,
+                checked ? "Done" : "Pending",
+              );
+              setKycVerified(checked);
+              toast.success(checked ? "KYC marked as verified" : "KYC marked as pending");
+              return;
+            }
+          }
+        }
+      }
+      toast.danger("Details and Document verification step not found in tracker.");
+    } catch (error) {
+      notifyApiError(error, { fallback: "Failed to update KYC verification status." });
+    } finally {
+      setKycLoading(false);
+    }
+  };
+
+  const downloadGstDocBlob = async (url: string, filename: string, mode: "preview" | "download") => {
+    try {
+      const response = await axiosInstance.get(url, { responseType: "blob" });
+      const blob = response.data;
+      const objectUrl = URL.createObjectURL(blob);
+      if (mode === "preview") {
+        window.open(objectUrl, "_blank");
+      } else {
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch {
+      toast.danger("Failed to download document");
+    }
+  };
+
+  const downloadMiscDoc = async (index: number, mode: "preview" | "download") => {
+    const url = clientsApi.getGstMiscDocDownloadUrl(appNo, index);
+    const miscDoc = (gstData as any)?.miscDocs?.[index];
+    const filename = miscDoc?.name || `misc-doc-${index}`;
+    await downloadGstDocBlob(url, filename, mode);
+  };
+
   const renderAddonList = () => (
     <div className="w-64 shrink-0 border-r border-gray-200 pr-4">
       <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -226,17 +333,13 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
         </div>
       );
     }
-
-    const details = gstData?.gstDetails;
-    const directors = gstData?.directors ?? [];
-    const businessDocs = gstData?.businessDocs ?? {};
+    
     const status = gstData?.status ?? "—";
 
     return (
-      <div className="flex-1 grid grid-cols-[1fr_280px] gap-6">
-        {/* Left: GST Info */}
-        <div className="space-y-6">
-          {/* Status badge */}
+      <div className="flex-1 min-w-0 flex flex-col gap-6">
+        {/* Toggle Bar */}
+        <div className="flex justify-between items-center border-b border-gray-100 pb-3">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-bold text-gray-800">GST Registration</h2>
             <span
@@ -248,220 +351,61 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
             >
               {status === "completed" ? "Completed" : "Open"}
             </span>
+            {!(gstData as any)?.isPaid && (
+              <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 uppercase">
+                Payment Pending
+              </span>
+            )}
           </div>
 
-          {/* GST Details */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-              GST Details
-            </h3>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-              <InfoRow label="Legal Name" value={details?.legalName} />
-              <InfoRow label="Trade Name" value={details?.tradeName} />
-              <InfoRow label="Nature of Business" value={details?.natureOfBusiness} />
-              <InfoRow label="Reason" value={details?.reason} />
-              <InfoRow label="Date Liable" value={details?.dateLiable} />
-              <InfoRow label="HSN / SAC" value={details?.hsnSac} />
-              <InfoRow
-                label="CorpE covers HSN/SAC?"
-                value={details?.hsnSacCoveredByCorpE ? "Yes" : "No"}
-              />
-              <InfoRow label="Bank Account" value={details?.bankAccount} />
-              <InfoRow label="IFSC" value={details?.ifsc} />
-              <InfoRow label="Principal Address" value={details?.principalAddress} />
-              <InfoRow label="Delivery Method" value={details?.deliveryMethod} />
-              <InfoRow label="Delivery Email" value={details?.deliveryEmail} />
-              <InfoRow label="Delivery Address" value={details?.deliveryAddress} />
-              <InfoRow
-                label="Additional Places of Business"
-                value={details?.additionalPlaces ? "Yes" : "No"}
-              />
-              {details?.additionalPlaces && (
-                <InfoRow label="Additional Places Details" value={details?.additionalPlacesText} className="col-span-2" />
-              )}
-            </div>
+          <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setSubTab("details")}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all focus:outline-none ${
+                subTab === "details"
+                  ? "bg-white text-gray-800 shadow-sm"
+                  : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              Form Details
+            </button>
+            <button
+              type="button"
+              onClick={() => setSubTab("tracker")}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all focus:outline-none ${
+                subTab === "tracker"
+                  ? "bg-white text-gray-800 shadow-sm"
+                  : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              Tracking Progress
+            </button>
           </div>
-
-          {/* Directors */}
-          {directors.length > 0 && (
-            <div className="rounded-xl border border-gray-200 bg-white p-5">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                Directors / Promoters
-              </h3>
-              <div className="space-y-3">
-                {directors.map((dir, idx) => (
-                  <div key={idx} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-gray-800 text-sm">{dir.name || `Director ${idx + 1}`}</span>
-                      {dir.authorized && (
-                        <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700 uppercase">
-                          Authorised Signatory
-                        </span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-600">
-                      <span>Email: {dir.email || "—"}</span>
-                      <span>Phone: {dir.phone || "—"}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Business Documents */}
-          {Object.keys(businessDocs).length > 0 && (
-            <div className="rounded-xl border border-gray-200 bg-white p-5">
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                Business Documents
-              </h3>
-              <div className="space-y-2">
-                {Object.entries(businessDocs).map(([docId, doc]) => (
-                  <div
-                    key={docId}
-                    className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs font-medium text-gray-700 truncate max-w-[180px]">
-                        {doc.name || docId}
-                      </span>
-                      <span
-                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                          doc.status === "clientUpload"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-gray-100 text-gray-500"
-                        }`}
-                      >
-                        {doc.status === "clientUpload" ? "Uploaded" : "Pending"}
-                      </span>
-                    </div>
-                    {doc.path && (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => downloadBusinessDoc(docId, "preview")}
-                          className="text-blue-600 hover:text-blue-700 p-1"
-                          title="Preview"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => downloadBusinessDoc(docId, "download")}
-                          className="text-blue-600 hover:text-blue-700 p-1"
-                          title="Download"
-                        >
-                          <Download size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Right: Admin File Uploads */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-            Uploaded Documents
-          </h3>
-
-          {ADMIN_DOC_SLOTS.map((slot) => {
-            const doc = findDoc(slot.id);
-            return (
-              <div key={slot.id} className="rounded-xl border border-gray-200 bg-white p-4">
-                <p className="text-xs font-semibold text-gray-600 mb-3">{slot.label}</p>
-
-                {doc ? (
-                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-semibold text-orange-700">Uploaded</span>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          className="text-orange-600 hover:text-orange-700"
-                          title="Preview"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          className="text-orange-600 hover:text-orange-700"
-                          title="Download"
-                        >
-                          <Download size={14} />
-                        </button>
-                      </div>
-                    </div>
-                    <p className="truncate text-xs text-gray-700">{doc.name}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
-                      {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : ""}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3 text-center">
-                    <p className="text-xs text-gray-400 mb-2">No file uploaded</p>
-                  </div>
-                )}
-
-                <div className="mt-3">
-                  <FileUploadComponent
-                    onFileSelect={(file) => handleUpload(slot.id, file)}
-                    renderTrigger={(openPicker) => (
-                      <button
-                        type="button"
-                        onClick={openPicker}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#F46A45] px-3 py-1.5 text-xs font-medium text-[#F46A45] transition-colors hover:bg-orange-50"
-                      >
-                        <Upload size={14} />
-                        Upload
-                      </button>
-                    )}
-                  />
-                </div>
-
-                {slot.id === "arn-acknowledgement" && (
-                  <div className="mt-4 pt-3 border-t border-gray-100">
-                    <label className="text-[11px] font-semibold text-gray-500 block mb-1">
-                      GST Application Reference Number (ARN)
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="e.g. AA060826000001Z"
-                        className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-800 focus:border-primary focus:outline-none uppercase font-mono"
-                        maxLength={15}
-                        value={arnInput}
-                        onChange={(e) => {
-                          setArnInput(e.target.value.toUpperCase());
-                          setArnError("");
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleSaveArn}
-                        disabled={savingArn}
-                        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
-                      >
-                        {savingArn ? "Saving..." : "Save"}
-                      </button>
-                    </div>
-                    {arnError && (
-                      <p className="text-[10px] text-red-500 mt-1 font-medium">{arnError}</p>
-                    )}
-                    {gstData?.arn && !arnError && (
-                      <p className="text-[10px] text-green-600 mt-1 font-medium">
-                        Current ARN: <span className="font-mono">{gstData.arn}</span> (Saved)
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        {subTab === "tracker" ? (
+          <AdminAddonTrackerView appNo={appNo} orgId={gstData?.org || ""} isPaid={(gstData as any)?.isPaid ?? false} />
+        ) : (
+          <GstDetailsContent
+            appNo={appNo}
+            gstData={gstData}
+            adminDocs={adminDocs}
+            arnInput={arnInput}
+            arnError={arnError}
+            savingArn={savingArn}
+            setArnInput={setArnInput}
+            setArnError={setArnError}
+            handleSaveArn={handleSaveArn}
+            handleUpload={handleUpload}
+            downloadBusinessDoc={downloadBusinessDoc}
+            downloadMiscDoc={downloadMiscDoc}
+            ADMIN_DOC_SLOTS={ADMIN_DOC_SLOTS as any}
+            kycVerified={kycVerified}
+            onKycVerifiedChange={handleKycVerifiedChange}
+            kycLoading={kycLoading}
+          />
+        )}
       </div>
     );
   };
