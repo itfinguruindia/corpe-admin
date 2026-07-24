@@ -326,20 +326,6 @@ export default function Sidebar() {
                 active={pathname === "/addon-services/gst-registration"}
                 collapsed={effectiveCollapsed}
               />
-              <SubItem
-                label="EPF / ESI Registration"
-                href="/addon-services/epf-esi"
-                icon={<Receipt size={15} />}
-                active={pathname === "/addon-services/epf-esi"}
-                collapsed={effectiveCollapsed}
-              />
-              <SubItem
-                label="MSME Registration"
-                href="/addon-services/msme"
-                icon={<Receipt size={15} />}
-                active={pathname === "/addon-services/msme"}
-                collapsed={effectiveCollapsed}
-              />
             </SidebarSection>
           )}
 

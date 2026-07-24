@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { Search, RefreshCw, Layers, ExternalLink } from "lucide-react";
+import { Search, RefreshCw, Layers, ExternalLink, Eye } from "lucide-react";
 import { clientsApi } from "@/lib/api/clients";
 
 const ADDON_NAMES: Record<string, string> = {
@@ -248,12 +248,14 @@ export default function AddonServiceClientsPage({
                       </td>
 
                       <td className="p-4 text-right">
-                        <button
-                          onClick={() => router.push(`/clients/${item.applicationNo}?tab=addon-services`)}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
-                        >
-                          Workspace <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => router.push(`/addons/gst/${item.applicationNo}`)}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 hover:underline"
+                          >
+                            <Eye className="w-3.5 h-3.5" /> View
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

@@ -41,7 +41,7 @@ const formatCommentDate = (value: string) =>
 
 export default function CommentsContent({ appNo }: CommentsContentProps) {
   const { requireEdit } = useClientTabEdit("comments");
-  const { companyType } = useClientCompanyLabels();
+  const { companyType, isAddonOnly } = useClientCompanyLabels();
 
   const [comments, setComments] = useState<GlobalCommentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,6 +49,7 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
   const [selectedAreaFilter, setSelectedAreaFilter] = useState<string>("all");
   const [newArea, setNewArea] = useState<GlobalCommentArea>("Name Application");
   const [newMessage, setNewMessage] = useState("");
+
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -168,20 +169,22 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
             onChange={(e) => setNewArea(e.target.value as GlobalCommentArea)}
             className="w-full max-w-md rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-primary bg-white"
           >
-            <optgroup label="Incorporation Services">
-              {GLOBAL_COMMENT_AREAS.filter(area => area !== "GST Registration Addon").map((area) => (
-                <option key={area} value={area}>
-                  {getCommentAreaDisplayLabel(area, companyType)}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Add-on Services">
-              {GLOBAL_COMMENT_AREAS.filter(area => area === "GST Registration Addon").map((area) => (
-                <option key={area} value={area}>
-                  {getCommentAreaDisplayLabel(area, companyType)}
-                </option>
-              ))}
-            </optgroup>
+            <>
+              {!isAddonOnly && <optgroup label="Incorporation Services">
+                {GLOBAL_COMMENT_AREAS.filter(area => area !== "GST Registration Addon").map((area) => (
+                  <option key={area} value={area}>
+                    {getCommentAreaDisplayLabel(area, companyType)}
+                  </option>
+                ))}
+              </optgroup>}
+              <optgroup label="Add-on Services">
+                {GLOBAL_COMMENT_AREAS.filter(area => area === "GST Registration Addon").map((area) => (
+                  <option key={area} value={area}>
+                    {getCommentAreaDisplayLabel(area, companyType)}
+                  </option>
+                ))}
+              </optgroup>
+            </>
           </select>
         </div>
 

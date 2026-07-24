@@ -19,7 +19,6 @@ import NameApplicationContent from "@/components/clients/tabs/NameApplicationCon
 import ShareholdersContent from "@/components/clients/tabs/ShareholdersContent";
 import UploadedDocumentsContent from "@/components/clients/tabs/UploadedDocumentsContent";
 import RegistrationDocumentsContent from "@/components/clients/tabs/RegistrationDocumentsContent";
-import AddonServicesContent from "@/components/clients/tabs/AddonServicesContent";
 import PricingAndPaymentContent from "@/components/clients/tabs/PricingAndPaymentContent";
 import CommentsContent from "@/components/clients/tabs/CommentsContent";
 import { safeRouterReplace } from "@/utils/navigation";
@@ -60,11 +59,6 @@ const TABS = [
     label: "Registration Documents",
     component: RegistrationDocumentsContent,
   },
-  {
-    key: "addon-services",
-    label: "Addon Services",
-    component: AddonServicesContent,
-  },
   { key: "comments", label: "Comments", component: CommentsContent },
   {
     key: "pricing-and-payment",
@@ -98,21 +92,22 @@ function ClientDetailsTabs() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { labels, isLlp, isMoaAoaExcluded } = useClientCompanyLabels();
+  const { labels, isLlp, isMoaAoaExcluded, isAddonOnly } = useClientCompanyLabels();
   const appNoStr = appNo ? String(appNo) : "";
-  const [llpAgreementStatus, setLlpAgreementStatus] =
-    React.useState<LlpAgreementStatus | null>(null);
+  const [llpAgreementStatus, setLlpAgreementStatus] = React.useState<LlpAgreementStatus | null>(null);
   const [form3Status, setForm3Status] = React.useState<Form3Status | null>(null);
   const [form3Countdown, setForm3Countdown] = React.useState<string | null>(null);
 
-  const visibleTabs = React.useMemo(
-    () => TABS.filter((t) => !(isLlp && t.key === "moa-aoa")),
-    [isLlp],
-  );
+  const visibleTabs = React.useMemo(() => {
+    if (isAddonOnly) {
+      return TABS.filter((t) => t.key === "company-overview" || t.key === "comments" || t.key === "pricing-and-payment");
+    }
+    return TABS.filter((t) => !(isLlp && t.key === "moa-aoa"));
+  }, [isLlp, isAddonOnly]);
 
   const tabFromUrl = searchParams.get("tab") ?? "";
   const [activeTab, setActiveTab] = React.useState<TabKey>(
-    isTabKey(tabFromUrl) && !(isLlp && tabFromUrl === "moa-aoa")
+    isTabKey(tabFromUrl) && (!isAddonOnly || tabFromUrl === "company-overview" || tabFromUrl === "comments" || tabFromUrl === "pricing-and-payment") && !(isLlp && tabFromUrl === "moa-aoa")
       ? tabFromUrl
       : "company-overview",
   );

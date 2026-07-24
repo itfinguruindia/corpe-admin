@@ -4,6 +4,7 @@ import {
   defaultStatus,
   defaultDateRange,
   defaultEntityType,
+  defaultRegistrationType,
 } from "../components/ui/FilterDropdown/defaults";
 import { Filters } from "../components/ui/FilterDropdown/index";
 
@@ -56,12 +57,17 @@ export const getFileType = (url: string) => {
 export const buildFiltersFromParams = (sp: URLSearchParams): Filters => {
   const status = fromQueryValue(defaultStatus, sp.get("status"));
   const entityType = fromQueryValue(defaultEntityType, sp.get("entity"));
+  const registrationType = fromQueryValue(
+    defaultRegistrationType,
+    sp.get("registrationType"),
+  );
   const dateRange = fromQueryValue(defaultDateRange, sp.get("date"));
   const assigneeIds = sp.get("assignee");
   const assignerIds = sp.get("assigner");
   return {
     status,
     entityType,
+    registrationType,
     dateRange,
     assignee: {
       selected: assigneeIds

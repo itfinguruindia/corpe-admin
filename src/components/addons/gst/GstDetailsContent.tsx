@@ -183,8 +183,8 @@ export default function GstDetailsContent({
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-600">
-                    <span>Email: {dir.email || "—"}</span>
-                    <span>Phone: {dir.phone || "—"}</span>
+                    <span>Email: {dir.email || "-"}</span>
+                    <span>Phone: {dir.phone || "-"}</span>
                   </div>
                 </div>
               ))}
@@ -420,7 +420,7 @@ function InfoRow({
   return (
     <div className={className}>
       <span className="text-gray-400 block">{label}</span>
-      <span className="text-gray-800 font-medium">{value ?? "—"}</span>
+      <span className="text-gray-800 font-medium">{value ?? "-"}</span>
     </div>
   );
 }

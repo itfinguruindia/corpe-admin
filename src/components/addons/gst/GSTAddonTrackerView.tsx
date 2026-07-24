@@ -33,7 +33,7 @@ const statusOptions = [
   { id: "Done", label: "Done" },
 ];
 
-export default function AdminAddonTrackerView({ appNo, orgId, isPaid = true }: AdminAddonTrackerViewProps) {
+export default function GSTAddonTrackerView({ appNo, orgId, isPaid = true }: AdminAddonTrackerViewProps) {
   const [tracker, setTracker] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeStageId, setActiveStageId] = useState("s1");
@@ -478,7 +478,7 @@ export default function AdminAddonTrackerView({ appNo, orgId, isPaid = true }: A
                             <div className="flex items-center justify-between">
                               <h4 className="text-sm font-bold text-amber-900 flex items-center gap-1.5">
                                 <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-                                Query sent to client — waiting for response
+                                Query sent to client - waiting for response
                               </h4>
                               <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-mono uppercase">
                                 Round {queryMeta.roundNumber}
@@ -523,7 +523,7 @@ export default function AdminAddonTrackerView({ appNo, orgId, isPaid = true }: A
                         {queryMeta?.status === "client_submitted" && (
                           <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl space-y-4 max-w-xl text-left">
                             <h4 className="text-sm font-bold text-blue-900">
-                              Client response received — review before resubmitting to Ministry
+                              Client response received - review before resubmitting to Ministry
                             </h4>
 
                             <div className="p-3 bg-white border border-blue-100 rounded-lg space-y-1">
@@ -618,7 +618,7 @@ export default function AdminAddonTrackerView({ appNo, orgId, isPaid = true }: A
                                 className="px-3.5 py-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer border-none disabled:opacity-50"
                               >
                                 {isApproving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                                Client response reviewed — resubmit to Ministry
+                                Client response reviewed - resubmit to Ministry
                               </button>
 
                               <button
