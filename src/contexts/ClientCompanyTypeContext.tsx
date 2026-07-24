@@ -19,6 +19,8 @@ import {
 
 type ClientCompanyTypeContextValue = {
   companyType: string | null;
+  registrationType: string | null;
+  isAddonOnly: boolean;
   isLlp: boolean;
   isOpc: boolean;
   isMoaAoaExcluded: boolean;
@@ -37,6 +39,7 @@ export function ClientCompanyTypeProvider({
   children: React.ReactNode;
 }) {
   const [companyType, setCompanyType] = useState<string | null>(null);
+  const [registrationType, setRegistrationType] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -48,10 +51,12 @@ export function ClientCompanyTypeProvider({
         const response = await clientsApi.getCompanyOverview(appNo);
         if (!cancelled) {
           setCompanyType(response?.data?.companyType ?? null);
+          setRegistrationType(response?.data?.registrationType ?? null);
         }
       } catch {
         if (!cancelled) {
           setCompanyType(null);
+          setRegistrationType(null);
         }
       } finally {
         if (!cancelled) {
@@ -70,13 +75,15 @@ export function ClientCompanyTypeProvider({
   const value = useMemo(
     () => ({
       companyType,
+      registrationType,
+      isAddonOnly: registrationType === "addon_only",
       isLlp: isLlpCompanyType(companyType),
       isOpc: isOpcCompanyType(companyType),
       isMoaAoaExcluded: isMoaAoaExcludedCompanyType(companyType),
       labels: getStakeholderLabels(companyType),
       isLoading,
     }),
-    [companyType, isLoading],
+    [companyType, registrationType, isLoading],
   );
 
   return (
@@ -91,6 +98,8 @@ export function useClientCompanyLabels(): ClientCompanyTypeContextValue {
   if (!context) {
     return {
       companyType: null,
+      registrationType: null,
+      isAddonOnly: false,
       isLlp: false,
       isOpc: false,
       isMoaAoaExcluded: false,

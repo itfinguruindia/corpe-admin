@@ -92,21 +92,22 @@ function ClientDetailsTabs() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { labels, isLlp, isMoaAoaExcluded } = useClientCompanyLabels();
+  const { labels, isLlp, isMoaAoaExcluded, isAddonOnly } = useClientCompanyLabels();
   const appNoStr = appNo ? String(appNo) : "";
-  const [llpAgreementStatus, setLlpAgreementStatus] =
-    React.useState<LlpAgreementStatus | null>(null);
+  const [llpAgreementStatus, setLlpAgreementStatus] = React.useState<LlpAgreementStatus | null>(null);
   const [form3Status, setForm3Status] = React.useState<Form3Status | null>(null);
   const [form3Countdown, setForm3Countdown] = React.useState<string | null>(null);
 
-  const visibleTabs = React.useMemo(
-    () => TABS.filter((t) => !(isLlp && t.key === "moa-aoa")),
-    [isLlp],
-  );
+  const visibleTabs = React.useMemo(() => {
+    if (isAddonOnly) {
+      return TABS.filter((t) => t.key === "company-overview" || t.key === "comments" || t.key === "pricing-and-payment");
+    }
+    return TABS.filter((t) => !(isLlp && t.key === "moa-aoa"));
+  }, [isLlp, isAddonOnly]);
 
   const tabFromUrl = searchParams.get("tab") ?? "";
   const [activeTab, setActiveTab] = React.useState<TabKey>(
-    isTabKey(tabFromUrl) && !(isLlp && tabFromUrl === "moa-aoa")
+    isTabKey(tabFromUrl) && (!isAddonOnly || tabFromUrl === "company-overview" || tabFromUrl === "comments" || tabFromUrl === "pricing-and-payment") && !(isLlp && tabFromUrl === "moa-aoa")
       ? tabFromUrl
       : "company-overview",
   );

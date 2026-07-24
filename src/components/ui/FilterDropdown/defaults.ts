@@ -37,6 +37,11 @@ export const defaultAssignee: AssigneeFilters = {
   selected: [],
 };
 
+export const defaultRegistrationType = {
+  addon_only: false,
+  incorporation: false,
+};
+
 export const defaultAssigner: AssignerFilters = {
   selected: [],
 };

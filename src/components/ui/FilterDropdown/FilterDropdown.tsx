@@ -18,11 +18,12 @@ import {
   Filters,
   StatusFilters,
   EntityTypeFilters,
+  RegistrationTypeFilters,
   DateRangeFilters,
   AssigneeFilters,
   AssignerFilters,
 } from "./types";
-import { defaultStatus, defaultEntityType, defaultDateRange } from "./defaults";
+import { defaultStatus, defaultEntityType, defaultDateRange, defaultRegistrationType } from "./defaults";
 import { toQueryValue, fromQueryValue, countActive, toggle, filtersToSearchParams } from "./helpers";
 
 export type FilterDropdownProps = {
@@ -82,6 +83,13 @@ export default function FilterDropdown({
     return { selected: ids.split(",").map((id) => ({ id, name: id })) };
   });
 
+  const [registrationType, setRegistrationType] = useState<RegistrationTypeFilters>(() => {
+    const raw = searchParams.get("registrationType");
+    return raw
+      ? fromQueryValue(defaultRegistrationType, raw)
+      : { ...defaultRegistrationType };
+  });
+
   const [searchInput, setSearchInput] = useState(search);
 
   // Sync internal state when external filters change (e.g., from chips)
@@ -89,6 +97,9 @@ export default function FilterDropdown({
     if (!externalFilters) return;
     setStatus(externalFilters.status);
     setEntityType(externalFilters.entityType);
+    if (externalFilters.registrationType) {
+      setRegistrationType(externalFilters.registrationType);
+    }
     setDateRange(externalFilters.dateRange);
     setAssignee(externalFilters.assignee);
     setAssigner(externalFilters.assigner);
@@ -178,6 +189,7 @@ export default function FilterDropdown({
     const queryParams = filtersToSearchParams({
       status,
       entityType,
+      registrationType,
       dateRange,
       assignee,
       assigner,
@@ -189,6 +201,7 @@ export default function FilterDropdown({
     onApply({
       status,
       entityType,
+      registrationType,
       dateRange,
       assignee,
       assigner,
@@ -216,6 +229,10 @@ export default function FilterDropdown({
       publicCorporate: false,
       foreignIndividual: false,
     });
+    setRegistrationType({
+      addon_only: false,
+      incorporation: false,
+    });
     setDateRange({
       today: false,
       lastWeek: false,
@@ -230,6 +247,7 @@ export default function FilterDropdown({
   // Helper counts for each filter section
   const statusCount = Object.values(status).filter(Boolean).length;
   const entityTypeCount = Object.values(entityType).filter(Boolean).length;
+  const regTypeCount = Object.values(registrationType).filter(Boolean).length;
   const dateRangeCount = Object.values(dateRange).filter(Boolean).length;
   const assigneeCount = assignee.selected.length;
   const assignerCount = assigner.selected.length;
@@ -415,6 +433,26 @@ export default function FilterDropdown({
               checked={entityType.foreignIndividual}
               onChange={() => toggle(setEntityType, "foreignIndividual")}
               label="Foreign Individual"
+            />
+          </AccordionSection>
+
+          <AccordionSection
+            title={
+              regTypeCount > 0
+                ? `Registration Type (${regTypeCount})`
+                : "Registration Type"
+            }
+            icon={Filter}
+          >
+            <Checkbox
+              checked={registrationType.addon_only}
+              onChange={() => toggle(setRegistrationType, "addon_only")}
+              label="Add-on Only (Standalone)"
+            />
+            <Checkbox
+              checked={registrationType.incorporation}
+              onChange={() => toggle(setRegistrationType, "incorporation")}
+              label="Full Incorporation"
             />
           </AccordionSection>
 
