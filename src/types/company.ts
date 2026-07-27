@@ -13,6 +13,7 @@ export interface CompanyOverview {
   state: string;
   policeStationJurisdiction: string;
   entityType: string;
+  registrationType?: string;
   cinLlpin: string | null;
   isIncorporated: boolean;
   industry?: string;

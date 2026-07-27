@@ -39,9 +39,15 @@ export type AssignerFilters = {
   selected: User[];
 };
 
+export type RegistrationTypeFilters = {
+  addon_only: boolean;
+  incorporation: boolean;
+};
+
 export type Filters = {
   status: StatusFilters;
   entityType: EntityTypeFilters;
+  registrationType?: RegistrationTypeFilters;
   dateRange: DateRangeFilters;
   assignee: AssigneeFilters;
   assigner: AssignerFilters;

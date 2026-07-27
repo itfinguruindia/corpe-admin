@@ -4,6 +4,7 @@ export const GLOBAL_COMMENT_AREAS = [
   "Director & Shareholders",
   "Document Upload",
   "Registration Documents",
+  "GST Registration Addon",
 ] as const;
 
 export type GlobalCommentArea = (typeof GLOBAL_COMMENT_AREAS)[number];

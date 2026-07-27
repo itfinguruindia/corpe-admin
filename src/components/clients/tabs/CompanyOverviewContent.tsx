@@ -26,6 +26,8 @@ export default function CompanyOverviewContent({
   const [allDocsVerify, setAllDocsVerified] = useState(false);
 
 
+  const [registrationType, setRegistrationType] = useState<string | null>(null);
+
   useEffect(() => {
     const loadCompanyData = async () => {
       try {
@@ -34,6 +36,7 @@ export default function CompanyOverviewContent({
         if (response && response.data) {
           // Map API response to CompanyOverview type
           const apiData = response.data;
+          setRegistrationType(apiData.registrationType || null);
           // Fetch real payment status
           let paymentStatus = "Pending";
           try {
@@ -50,12 +53,12 @@ export default function CompanyOverviewContent({
             applicationNo: appNo,
             allDocsVerify: apiData.areAllDocsVerified ?? false,
             cityTown:
-              apiData.corporateStructure?.registeredOffice?.locality || "-",
+              apiData.city || apiData.corporateStructure?.registeredOffice?.locality || "-",
             district:
-              apiData.corporateStructure?.registeredOffice?.district || "-",
+              apiData.district || apiData.corporateStructure?.registeredOffice?.district || "-",
             pincode:
-              apiData.corporateStructure?.registeredOffice?.pincode || "-",
-            state: apiData.corporateStructure?.registeredOffice?.state || "-",
+              apiData.pincode || apiData.corporateStructure?.registeredOffice?.pincode || "-",
+            state: apiData.registrationState || apiData.corporateStructure?.registeredOffice?.state || "-",
             policeStationJurisdiction:
               apiData.corporateStructure?.registeredOffice
                 ?.policeStationJurisdiction || "-",
@@ -178,6 +181,10 @@ export default function CompanyOverviewContent({
           <InfoField label="District" value={companyData.district} />
           <InfoField label="Pincode" value={companyData.pincode} />
           <InfoField label="State" value={companyData.state} />
+          <InfoField
+            label="Registration Type"
+            value={registrationType === "addon_only" ? "Add-on Only (Standalone)" : "Full Incorporation"}
+          />
           <InfoField
             label="Jurisdiction of Police station"
             value={companyData.policeStationJurisdiction}

@@ -27,6 +27,7 @@ const areaBadgeColors: Record<string, string> = {
   "Director & Shareholders": "bg-violet-100 text-violet-900",
   "Document Upload": "bg-emerald-100 text-emerald-900",
   "Registration Documents": "bg-rose-100 text-rose-900",
+  "GST Registration Addon": "bg-indigo-100 text-indigo-900",
 };
 
 const formatCommentDate = (value: string) =>
@@ -40,7 +41,7 @@ const formatCommentDate = (value: string) =>
 
 export default function CommentsContent({ appNo }: CommentsContentProps) {
   const { requireEdit } = useClientTabEdit("comments");
-  const { companyType } = useClientCompanyLabels();
+  const { companyType, isAddonOnly } = useClientCompanyLabels();
 
   const [comments, setComments] = useState<GlobalCommentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +49,7 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
   const [selectedAreaFilter, setSelectedAreaFilter] = useState<string>("all");
   const [newArea, setNewArea] = useState<GlobalCommentArea>("Name Application");
   const [newMessage, setNewMessage] = useState("");
+
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -165,13 +167,24 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
           <select
             value={newArea}
             onChange={(e) => setNewArea(e.target.value as GlobalCommentArea)}
-            className="w-full max-w-md rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-primary"
+            className="w-full max-w-md rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-primary bg-white"
           >
-            {GLOBAL_COMMENT_AREAS.map((area) => (
-              <option key={area} value={area}>
-                {getCommentAreaDisplayLabel(area, companyType)}
-              </option>
-            ))}
+            <>
+              {!isAddonOnly && <optgroup label="Incorporation Services">
+                {GLOBAL_COMMENT_AREAS.filter(area => area !== "GST Registration Addon").map((area) => (
+                  <option key={area} value={area}>
+                    {getCommentAreaDisplayLabel(area, companyType)}
+                  </option>
+                ))}
+              </optgroup>}
+              <optgroup label="Add-on Services">
+                {GLOBAL_COMMENT_AREAS.filter(area => area === "GST Registration Addon").map((area) => (
+                  <option key={area} value={area}>
+                    {getCommentAreaDisplayLabel(area, companyType)}
+                  </option>
+                ))}
+              </optgroup>
+            </>
           </select>
         </div>
 
@@ -271,14 +284,23 @@ export default function CommentsContent({ appNo }: CommentsContentProps) {
           <select
             value={selectedAreaFilter}
             onChange={(e) => setSelectedAreaFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-primary"
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-primary bg-white"
           >
             <option value="all">All Areas</option>
-            {GLOBAL_COMMENT_AREAS.map((area) => (
-              <option key={area} value={area}>
-                {getCommentAreaDisplayLabel(area, companyType)}
-              </option>
-            ))}
+            <optgroup label="Incorporation Services">
+              {GLOBAL_COMMENT_AREAS.filter(area => area !== "GST Registration Addon").map((area) => (
+                <option key={area} value={area}>
+                  {getCommentAreaDisplayLabel(area, companyType)}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Add-on Services">
+              {GLOBAL_COMMENT_AREAS.filter(area => area === "GST Registration Addon").map((area) => (
+                <option key={area} value={area}>
+                  {getCommentAreaDisplayLabel(area, companyType)}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </div>
 

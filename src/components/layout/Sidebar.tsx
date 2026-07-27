@@ -27,6 +27,8 @@ import {
   UserRoundX,
   Calculator,
   CreditCard,
+  Puzzle,
+  Receipt,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
@@ -308,6 +310,25 @@ export default function Sidebar() {
             />
           )}
 
+          {showClients && <Divider />}
+
+          {showClients && (
+            <SidebarSection
+              title="Add-on Services"
+              icon={<Puzzle size={18} />}
+              active={pathname.startsWith("/addon-services")}
+              collapsed={effectiveCollapsed}
+            >
+              <SubItem
+                label="GST Registration"
+                href="/addon-services/gst-registration"
+                icon={<Receipt size={15} />}
+                active={pathname === "/addon-services/gst-registration"}
+                collapsed={effectiveCollapsed}
+              />
+            </SidebarSection>
+          )}
+
           {(showMarketing || showNewsletter) && <Divider />}
 
           {(showMarketing || showNewsletter) && (
@@ -346,25 +367,6 @@ export default function Sidebar() {
               )}
             </SidebarSection>
           )}
-
-          {/* {showAccounting && <Divider />}
-
-          {showAccounting && (
-            <SidebarSection
-              title="Accounting"
-              icon={<Calculator size={18} />}
-              active={pathname.startsWith("/accounting")}
-              collapsed={effectiveCollapsed}
-            >
-              <SubItem
-                label="Razorpay"
-                href="/accounting/razorpay"
-                icon={<CreditCard size={15} />}
-                active={pathname === "/accounting/razorpay"}
-                collapsed={effectiveCollapsed}
-              />
-            </SidebarSection>
-          )} */}
 
           {showDocuments && <Divider />}
 
@@ -418,6 +420,25 @@ export default function Sidebar() {
                   badge={openTickets}
                 />
               )}
+            </SidebarSection>
+          )}
+
+          {showAccounting && <Divider />}
+
+          {showAccounting && (
+            <SidebarSection
+              title="Accounting"
+              icon={<Calculator size={18} />}
+              active={pathname.startsWith("/accounting")}
+              collapsed={effectiveCollapsed}
+            >
+              <SubItem
+                label="Razorpay"
+                href="/accounting/razorpay"
+                icon={<CreditCard size={15} />}
+                active={pathname === "/accounting/razorpay"}
+                collapsed={effectiveCollapsed}
+              />
             </SidebarSection>
           )}
         </nav>
@@ -493,9 +514,7 @@ function SidebarTooltip({
 
   const content = (
     <>
-      <span
-        className={clsx("shrink-0", active ? "opacity-100" : "opacity-70")}
-      >
+      <span className={clsx("shrink-0", active ? "opacity-100" : "opacity-70")}>
         {icon}
       </span>
       <div className="overflow-hidden">

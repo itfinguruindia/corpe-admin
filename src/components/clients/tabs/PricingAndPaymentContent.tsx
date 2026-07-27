@@ -18,6 +18,7 @@ import { formatCurrency } from "@/utils/helpers";
 import useSwal from "@/utils/useSwal";
 import { Card, Spinner } from "@heroui/react";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 
 interface PricingAndPaymentContentProps {
   appNo: string;
@@ -28,6 +29,7 @@ export default function PricingAndPaymentContent({
 }: PricingAndPaymentContentProps) {
   const swal = useSwal();
   const { requireEdit, canEdit } = useClientTabEdit("pricing");
+  const { isAddonOnly } = useClientCompanyLabels();
   const [pricingData, setPricingData] = useState<PricingPayment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [includeGST, setIncludeGST] = useState(false);
@@ -226,6 +228,7 @@ export default function PricingAndPaymentContent({
       discount: summary.discountAmount,
       paymentSteps,
       currency: summary.currency || "INR",
+      addons: (data as any).addons || [],
     };
   };
 
@@ -294,369 +297,241 @@ export default function PricingAndPaymentContent({
 
         {/* Pricing Details */}
         <div className="space-y-0">
-          <InfoField label="Entity Type" value={pricingData.entityType} />
-          <InfoField label="Company Name" value={pricingData.companyName} />
-          <InfoField label="Plan" value={pricingData.plan} />
-          <InfoField label="Package Type" value={pricingData.packageType} />
+          {!isAddonOnly && (
+            <>
+              <InfoField label="Entity Type" value={pricingData.entityType} />
+              <InfoField label="Company Name" value={pricingData.companyName} />
+              <InfoField label="Plan" value={pricingData.plan} />
+              <InfoField label="Package Type" value={pricingData.packageType} />
 
-          {/* Status as Chip */}
-          <div className="flex items-center justify-between border-b border-[#F9A826] py-4 max-w-xl">
-            <label className="text-sm font-semibold text-gray-900">
-              Status
-            </label>
-            <Chip
-              label={pricingData.status}
-              variant={getStatusVariant(pricingData.status)}
-            />
-          </div>
-          <InfoField
-            label="Base Service Fee"
-            value={formatCurrency(
-              pricingData.baseServiceFee,
-              pricingData.currency,
-            )}
-          />
-          <InfoField
-            label="Discount"
-            value={formatCurrency(
-              pricingData.discount || 0,
-              pricingData.currency,
-            )}
-            sublabel="(If any discount applied)"
-            sublabelColor="text-blue-500"
-          />
-          <InfoField
-            label="Total Payable"
-            value={formatCurrency(
-              pricingData.totalPayable,
-              pricingData.currency,
-            )}
-          />
-          <InfoField
-            label="GST"
-            value={formatCurrency(pricingData.gst, pricingData.currency)}
-            sublabel={`(${((pricingData.gst / (pricingData.totalPayable || 1)) * 100).toFixed(0)}% of Total payable fee)`}
-            sublabelColor="text-gray-500"
-          />
-          <InfoField
-            label="Paid"
-            value={formatCurrency(pricingData.paid, pricingData.currency)}
-            sublabel="(Amount already paid)"
-            sublabelColor="text-green-600"
-          />
-          <InfoField
-            label="Remaining Balance"
-            value={formatCurrency(
-              pricingData.remainingBalance,
-              pricingData.currency,
-            )}
-            sublabel="(Remaining amount)"
-            sublabelColor="text-red-500"
-          />
-          {/* Final Payable Amount with Lock Button */}
-          <div className="border-b border-[#F9A826] py-4 max-w-xl">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex flex-col gap-3 min-w-11">
+              {/* Status as Chip */}
+              <div className="flex items-center justify-between border-b border-[#F9A826] py-4 max-w-xl">
                 <label className="text-sm font-semibold text-gray-900">
-                  Final Payable Amount
+                  Status
                 </label>
-                <Switch
-                  label="Include GST"
-                  checked={includeGST}
-                  onChange={setIncludeGST}
+                <Chip
+                  label={pricingData.status}
+                  variant={getStatusVariant(pricingData.status)}
                 />
               </div>
-              <p className="text-base text-gray-700 font-bold">
-                {formatCurrency(
-                  includeGST
-                    ? (pricingData.finalPayableWithGST ??
-                        pricingData.finalPaidAmount)
-                    : pricingData.finalPaidAmount,
+              <InfoField
+                label="Base Service Fee"
+                value={formatCurrency(
+                  pricingData.baseServiceFee,
                   pricingData.currency,
                 )}
-              </p>
-            </div>
-            <div className="flex justify-end mt-4">
-              <button
-                className={`flex items-center gap-2 px-6 py-2 rounded-md font-medium transition-all ${
-                  pricingData.isLocked
-                    ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-[#F46A45] text-white hover:bg-[#e55a35]"
-                }`}
-                disabled={pricingData.isLocked}
-              >
-                <Lock size={16} />
-                {pricingData.isLocked ? "Locked" : "Lock Payment"}
-              </button>
-            </div>
-          </div>
-          {/* Payment Steps Table */}
-          {pricingData.paymentSteps && pricingData.paymentSteps.length > 0 && (
-            <div className="mt-8">
-              <h3 className="text-xl font-semibold mb-4 text-secondary">
-                {pricingData.packageType === "Full Payment"
-                  ? "Full Payment Steps"
-                  : "Installment Payment Steps"}
-              </h3>
-              <div className="overflow-x-auto overflow-visible">
-                <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Step
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 min-w-[240px]">
-                        Installment Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Amount
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Trigger Gate
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Effects
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Action
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Invoice
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Payment Alert
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
-                        Payment Mode
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pricingData.paymentSteps.map((step, index) => (
-                      <tr
-                        key={step.step}
-                        className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                      >
-                        <td className="px-4 py-3 text-sm text-gray-700">
-                          {step.step}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 min-w-[240px]">
-                          <div className="font-medium text-gray-900">
-                            {step.installmentName}
-                          </div>
-                          {step.breakdown && step.stepNumber !== 7 && (
-                            <div className="text-xs text-gray-500 mt-2 flex flex-col gap-1 bg-gray-50 p-2.5 rounded border border-gray-100 max-w-xs shadow-sm">
-                              {/* DIN Activation Fee Breakdown */}
-                              {typeof step.breakdown.dinCount === "number" && (
-                                <>
-                                  <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">
-                                      DIN Activation Rate:
-                                    </span>
-                                    <span className="font-semibold text-gray-700">
-                                      {formatCurrency(
-                                        step.breakdown.dinRate || 0,
-                                        pricingData.currency,
-                                      )}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">
-                                      Directors Count:
-                                    </span>
-                                    <span className="font-semibold text-gray-700">
-                                      {step.breakdown.dinCount}
-                                    </span>
-                                  </div>
-                                  {(step.breakdown as any).dinDirectors
-                                    ?.length > 0 && (
-                                    <div className="flex flex-col gap-0.5 border-t border-gray-100 pt-1 mt-0.5">
-                                      {(step.breakdown as any).dinDirectors.map(
-                                        (dir: any, di: number) => (
-                                          <div
-                                            key={di}
-                                            className="flex justify-between gap-4 text-[10px] text-gray-400"
-                                          >
-                                            <span>{dir.name}:</span>
-                                            <span>
-                                              {formatCurrency(
-                                                (step.breakdown as any)
-                                                  .dinRate || 0,
-                                                pricingData.currency,
-                                              )}
-                                            </span>
-                                          </div>
-                                        ),
-                                      )}
-                                    </div>
-                                  )}
-                                  {(step.breakdown as any).paidDinDirectors
-                                    ?.length > 0 && (
-                                    <div className="flex flex-col gap-0.5 border-t border-gray-100 pt-1 mt-0.5 text-green-600">
-                                      <div className="text-[10px] font-medium text-green-700 mb-0.5">
-                                        Previously Paid:
-                                      </div>
-                                      {(
-                                        step.breakdown as any
-                                      ).paidDinDirectors.map(
-                                        (dir: any, di: number) => (
-                                          <div
-                                            key={di}
-                                            className="flex justify-between gap-4 text-[10px]"
-                                          >
-                                            <span>{dir.name}:</span>
-                                            <span>
-                                              ✓{" "}
-                                              {formatCurrency(
-                                                (step.breakdown as any)
-                                                  .dinRate || 0,
-                                                pricingData.currency,
-                                              )}
-                                            </span>
-                                          </div>
-                                        ),
-                                      )}
-                                    </div>
-                                  )}
-                                  <div className="border-t border-gray-200 my-1"></div>
-                                  <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
-                                    <span>Total Activation Fee:</span>
-                                    <span>
-                                      {formatCurrency(
-                                        (step.breakdown as any).dinTotal || 0,
-                                        pricingData.currency,
-                                      )}
-                                    </span>
-                                  </div>
-                                  {typeof (step.breakdown as any)
-                                    .totalPaidSoFar === "number" &&
-                                    (step.breakdown as any).totalPaidSoFar >
-                                      0 && (
-                                      <div className="flex justify-between gap-4 text-green-700 text-[11px] font-medium mt-0.5">
-                                        <span>Total Paid So Far:</span>
-                                        <span>
-                                          {formatCurrency(
-                                            (step.breakdown as any)
-                                              .totalPaidSoFar,
-                                            pricingData.currency,
-                                          )}
-                                        </span>
-                                      </div>
-                                    )}
-                                </>
-                              )}
-                              {/* Regular Installments / Surcharges / Breakdown (excl. DIN & Stage 7) */}
-                              {typeof step.breakdown.dinCount !== "number" &&
-                                step.stepNumber !== 7 && (
-                                  <>
-                                  {/* Installment Base */}
-                                  {typeof step.breakdown.installmentBase ===
-                                    "number" &&
-                                    step.breakdown.installmentBase > 0 && (
-                                      <div className="flex justify-between gap-4">
-                                        <span className="text-gray-500">
-                                          Installment Base:
-                                        </span>
-                                        <span className="font-semibold text-gray-700">
-                                          {formatCurrency(
-                                            step.breakdown.installmentBase,
-                                            pricingData.currency,
-                                          )}
-                                        </span>
-                                      </div>
-                                    )}
-
-                                  {/* Extra Directors */}
-                                  {typeof step.breakdown.indianCount ===
-                                    "number" &&
-                                    step.breakdown.indianCount > 0 && (
-                                      <div className="flex justify-between gap-4">
-                                        <span className="text-gray-500">
-                                          Extra Directors (Indian) (
-                                          {step.breakdown.indianCount}):
-                                        </span>
-                                        <span className="font-semibold text-gray-700">
-                                          +
-                                          {formatCurrency(
-                                            step.breakdown.indianCount *
-                                              (step.breakdown.indianRate || 0),
-                                            pricingData.currency,
-                                          )}
-                                        </span>
-                                      </div>
-                                    )}
-
-                                  {typeof step.breakdown.foreignCount ===
-                                    "number" &&
-                                    step.breakdown.foreignCount > 0 && (
-                                      <div className="flex justify-between gap-4">
-                                        <span className="text-gray-500">
-                                          Extra Directors (Foreign) (
-                                          {step.breakdown.foreignCount}):
-                                        </span>
-                                        <span className="font-semibold text-gray-700">
-                                          +
-                                          {formatCurrency(
-                                            step.breakdown.foreignCount *
-                                              (step.breakdown.foreignRate || 0),
-                                            pricingData.currency,
-                                          )}
-                                        </span>
-                                      </div>
-                                    )}
-
-                                  {/* Non-Shareholders */}
-                                  {typeof step.breakdown.nonShareholderCount ===
-                                    "number" &&
-                                    step.breakdown.nonShareholderCount > 0 && (
-                                      <div className="flex justify-between gap-4">
-                                        <span className="text-gray-500">
-                                          Non-Shareholder Directors (
-                                          {step.breakdown.nonShareholderCount}):
-                                        </span>
-                                        <span className="font-semibold text-gray-700">
-                                          +
-                                          {formatCurrency(
-                                            step.breakdown.nonShareholderCount *
-                                              (step.breakdown
-                                                .nonShareholderRate || 0),
-                                            pricingData.currency,
-                                          )}
-                                        </span>
-                                      </div>
-                                    )}
-
-                                  {/* GST details */}
-                                  {typeof step.breakdown.gstAmount ===
-                                    "number" &&
-                                    step.breakdown.gstAmount > 0 && (
-                                      <div className="flex justify-between gap-4">
-                                        <span className="text-gray-500">
-                                          GST ({step.breakdown.gstPercentage}%):
-                                        </span>
-                                        <span className="font-semibold text-gray-700">
-                                          +
-                                          {formatCurrency(
-                                            step.breakdown.gstAmount,
-                                            pricingData.currency,
-                                          )}
-                                        </span>
-                                      </div>
-                                    )}
-
-                                  {/* Total */}
-                                  {typeof step.breakdown.installmentTotal ===
-                                    "number" && (
+              />
+              <InfoField
+                label="Discount"
+                value={formatCurrency(
+                  pricingData.discount || 0,
+                  pricingData.currency,
+                )}
+                sublabel="(If any discount applied)"
+                sublabelColor="text-blue-500"
+              />
+              <InfoField
+                label="Total Payable"
+                value={formatCurrency(
+                  pricingData.totalPayable,
+                  pricingData.currency,
+                )}
+              />
+              <InfoField
+                label="GST"
+                value={formatCurrency(pricingData.gst, pricingData.currency)}
+                sublabel={`(${((pricingData.gst / (pricingData.totalPayable || 1)) * 100).toFixed(0)}% of Total payable fee)`}
+                sublabelColor="text-gray-500"
+              />
+              <InfoField
+                label="Paid"
+                value={formatCurrency(pricingData.paid, pricingData.currency)}
+                sublabel="(Amount already paid)"
+                sublabelColor="text-green-600"
+              />
+              <InfoField
+                label="Remaining Balance"
+                value={formatCurrency(
+                  pricingData.remainingBalance,
+                  pricingData.currency,
+                )}
+                sublabel="(Remaining amount)"
+                sublabelColor="text-red-500"
+              />
+              {/* Final Payable Amount with Lock Button */}
+              <div className="border-b border-[#F9A826] py-4 max-w-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col gap-3 min-w-11">
+                    <label className="text-sm font-semibold text-gray-900">
+                      Final Payable Amount
+                    </label>
+                    <Switch
+                      label="Include GST"
+                      checked={includeGST}
+                      onChange={setIncludeGST}
+                    />
+                  </div>
+                  <p className="text-base text-gray-700 font-bold">
+                    {formatCurrency(
+                      includeGST
+                        ? (pricingData.finalPayableWithGST ??
+                            pricingData.finalPaidAmount)
+                        : pricingData.finalPaidAmount,
+                      pricingData.currency,
+                    )}
+                  </p>
+                </div>
+                <div className="flex justify-end mt-4">
+                  <button
+                    className={`flex items-center gap-2 px-6 py-2 rounded-md font-medium transition-all ${
+                      pricingData.isLocked
+                        ? "bg-gray-400 text-white cursor-not-allowed"
+                        : "bg-[#F46A45] text-white hover:bg-[#e55a35]"
+                    }`}
+                    disabled={pricingData.isLocked}
+                  >
+                    <Lock size={16} />
+                    {pricingData.isLocked ? "Locked" : "Lock Payment"}
+                  </button>
+                </div>
+              </div>
+              {/* Payment Steps Table */}
+              {pricingData.paymentSteps && pricingData.paymentSteps.length > 0 && (
+                <div className="mt-8">
+                  <h3 className="text-xl font-semibold mb-4 text-secondary">
+                    {pricingData.packageType === "Full Payment"
+                      ? "Full Payment Steps"
+                      : "Installment Payment Steps"}
+                  </h3>
+                  <div className="overflow-x-auto overflow-visible">
+                    <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Step
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 min-w-[240px]">
+                            Installment Name
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Amount
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Trigger Gate
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Effects
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Status
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Action
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Invoice
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Payment Alert
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                            Payment Mode
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pricingData.paymentSteps.map((step, index) => (
+                          <tr
+                            key={step.step}
+                            className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                          >
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              {step.step}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700 min-w-[240px]">
+                              <div className="font-medium text-gray-900">
+                                {step.installmentName}
+                              </div>
+                              {step.breakdown && step.stepNumber !== 7 && (
+                                <div className="text-xs text-gray-500 mt-2 flex flex-col gap-1 bg-gray-50 p-2.5 rounded border border-gray-100 max-w-xs shadow-sm">
+                                  {/* DIN Activation Fee Breakdown */}
+                                  {typeof step.breakdown.dinCount === "number" && (
                                     <>
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-gray-500">
+                                          DIN Activation Rate:
+                                        </span>
+                                        <span className="font-semibold text-gray-700">
+                                          {formatCurrency(
+                                            step.breakdown.dinRate || 0,
+                                            pricingData.currency,
+                                          )}
+                                        </span>
+                                      </div>
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-gray-500">
+                                          Directors Count:
+                                        </span>
+                                        <span className="font-semibold text-gray-700">
+                                          {step.breakdown.dinCount}
+                                        </span>
+                                      </div>
+                                      {(step.breakdown as any).dinDirectors
+                                        ?.length > 0 && (
+                                        <div className="flex flex-col gap-0.5 border-t border-gray-100 pt-1 mt-0.5">
+                                          {(step.breakdown as any).dinDirectors.map(
+                                            (dir: any, di: number) => (
+                                              <div
+                                                key={di}
+                                                className="flex justify-between gap-4 text-[10px] text-gray-400"
+                                              >
+                                                <span>{dir.name}:</span>
+                                                <span>
+                                                  {formatCurrency(
+                                                    (step.breakdown as any)
+                                                      .dinRate || 0,
+                                                    pricingData.currency,
+                                                  )}
+                                                </span>
+                                              </div>
+                                            ),
+                                          )}
+                                        </div>
+                                      )}
+                                      {(step.breakdown as any).paidDinDirectors
+                                        ?.length > 0 && (
+                                        <div className="flex flex-col gap-0.5 border-t border-gray-100 pt-1 mt-0.5 text-green-600">
+                                          <div className="text-[10px] font-medium text-green-700 mb-0.5">
+                                            Previously Paid:
+                                          </div>
+                                          {(
+                                            step.breakdown as any
+                                          ).paidDinDirectors.map(
+                                            (dir: any, di: number) => (
+                                              <div
+                                                key={di}
+                                                className="flex justify-between gap-4 text-[10px]"
+                                              >
+                                                <span>{dir.name}:</span>
+                                                <span>
+                                                  ✓{" "}
+                                                  {formatCurrency(
+                                                    (step.breakdown as any)
+                                                      .dinRate || 0,
+                                                    pricingData.currency,
+                                                  )}
+                                                </span>
+                                              </div>
+                                            ),
+                                          )}
+                                        </div>
+                                      )}
                                       <div className="border-t border-gray-200 my-1"></div>
                                       <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
-                                        <span>Total:</span>
+                                        <span>Total Activation Fee:</span>
                                         <span>
                                           {formatCurrency(
-                                            step.breakdown.installmentTotal,
+                                            (step.breakdown as any).dinTotal || 0,
                                             pricingData.currency,
                                           )}
                                         </span>
@@ -678,221 +553,464 @@ export default function PricingAndPaymentContent({
                                         )}
                                     </>
                                   )}
-                                </>
+                                  {/* Regular Installments / Surcharges / Breakdown (excl. DIN & Stage 7) */}
+                                  {typeof step.breakdown.dinCount !== "number" &&
+                                    step.stepNumber !== 7 && (
+                                      <>
+                                      {/* Installment Base */}
+                                      {typeof step.breakdown.installmentBase ===
+                                        "number" &&
+                                        step.breakdown.installmentBase > 0 && (
+                                          <div className="flex justify-between gap-4">
+                                            <span className="text-gray-500">
+                                              Installment Base:
+                                            </span>
+                                            <span className="font-semibold text-gray-700">
+                                              {formatCurrency(
+                                                step.breakdown.installmentBase,
+                                                pricingData.currency,
+                                              )}
+                                            </span>
+                                          </div>
+                                        )}
+
+                                      {/* Extra Directors */}
+                                      {typeof step.breakdown.indianCount ===
+                                        "number" &&
+                                        step.breakdown.indianCount > 0 && (
+                                          <div className="flex justify-between gap-4">
+                                            <span className="text-gray-500">
+                                              Extra Directors (Indian) (
+                                              {step.breakdown.indianCount}):
+                                            </span>
+                                            <span className="font-semibold text-gray-700">
+                                              +
+                                              {formatCurrency(
+                                                step.breakdown.indianCount *
+                                                  (step.breakdown.indianRate || 0),
+                                                pricingData.currency,
+                                              )}
+                                            </span>
+                                          </div>
+                                        )}
+
+                                      {typeof step.breakdown.foreignCount ===
+                                        "number" &&
+                                        step.breakdown.foreignCount > 0 && (
+                                          <div className="flex justify-between gap-4">
+                                            <span className="text-gray-500">
+                                              Extra Directors (Foreign) (
+                                              {step.breakdown.foreignCount}):
+                                            </span>
+                                            <span className="font-semibold text-gray-700">
+                                              +
+                                              {formatCurrency(
+                                                step.breakdown.foreignCount *
+                                                  (step.breakdown.foreignRate || 0),
+                                                pricingData.currency,
+                                              )}
+                                            </span>
+                                          </div>
+                                        )}
+
+                                      {/* Non-Shareholders */}
+                                      {typeof step.breakdown.nonShareholderCount ===
+                                        "number" &&
+                                        step.breakdown.nonShareholderCount > 0 && (
+                                          <div className="flex justify-between gap-4">
+                                            <span className="text-gray-500">
+                                              Non-Shareholder Directors (
+                                              {step.breakdown.nonShareholderCount}):
+                                            </span>
+                                            <span className="font-semibold text-gray-700">
+                                              +
+                                              {formatCurrency(
+                                                step.breakdown.nonShareholderCount *
+                                                  (step.breakdown
+                                                    .nonShareholderRate || 0),
+                                                pricingData.currency,
+                                              )}
+                                            </span>
+                                          </div>
+                                        )}
+
+                                      {/* GST details */}
+                                      {typeof step.breakdown.gstAmount ===
+                                        "number" &&
+                                        step.breakdown.gstAmount > 0 && (
+                                          <div className="flex justify-between gap-4">
+                                            <span className="text-gray-500">
+                                              GST ({step.breakdown.gstPercentage}%):
+                                            </span>
+                                            <span className="font-semibold text-gray-700">
+                                              +
+                                              {formatCurrency(
+                                                step.breakdown.gstAmount,
+                                                pricingData.currency,
+                                              )}
+                                            </span>
+                                          </div>
+                                        )}
+
+                                      {/* Total */}
+                                      {typeof step.breakdown.installmentTotal ===
+                                        "number" && (
+                                        <>
+                                          <div className="border-t border-gray-200 my-1"></div>
+                                          <div className="flex justify-between gap-4 font-semibold text-gray-900 text-[11px]">
+                                            <span>Total:</span>
+                                            <span>
+                                              {formatCurrency(
+                                                step.breakdown.installmentTotal,
+                                                pricingData.currency,
+                                              )}
+                                            </span>
+                                          </div>
+                                          {typeof (step.breakdown as any)
+                                            .totalPaidSoFar === "number" &&
+                                            (step.breakdown as any).totalPaidSoFar >
+                                              0 && (
+                                              <div className="flex justify-between gap-4 text-green-700 text-[11px] font-medium mt-0.5">
+                                                <span>Total Paid So Far:</span>
+                                                <span>
+                                                  {formatCurrency(
+                                                    (step.breakdown as any)
+                                                      .totalPaidSoFar,
+                                                    pricingData.currency,
+                                                  )}
+                                                </span>
+                                              </div>
+                                            )}
+                                        </>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
                               )}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
-                          {formatCurrency(
-                            getDisplayAmount(step),
-                            pricingData.currency,
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
-                          {step.triggerGate}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
-                          {step.effects}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <Chip
-                            label={step.status}
-                            variant={
-                              step.status === "Paid"
-                                ? "green"
-                                : step.status === "Pending"
-                                  ? "yellow"
-                                  : step.status === "Overdue"
-                                    ? "red"
-                                    : "blue"
-                            }
-                          />
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {[
-                            "Send Payment Link",
-                            "Resend Payment Link",
-                          ].includes(step.action) ? (
-                            canEdit ? (
-                            <div className="flex flex-col gap-1 items-start">
-                              <button
-                                disabled={
-                                  step.stepNumber === 7 &&
-                                  step._isActiveAttempt === false
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              {formatCurrency(
+                                getDisplayAmount(step),
+                                pricingData.currency,
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              {step.triggerGate}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              {step.effects}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <Chip
+                                label={step.status}
+                                variant={
+                                  step.status === "Paid"
+                                    ? "green"
+                                    : step.status === "Pending"
+                                      ? "yellow"
+                                      : step.status === "Overdue"
+                                        ? "red"
+                                        : "blue"
                                 }
-                                className={`px-4 py-1.5 text-sm rounded-md transition-colors font-medium ${
-                                  step.stepNumber === 7 &&
-                                  step._isActiveAttempt === false
-                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                    : step.action === "Resend Payment Link"
-                                      ? "bg-gray-600 hover:bg-gray-700 text-white cursor-pointer"
-                                      : "bg-[#F46A45] hover:bg-[#e55a35] text-white cursor-pointer"
-                                }`}
-                                onClick={async () => {
-                                  if (!requireEdit()) return;
-                                  if (step.stepNumber === 7) {
-                                    setSelectedStep(step);
-                                    setPaymentLinkReason(
-                                      "Your MCA name reservation is expiring. This extension holds your proposed name while we complete registration.",
-                                    );
-                                    setNotificationType("email_sms");
-                                    setIsPaymentLinkModalOpen(true);
-                                    return;
-                                  }
-
-                                  try {
-                                    const actionLabel =
-                                      step.action === "Resend Payment Link"
-                                        ? "Resend"
-                                        : "Send";
-                                    const confirmed = await swal({
-                                      title: `${actionLabel} Payment Link?`,
-                                      text: `Are you sure you want to ${actionLabel.toLowerCase()} the payment link for Step ${step.step}?`,
-                                      icon: "question",
-                                      showCancelButton: true,
-                                      confirmButtonText: `Yes, ${actionLabel}`,
-                                    });
-                                    if (!confirmed.isConfirmed) return;
-
-                                    const success =
-                                      await pricingPaymentService.sendPaymentLink(
-                                        appNo,
-                                        step.stepNumber,
-                                      );
-
-                                    if (success) {
-                                      await swal({
-                                        title: "Sent!",
-                                        text: "Payment link has been successfully marked as sent.",
-                                        icon: "success",
-                                      });
-                                      // Refresh pricing data
-                                      const data =
-                                        await pricingPaymentService.getPricingAndPayment(
-                                          appNo,
-                                        );
-                                      if (data) {
-                                        setPricingData(
-                                          mapBackendToFrontend(data),
-                                        );
-                                      }
-                                    } else {
-                                      await swal({
-                                        title: "Error",
-                                        text: "Failed to send payment link.",
-                                        icon: "error",
-                                      });
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {[
+                                "Send Payment Link",
+                                "Resend Payment Link",
+                              ].includes(step.action) ? (
+                                canEdit ? (
+                                <div className="flex flex-col gap-1 items-start">
+                                  <button
+                                    disabled={
+                                      step.stepNumber === 7 &&
+                                      step._isActiveAttempt === false
                                     }
-                                  } catch (error) {
-                                    console.error(error);
-                                  }
-                                }}
-                              >
-                                {step.action}
-                              </button>
-                              {step.paymentLinkSentAt && (
-                                <span className="text-[10px] text-gray-400 font-medium">
-                                  Sent:{" "}
-                                  {new Date(
-                                    step.paymentLinkSentAt,
-                                  ).toLocaleDateString()}
-                                </span>
+                                    className={`px-4 py-1.5 text-sm rounded-md transition-colors font-medium ${
+                                      step.stepNumber === 7 &&
+                                      step._isActiveAttempt === false
+                                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                        : step.action === "Resend Payment Link"
+                                          ? "bg-gray-600 hover:bg-gray-700 text-white cursor-pointer"
+                                          : "bg-[#F46A45] hover:bg-[#e55a35] text-white cursor-pointer"
+                                    }`}
+                                    onClick={async () => {
+                                      if (!requireEdit()) return;
+                                      if (step.stepNumber === 7) {
+                                        setSelectedStep(step);
+                                        setPaymentLinkReason(
+                                          "Your MCA name reservation is expiring. This extension holds your proposed name while we complete registration.",
+                                        );
+                                        setNotificationType("email_sms");
+                                        setIsPaymentLinkModalOpen(true);
+                                        return;
+                                      }
+
+                                      try {
+                                        const actionLabel =
+                                          step.action === "Resend Payment Link"
+                                            ? "Resend"
+                                            : "Send";
+                                        const confirmed = await swal({
+                                          title: `${actionLabel} Payment Link?`,
+                                          text: `Are you sure you want to ${actionLabel.toLowerCase()} the payment link for Step ${step.step}?`,
+                                          icon: "question",
+                                          showCancelButton: true,
+                                          confirmButtonText: `Yes, ${actionLabel}`,
+                                        });
+                                        if (!confirmed.isConfirmed) return;
+
+                                        const success =
+                                          await pricingPaymentService.sendPaymentLink(
+                                            appNo,
+                                            step.stepNumber,
+                                          );
+
+                                        if (success) {
+                                          await swal({
+                                            title: "Sent!",
+                                            text: "Payment link has been successfully marked as sent.",
+                                            icon: "success",
+                                          });
+                                          // Refresh pricing data
+                                          const data =
+                                            await pricingPaymentService.getPricingAndPayment(
+                                              appNo,
+                                            );
+                                          if (data) {
+                                            setPricingData(
+                                              mapBackendToFrontend(data),
+                                            );
+                                          }
+                                        } else {
+                                          await swal({
+                                            title: "Error",
+                                            text: "Failed to send payment link.",
+                                            icon: "error",
+                                          });
+                                        }
+                                      } catch (error) {
+                                        console.error(error);
+                                      }
+                                    }}
+                                  >
+                                    {step.action}
+                                  </button>
+                                  {step.paymentLinkSentAt && (
+                                    <span className="text-[10px] text-gray-400 font-medium">
+                                      Sent:{" "}
+                                      {new Date(
+                                        step.paymentLinkSentAt,
+                                      ).toLocaleDateString()}
+                                    </span>
+                                  )}
+                                </div>
+                                ) : (
+                                  <span className="text-gray-500">{step.action}</span>
+                                )
+                              ) : (
+                                <span className="text-gray-700">{step.action}</span>
                               )}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700 relative">
+                              <div className="flex items-center gap-2 relative group">
+                                <span>{step.invoice}</span>
+                                <button
+                                  className="p-1 rounded-full hover:bg-gray-200 focus:outline-none"
+                                  tabIndex={0}
+                                >
+                                  <MoreVertical size={18} color="#888" />
+                                </button>
+                                <div className="absolute right-0 top-8 z-9999 hidden group-focus-within:block group-hover:block bg-white border border-gray-200 rounded shadow-lg min-w-35 py-1">
+                                  <button
+                                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                                    onClick={async () => {
+                                      const result = await swal({
+                                        title:
+                                          step.invoice === "Sent"
+                                            ? "Resend Invoice?"
+                                            : "Send Invoice?",
+                                        text:
+                                          step.invoice === "Sent"
+                                            ? "Are you sure you want to resend this invoice?"
+                                            : "Are you sure you want to send this invoice?",
+                                        icon: "warning",
+                                        showCancelButton: true,
+                                        confirmButtonText:
+                                          step.invoice === "Sent"
+                                            ? "Yes, Resend"
+                                            : "Yes, Send",
+                                      });
+                                      if (result.isConfirmed) {
+                                        // TODO: Send/Resend logic
+                                      }
+                                    }}
+                                  >
+                                    {step.invoice === "Sent" ? "Resend" : "Send"}
+                                  </button>
+                                  <button
+                                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                                    onClick={async () => {
+                                      const result = await swal({
+                                        title: "Review Invoice?",
+                                        text: "Do you want to review this invoice?",
+                                        icon: "info",
+                                        showCancelButton: true,
+                                        confirmButtonText: "Review",
+                                      });
+                                      if (result.isConfirmed) {
+                                        // TODO: Review logic
+                                      }
+                                    }}
+                                  >
+                                    Review
+                                  </button>
+                                  <button
+                                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                                    onClick={async () => {
+                                      const result = await swal({
+                                        title: "Download Invoice?",
+                                        text: "Do you want to download this invoice?",
+                                        icon: "question",
+                                        showCancelButton: true,
+                                        confirmButtonText: "Download",
+                                      });
+                                      if (result.isConfirmed) {
+                                        // TODO: Download logic
+                                      }
+                                    }}
+                                  >
+                                    Download
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              {step.paymentAlert}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              {step.paymentModeCapture}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {/* Add-on Services Payments */}
+          <div className="mt-12 pt-8 border-t border-gray-200">
+            <h3 className="text-xl font-semibold mb-4 text-secondary flex items-center gap-2">
+              Add-on Services Payments
+            </h3>
+            
+            {pricingData.addons && pricingData.addons.length > 0 ? (
+              <div className="space-y-4">
+                {pricingData.addons.map((addon, index) => (
+                  <div
+                    key={addon.orderId || index}
+                    className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 rounded-xl border border-dashed border-blue-300 bg-blue-50/15 p-6 shadow-xs"
+                  >
+                    <div className="flex flex-col gap-1 w-full lg:w-auto">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-[#1E3A6E] text-white">
+                          {addon.serviceDescription || "Add-on Service"}
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1.5 text-sm text-gray-600 mt-2">
+                        <div>
+                          <span className="text-gray-400 font-medium">Order ID:</span>{" "}
+                          <span className="font-mono font-medium text-gray-900">{addon.orderId || "-"}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 font-medium">Payment ID:</span>{" "}
+                          <span className="font-mono font-medium text-gray-900">{addon.paymentId || "-"}</span>
+                        </div>
+                        {addon.paidAt && (
+                          <div className="col-span-1 md:col-span-2 mt-1">
+                            <span className="text-gray-400 font-medium">Paid on:</span>{" "}
+                            <span className="font-medium text-gray-900">
+                              {new Date(addon.paidAt).toLocaleDateString("en-IN", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {addon.breakdown && (
+                        <div className="mt-4 p-4 bg-white rounded-lg border border-slate-200 w-full max-w-lg shadow-2xs">
+                          <h4 className="text-[11px] font-bold text-slate-800 mb-3 uppercase tracking-wider">
+                            Pricing Breakdown
+                          </h4>
+                          <div className="space-y-1.5 text-sm text-slate-700">
+                            <div className="flex justify-between gap-12">
+                              <span className="text-gray-500">GST Registration filing:</span>
+                              <span className="font-semibold">{formatCurrency(addon.breakdown.baseFee, pricingData.currency)}</span>
                             </div>
-                            ) : (
-                              <span className="text-gray-500">{step.action}</span>
-                            )
-                          ) : (
-                            <span className="text-gray-700">{step.action}</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 relative">
-                          <div className="flex items-center gap-2 relative group">
-                            <span>{step.invoice}</span>
-                            <button
-                              className="p-1 rounded-full hover:bg-gray-200 focus:outline-none"
-                              tabIndex={0}
-                            >
-                              <MoreVertical size={18} color="#888" />
-                            </button>
-                            <div className="absolute right-0 top-8 z-9999 hidden group-focus-within:block group-hover:block bg-white border border-gray-200 rounded shadow-lg min-w-35 py-1">
-                              <button
-                                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                                onClick={async () => {
-                                  const result = await swal({
-                                    title:
-                                      step.invoice === "Sent"
-                                        ? "Resend Invoice?"
-                                        : "Send Invoice?",
-                                    text:
-                                      step.invoice === "Sent"
-                                        ? "Are you sure you want to resend this invoice?"
-                                        : "Are you sure you want to send this invoice?",
-                                    icon: "warning",
-                                    showCancelButton: true,
-                                    confirmButtonText:
-                                      step.invoice === "Sent"
-                                        ? "Yes, Resend"
-                                        : "Yes, Send",
-                                  });
-                                  if (result.isConfirmed) {
-                                    // TODO: Send/Resend logic
-                                  }
-                                }}
-                              >
-                                {step.invoice === "Sent" ? "Resend" : "Send"}
-                              </button>
-                              <button
-                                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                                onClick={async () => {
-                                  const result = await swal({
-                                    title: "Review Invoice?",
-                                    text: "Do you want to review this invoice?",
-                                    icon: "info",
-                                    showCancelButton: true,
-                                    confirmButtonText: "Review",
-                                  });
-                                  if (result.isConfirmed) {
-                                    // TODO: Review logic
-                                  }
-                                }}
-                              >
-                                Review
-                              </button>
-                              <button
-                                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                                onClick={async () => {
-                                  const result = await swal({
-                                    title: "Download Invoice?",
-                                    text: "Do you want to download this invoice?",
-                                    icon: "question",
-                                    showCancelButton: true,
-                                    confirmButtonText: "Download",
-                                  });
-                                  if (result.isConfirmed) {
-                                    // TODO: Download logic
-                                  }
-                                }}
-                              >
-                                Download
-                              </button>
+                            {addon.breakdown.pricingDetails?.dscFee > 0 && (
+                              <div className="flex justify-between gap-12">
+                                <span className="text-gray-500">DSC Add-on ({addon.breakdown.pricingDetails.dsc}):</span>
+                                <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails.dscFee, pricingData.currency)}</span>
+                              </div>
+                            )}
+                            {addon.breakdown.pricingDetails?.statesFee > 0 && (
+                              <div className="flex justify-between gap-12">
+                                <span className="text-gray-500">Additional States ({addon.breakdown.pricingDetails.states} count):</span>
+                                <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails.statesFee, pricingData.currency)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between border-t border-slate-100 pt-2 mt-2 font-medium text-slate-900">
+                              <span>Subtotal:</span>
+                              <span>{formatCurrency(
+                                (addon.breakdown.baseFee || 0) + 
+                                (addon.breakdown.pricingDetails?.dscFee || 0) + 
+                                (addon.breakdown.pricingDetails?.statesFee || 0), 
+                                pricingData.currency
+                              )}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-500 text-xs">
+                              <span>GST (18%):</span>
+                              <span>{formatCurrency(addon.breakdown.gstFee, pricingData.currency)}</span>
+                            </div>
+                            <div className="flex justify-between border-t border-slate-200 pt-2 mt-2 font-bold text-blue-700 text-base">
+                              <span>Total Paid:</span>
+                              <span>{formatCurrency(addon.breakdown.amountPaid, pricingData.currency)}</span>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
-                          {step.paymentAlert}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
-                          {step.paymentModeCapture}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col items-start lg:items-end gap-1">
+                      <p className="text-xl font-bold text-[#1E3A6E] mb-0">
+                        {formatCurrency(addon.amount, pricingData.currency)}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-500" />
+                        <span className="text-sm font-semibold text-green-700 capitalize">
+                          Paid (Success)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-dashed border-gray-200 rounded-xl bg-slate-50/50">
+                <p className="text-sm text-gray-500 max-w-sm">
+                  No independent add-on services have been purchased for this client yet.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </Card>
 

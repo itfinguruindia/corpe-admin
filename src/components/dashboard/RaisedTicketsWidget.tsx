@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-import { MessageSquareText, ArrowRight } from "lucide-react";
+import { MessageSquareText, ArrowRight, Eye } from "lucide-react";
 import Link from "next/link";
 import { Skeleton, Tooltip, Chip, Button } from "@heroui/react";
 
@@ -42,6 +42,10 @@ function TicketSkeleton() {
       <div className="ml-auto space-y-2 text-center">
         <Skeleton className="h-3 w-10 rounded-md" />
         <Skeleton className="h-4 w-16 rounded-md" />
+      </div>
+      <div className="shrink-0 space-y-2 flex flex-col items-center pl-2">
+        <Skeleton className="h-3 w-10 rounded-md" />
+        <Skeleton className="h-8 w-8 rounded-lg" />
       </div>
     </div>
   );
@@ -122,12 +126,13 @@ export default function RaisedTicketsWidget() {
             </p>
             <Tooltip>
               <Tooltip.Trigger>
-                <Button
-                  isIconOnly
-                  className="text-primary bg-transparent hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 rounded-lg"
+                <Link
+                  href={`/tickets/${ticket.id}`}
+                  aria-label="View message"
+                  className="inline-flex h-9 w-9 items-center justify-center text-primary bg-transparent hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 rounded-lg"
                 >
                   <MessageSquareText className="h-5 w-5" />
-                </Button>
+                </Link>
               </Tooltip.Trigger>
               <Tooltip.Content>View message</Tooltip.Content>
             </Tooltip>
@@ -159,6 +164,25 @@ export default function RaisedTicketsWidget() {
             >
               {formatTime(ticket.createdOn)}
             </Chip>
+          </div>
+
+          {/* View ticket details */}
+          <div className="shrink-0 flex flex-col items-center pl-2">
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">
+              View
+            </p>
+            <Tooltip>
+              <Tooltip.Trigger>
+                <Link
+                  href={`/tickets/${ticket.id}`}
+                  aria-label={`View ticket ${ticket.applicationNo}`}
+                  className="inline-flex h-9 w-9 items-center justify-center text-secondary bg-transparent hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 rounded-lg"
+                >
+                  <Eye className="h-5 w-5" />
+                </Link>
+              </Tooltip.Trigger>
+              <Tooltip.Content>View ticket details</Tooltip.Content>
+            </Tooltip>
           </div>
         </div>
       ))}
