@@ -62,6 +62,23 @@ export const clientsApi = {
     return response.data.data;
   },
 
+  // Get clients enrolled in a specific addon service
+  getAddonServiceClients: async (
+    addonId: string,
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+  ) => {
+    const params: Record<string, any> = { page, limit };
+    if (search) params.search = search;
+
+    const response = await axiosInstance.get(
+      `/admin/clients/addon-service/${encodeURIComponent(addonId)}`,
+      { params },
+    );
+    return response.data.data;
+  },
+
   // Get lightweight payment status
   getPaymentStatus: async (applicationNo: string) => {
     const response = await axiosInstance.get(
@@ -906,6 +923,90 @@ export const clientsApi = {
     return response.data?.data ?? response.data;
   },
 
+  // Get addon tracking status
+  getAddonTrackingStatus: async (applicationNo: string, addonId: string = "gst-registration") => {
+    const response = await axiosInstance.get(`/admin/addon-tracker/app/${applicationNo}`, {
+      params: { addonId }
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  // Update addon step status
+  updateAddonStepStatus: async (
+    orgId: string,
+    addonId: string,
+    stageId: string,
+    sectionId: string,
+    stepId: string,
+    status: string
+  ) => {
+    const response = await axiosInstance.put(`/admin/addon-tracker/${orgId}/step/status`, {
+      addonId,
+      stageId,
+      sectionId,
+      stepId,
+      status
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  // Add note to addon step
+  addAddonNoteToStep: async (orgId: string, addonId: string, stepId: string, text: string) => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/step/note`, {
+      addonId,
+      stepId,
+      text
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  // Initialize addon tracker
+  initializeAddonTracker: async (orgId: string, addonId: string) => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/initialize`, {
+      addonId
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  // Addon Query Methods
+  getAddonQuery: async (orgId: string, addonId: string = "gst-registration") => {
+    const response = await axiosInstance.get(`/admin/addon-tracker/${orgId}/query`, { params: { addonId } });
+    return response.data?.data ?? response.data;
+  },
+
+  raiseAddonQuery: async (orgId: string, payload: { addonId?: string; stepId: string; queryText: string; needsDocument: boolean; needsTextResponse: boolean }) => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/raise`, payload);
+    return response.data?.data ?? response.data;
+  },
+
+  approveAddonQueryResubmit: async (orgId: string, addonId: string = "gst-registration") => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/approve`, { addonId });
+    return response.data?.data ?? response.data;
+  },
+
+  sendBackAddonQuery: async (orgId: string, note: string, addonId: string = "gst-registration") => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/send-back`, { addonId, note });
+    return response.data?.data ?? response.data;
+  },
+
+  resolveAddonQuery: async (orgId: string, addonId: string = "gst-registration") => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/resolve`, { addonId });
+    return response.data?.data ?? response.data;
+  },
+
+  resetAddonQueryToPending: async (orgId: string, addonId: string = "gst-registration") => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/reset`, { addonId });
+    return response.data?.data ?? response.data;
+  },
+
+  downloadAddonQueryDocument: async (orgId: string, addonId: string = "gst-registration") => {
+    const response = await axiosInstance.get(`/admin/addon-tracker/${orgId}/query/download`, {
+      params: { addonId },
+      responseType: "blob",
+    });
+    return response.data as Blob;
+  },
+
   getGlobalComments: async (applicationNo: string, area?: string) => {
     const response = await axiosInstance.get(
       `/admin/clients/${applicationNo}/global-comments`,
@@ -1138,6 +1239,47 @@ export const clientsApi = {
 
   getArchivedClientDetails: async (orgId: string): Promise<any> => {
     const response = await axiosInstance.get(`/admin/clients/archived/${orgId}`);
+    return response.data?.data ?? response.data;
+  },
+
+  // ── GST Registration (Add-on) ──
+
+  getGstRegistration: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/gst-registration`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  uploadGstAdminDocument: async (
+    applicationNo: string,
+    docType: string,
+    file: File,
+  ) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/gst-registration/upload-admin-doc?docType=${encodeURIComponent(docType)}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  getGstBusinessDocDownloadUrl: (applicationNo: string, docId: string) =>
+    `/admin/clients/${applicationNo}/gst-registration/business-doc/download?docId=${encodeURIComponent(docId)}`,
+
+  getGstMiscDocDownloadUrl: (applicationNo: string, index: number) =>
+    `/admin/clients/${applicationNo}/gst-registration/misc-doc/download?index=${index}`,
+
+  updateGstArn: async (applicationNo: string, arn: string) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/gst-registration/arn`,
+      { arn }
+    );
     return response.data?.data ?? response.data;
   },
 };

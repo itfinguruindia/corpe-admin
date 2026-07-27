@@ -45,6 +45,10 @@ export const filtersToSearchParams = (filters: Filters): URLSearchParams => {
   if (s) params.set("status", s);
   if (e) params.set("entity", e);
   if (d) params.set("date", d);
+  if (filters.registrationType) {
+    const reg = toQueryValue(filters.registrationType);
+    if (reg) params.set("registrationType", reg);
+  }
   if (filters.search) params.set("search", filters.search);
 
   return params;

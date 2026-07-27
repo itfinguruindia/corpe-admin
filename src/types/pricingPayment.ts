@@ -70,4 +70,5 @@ export interface PricingPayment {
   discount?: number;
   paymentSteps: PaymentStep[];
   currency?: string;
+  addons?: any[];
 }

@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { Filters } from "./types";
-import { defaultStatus, defaultEntityType, defaultDateRange, defaultAssignee, defaultAssigner } from "./defaults";
+import { defaultStatus, defaultEntityType, defaultDateRange, defaultRegistrationType, defaultAssignee, defaultAssigner } from "./defaults";
 
 interface ActiveFiltersProps {
   filters: Filters;
@@ -26,6 +26,8 @@ export default function ActiveFilters({ filters, onApply }: ActiveFiltersProps) 
       newFilters.status = { ...filters.status, [key as keyof typeof filters.status]: false };
     } else if (category === "entityType") {
       newFilters.entityType = { ...filters.entityType, [key as keyof typeof filters.entityType]: false };
+    } else if (category === "registrationType" && filters.registrationType) {
+      newFilters.registrationType = { ...filters.registrationType, [key as keyof typeof filters.registrationType]: false };
     } else if (category === "assignee") {
       newFilters.assignee = {
         selected: filters.assignee.selected.filter((u) => u.id !== key),
@@ -43,10 +45,11 @@ export default function ActiveFilters({ filters, onApply }: ActiveFiltersProps) 
     const clearedFilters: Filters = {
       status: { ...defaultStatus },
       entityType: { ...defaultEntityType },
+      registrationType: { ...defaultRegistrationType },
       dateRange: { ...defaultDateRange },
       assignee: { ...defaultAssignee },
       assigner: { ...defaultAssigner },
-      search: filters.search, // Keep search when clearing filters? Usually yes, or make it optional.
+      search: filters.search,
     };
     onApply(clearedFilters);
   };
@@ -94,6 +97,27 @@ export default function ActiveFilters({ filters, onApply }: ActiveFiltersProps) 
               <button
                 onClick={() => handleRemoveFilter("entityType", key)}
                 className="hover:text-blue-900"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ),
+      )}
+
+      {/* Registration Type Chips */}
+      {Object.entries(filters.registrationType || {}).map(
+        ([key, val]) =>
+          val && (
+            <div
+              key={key}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full text-[11px] font-medium border border-purple-100 italic transition-all hover:border-purple-300"
+            >
+              <span>
+                Type: {key === "addon_only" ? "Add-on Only" : "Full Incorporation"}
+              </span>
+              <button
+                onClick={() => handleRemoveFilter("registrationType", key)}
+                className="hover:text-purple-900"
               >
                 <X size={12} />
               </button>
