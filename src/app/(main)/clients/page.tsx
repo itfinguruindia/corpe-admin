@@ -44,7 +44,7 @@ export default function ClientsPage() {
   const [isExporting, setIsExporting] = useState(false);
 
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
-    column: "updated",
+    column: "created",
     direction: "descending",
   });
 
@@ -66,11 +66,15 @@ export default function ClientsPage() {
       setLoading(true);
       setError(null);
       const activeFilters = filtersOverride ?? filters;
-      const data = await clientsApi.getAllClients(
-        page,
-        ITEMS_PER_PAGE,
-        activeFilters,
-      );
+      const data = await clientsApi.getAllClients(page, ITEMS_PER_PAGE, {
+        ...activeFilters,
+        sortBy:
+          (activeFilters as Filters & { sortBy?: string }).sortBy ||
+          String(sortDescriptor.column),
+        sortOrder:
+          (activeFilters as Filters & { sortOrder?: string }).sortOrder ||
+          (sortDescriptor.direction === "ascending" ? "asc" : "desc"),
+      });
       setClientsData(data.clients || []);
       setTotalPages(data.totalPages || 1);
       setTotal(data.total || 0);
