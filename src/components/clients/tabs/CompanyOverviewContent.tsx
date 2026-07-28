@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+
+import { Chip, Spinner, Switch } from "@heroui/react";
+
 import { CompanyOverview } from "@/types/company";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField } from "@/components/ui";
-import { Chip, Spinner, Switch } from "@heroui/react";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { isLlpCompanyType } from "@/utils/companyTypeLabels";

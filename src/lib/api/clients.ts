@@ -1275,6 +1275,24 @@ export const clientsApi = {
   getGstMiscDocDownloadUrl: (applicationNo: string, index: number) =>
     `/admin/clients/${applicationNo}/gst-registration/misc-doc/download?index=${index}`,
 
+  getBankAccountDocDownloadUrl: (applicationNo: string, docType: string, adminDocId?: string) => {
+    if (adminDocId) {
+      return `/admin/clients/${applicationNo}/bank-account-setup/doc/download?adminDocId=${encodeURIComponent(adminDocId)}`;
+    }
+    return `/admin/clients/${applicationNo}/bank-account-setup/doc/download?docType=${encodeURIComponent(docType)}`;
+  },
+
+  uploadBankAccountAdminDoc: async (applicationNo: string, docType: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/bank-account-setup/upload-admin-doc?docType=${docType}`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data ?? response.data;
+  },
+
   updateGstArn: async (applicationNo: string, arn: string) => {
     const response = await axiosInstance.post(
       `/admin/clients/${applicationNo}/gst-registration/arn`,

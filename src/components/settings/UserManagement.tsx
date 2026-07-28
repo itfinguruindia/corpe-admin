@@ -446,15 +446,15 @@ export default function UserManagement({
             ariaLabel="Refresh users"
           />
           <PermissionGate permissions={PERMISSIONS.USER_CREATE}>
-          <Button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#e55a35] sm:w-auto sm:justify-start"
-          >
-            <Plus size={18} />
-            Add New User
-          </Button>
-        </PermissionGate>
+            <Button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="flex w-full shrink-0 items-center justify-center gap-2 rounded-lg bg-[#FF6A3D] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#e55a35] sm:w-auto sm:justify-start"
+            >
+              <Plus size={18} />
+              Add New User
+            </Button>
+          </PermissionGate>
         </div>
       </div>
 
@@ -508,7 +508,7 @@ export default function UserManagement({
                         key: "name",
                         label: "Name",
                         icon: <UsersIcon size={16} className="text-gray-400" />,
-                        value: credentialsDetails?.name || "—",
+                        value: credentialsDetails?.name || "",
                       },
                       {
                         key: "phone",
@@ -516,13 +516,13 @@ export default function UserManagement({
                         icon: <Phone size={16} className="text-gray-400" />,
                         value: credentialsDetails?.phoneNumber
                           ? `${credentialsDetails.countryCode || "+91"} ${credentialsDetails.phoneNumber}`
-                          : "—",
+                          : "",
                       },
                       {
                         key: "email",
                         label: "Email",
                         icon: <Mail size={16} className="text-gray-400" />,
-                        value: credentialsDetails?.email || "—",
+                        value: credentialsDetails?.email || "",
                       },
                       {
                         key: "password",
@@ -554,7 +554,7 @@ export default function UserManagement({
                               )
                             ) : (
                               <p className="text-sm font-medium text-gray-900 break-all">
-                                {row.value || "—"}
+                                {row.value || ""}
                               </p>
                             )}
                           </div>
@@ -569,7 +569,7 @@ export default function UserManagement({
                                 <Eye size={16} />
                               </button>
                             ) : null}
-                            {row.value && row.value !== "—" ? (
+                            {row.value && row.value !== "" ? (
                               <button
                                 type="button"
                                 onClick={() =>

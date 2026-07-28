@@ -23,7 +23,7 @@ export function PanTanEmailDisclaimer({
     ) : (
       <>
         PAN and TAN will be delivered directly to the client&apos;s company
-        email address. No company email is on file yet — ask the client to
+        email address. No company email is on file yet  ask the client to
         complete the Company Email field in Corporate Structure.
       </>
     );
