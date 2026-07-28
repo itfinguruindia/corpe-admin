@@ -18,6 +18,7 @@ export interface Client {
   assigner: string;
   status: string;
   updated: string;
+  created: string;
 }
 
 export const ITEMS_PER_PAGE = 10;
@@ -189,6 +190,22 @@ export default function ClientsTable({
           }`}
         >
           {row.status}
+        </span>
+      ),
+    },
+    {
+      id: "created",
+      label: "Registration Date",
+      sortable: true,
+      render: (row) => (
+        <span className="text-gray-500 text-sm whitespace-nowrap">
+          {new Date(row.created || row.updated).toLocaleString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </span>
       ),
     },

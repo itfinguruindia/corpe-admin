@@ -376,25 +376,6 @@ export default function Sidebar() {
             </SidebarSection>
           )}
 
-          {/* {showAccounting && <Divider />}
-
-          {showAccounting && (
-            <SidebarSection
-              title="Accounting"
-              icon={<Calculator size={18} />}
-              active={pathname.startsWith("/accounting")}
-              collapsed={effectiveCollapsed}
-            >
-              <SubItem
-                label="Razorpay"
-                href="/accounting/razorpay"
-                icon={<CreditCard size={15} />}
-                active={pathname === "/accounting/razorpay"}
-                collapsed={effectiveCollapsed}
-              />
-            </SidebarSection>
-          )} */}
-
           {showDocuments && <Divider />}
 
           {showDocuments && (
@@ -447,6 +428,25 @@ export default function Sidebar() {
                   badge={openTickets}
                 />
               )}
+            </SidebarSection>
+          )}
+
+          {showAccounting && <Divider />}
+
+          {showAccounting && (
+            <SidebarSection
+              title="Accounting"
+              icon={<Calculator size={18} />}
+              active={pathname.startsWith("/accounting")}
+              collapsed={effectiveCollapsed}
+            >
+              <SubItem
+                label="Razorpay"
+                href="/accounting/razorpay"
+                icon={<CreditCard size={15} />}
+                active={pathname === "/accounting/razorpay"}
+                collapsed={effectiveCollapsed}
+              />
             </SidebarSection>
           )}
         </nav>
@@ -522,9 +522,7 @@ function SidebarTooltip({
 
   const content = (
     <>
-      <span
-        className={clsx("shrink-0", active ? "opacity-100" : "opacity-70")}
-      >
+      <span className={clsx("shrink-0", active ? "opacity-100" : "opacity-70")}>
         {icon}
       </span>
       <div className="overflow-hidden">
