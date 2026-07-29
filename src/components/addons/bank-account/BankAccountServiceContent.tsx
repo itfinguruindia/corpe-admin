@@ -218,6 +218,43 @@ export default function BankAccountServiceContent({ appNo }: BankAccountServiceC
     }
   };
 
+  const downloadBankMiscDoc = async (index: number, mode: "preview" | "download" = "download") => {
+    try {
+      const url = clientsApi.getBankMiscDocDownloadUrl(appNo, index);
+      const response = await axiosInstance.get(url, { responseType: "blob" });
+      const blob = response.data;
+      const objectUrl = URL.createObjectURL(blob);
+
+      if (mode === "preview") {
+        window.open(objectUrl, "_blank");
+      } else {
+        const contentDisposition = response.headers["content-disposition"];
+        let filename = (bankData as any)?.miscDocs?.[index]?.name || `misc-doc-${index + 1}`;
+        if (contentDisposition) {
+          const matches = /filename\*?=(?:UTF-8'')?([^;]+)/.exec(contentDisposition);
+          if (matches && matches[1]) {
+            filename = decodeURIComponent(matches[1].replace(/['"]/g, ""));
+          } else {
+            const legacyMatches = /filename="?([^";]+)"?/.exec(contentDisposition);
+            if (legacyMatches && legacyMatches[1]) {
+              filename = legacyMatches[1];
+            }
+          }
+        }
+
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch {
+      toast.danger("Failed to download document");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -290,6 +327,7 @@ export default function BankAccountServiceContent({ appNo }: BankAccountServiceC
           kycLoading={kycLoading}
           onKycVerifiedChange={handleKycVerifiedChange}
           downloadBankDoc={downloadBankDoc}
+          downloadBankMiscDoc={downloadBankMiscDoc}
           handleAdminDocUpload={handleAdminDocUpload}
           uploadingAdminDoc={uploadingAdminDoc}
         />

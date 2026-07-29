@@ -1,4 +1,4 @@
-"use client";
+import { RegistrationType } from "@/types/enums";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -186,7 +186,7 @@ export default function CompanyOverviewContent({
           <InfoField label="State" value={companyData.state} />
           <InfoField
             label="Registration Type"
-            value={registrationType === "addon_only" ? "Add-on Only (Standalone)" : "Full Incorporation"}
+            value={registrationType === RegistrationType.ADDON_ONLY ? "Add-on Only (Standalone)" : "Full Incorporation"}
           />
           <InfoField
             label="Jurisdiction of Police station"

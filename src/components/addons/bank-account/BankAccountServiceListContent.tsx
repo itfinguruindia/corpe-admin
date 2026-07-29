@@ -7,11 +7,13 @@ import { Search, RefreshCw, Eye, Building2, CheckCircle2, Clock, AlertCircle } f
 
 import { clientsApi } from "@/lib/api/clients";
 
+import { RegistrationType } from "@/types/enums";
+
 interface BankAccountClientItem {
   _id: string;
   applicationNo: string;
   companyName?: string;
-  registrationType: "full_incorporation" | "addon_only";
+  registrationType: RegistrationType;
   companyType: string;
   companyStatus: string;
   updatedAt: string;

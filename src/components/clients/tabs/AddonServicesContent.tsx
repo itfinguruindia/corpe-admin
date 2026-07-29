@@ -5,8 +5,11 @@ import Link from "next/link";
 import { ArrowRight, Building2, FileCheck2, Loader2, ShieldCheck } from "lucide-react";
 import { Chip, Spinner } from "@heroui/react";
 
+import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { clientsApi } from "@/lib/api/clients";
 import axiosInstance from "@/lib/axios";
+import { isAddonAvailableForRegistrationType } from "@/constants/addonRegistry";
+import { AddonServiceId } from "@/types/enums";
 
 interface AddonServicesContentProps {
   appNo: string;
@@ -22,25 +25,32 @@ const BANK_LABELS: Record<string, string> = {
 };
 
 export default function AddonServicesContent({ appNo }: AddonServicesContentProps) {
+  const { isAddonOnly, registrationType } = useClientCompanyLabels();
   const [loading, setLoading] = useState(true);
   const [gstData, setGstData] = useState<any>(null);
   const [bankData, setBankData] = useState<any>(null);
+
+  const canViewBankSetup = isAddonAvailableForRegistrationType(AddonServiceId.BANK_ACCOUNT_SETUP, registrationType);
 
   useEffect(() => {
     async function loadAddons() {
       setLoading(true);
       try {
-        const [gstRes, bankRes] = await Promise.allSettled([
-          clientsApi.getGstRegistration(appNo),
-          axiosInstance.get(`/admin/clients/${appNo}/bank-account-setup`),
-        ]);
-
-        if (gstRes.status === "fulfilled") {
-          setGstData(gstRes.value);
+        const promises: Promise<any>[] = [clientsApi.getGstRegistration(appNo)];
+        if (canViewBankSetup) {
+          promises.push(axiosInstance.get(`/admin/clients/${appNo}/bank-account-setup`));
         }
 
-        if (bankRes.status === "fulfilled") {
-          const data = bankRes.value?.data?.data || bankRes.value?.data;
+        const results = await Promise.allSettled(promises);
+
+        if (results[0]?.status === "fulfilled") {
+          const fulfilledGst = results[0] as PromiseFulfilledResult<any>;
+          setGstData(fulfilledGst.value);
+        }
+
+        if (canViewBankSetup && results[1]?.status === "fulfilled") {
+          const fulfilledBank = results[1] as PromiseFulfilledResult<any>;
+          const data = fulfilledBank.value?.data?.data || fulfilledBank.value?.data;
           setBankData(data);
         }
       } catch (err) {
@@ -51,7 +61,7 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
     }
 
     loadAddons();
-  }, [appNo]);
+  }, [appNo, canViewBankSetup]);
 
   if (loading) {
     return (
@@ -98,7 +108,7 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
               <div className="space-y-2 border-t border-gray-100 pt-4 text-xs text-gray-600">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Legal Name:</span>
-                  <span className="font-semibold text-gray-800 truncate max-w-[200px]">
+                  <span className="font-semibold text-gray-800 truncate max-w-50">
                     {gstData?.gstDetails?.legalName || "Not provided"}
                   </span>
                 </div>
@@ -129,62 +139,64 @@ export default function AddonServicesContent({ appNo }: AddonServicesContentProp
           </div>
 
           {/* Bank Account Setup Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col justify-between hover:border-blue-300 transition">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
-                    <Building2 className="w-6 h-6" />
+          {canViewBankSetup && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col justify-between hover:border-blue-300 transition">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+                      <Building2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-gray-800">Bank Account Setup</h3>
+                      <p className="text-xs text-gray-500">Corporate Current Account Opening</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-base font-bold text-gray-800">Bank Account Setup</h3>
-                    <p className="text-xs text-gray-500">Corporate Current Account Opening</p>
-                  </div>
-                </div>
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${bankData?.status === "completed"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-amber-100 text-amber-700"
-                    }`}
-                >
-                  {bankData?.status === "completed" ? "Completed" : "Open"}
-                </span>
-              </div>
-
-              <div className="space-y-2 border-t border-gray-100 pt-4 text-xs text-gray-600">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Selected Bank:</span>
-                  <span className="font-semibold text-gray-800">
-                    {BANK_LABELS[bankData?.bankId] || bankData?.bankId || "Not selected"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Account Type:</span>
-                  <span className="font-medium text-gray-800">
-                    {bankData?.accountDetails?.accountType || "Current Account"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Payment Status:</span>
                   <span
-                    className={`font-semibold ${bankData?.isPaid ? "text-emerald-600" : "text-amber-600"
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${bankData?.status === "completed"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-amber-100 text-amber-700"
                       }`}
                   >
-                    {bankData?.isPaid ? "Paid" : "Payment Pending"}
+                    {bankData?.status === "completed" ? "Completed" : "Open"}
                   </span>
                 </div>
+
+                <div className="space-y-2 border-t border-gray-100 pt-4 text-xs text-gray-600">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Selected Bank:</span>
+                    <span className="font-semibold text-gray-800">
+                      {BANK_LABELS[bankData?.bankId] || bankData?.bankId || "Not selected"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Account Type:</span>
+                    <span className="font-medium text-gray-800">
+                      {bankData?.accountDetails?.accountType || "Current Account"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Payment Status:</span>
+                    <span
+                      className={`font-semibold ${bankData?.isPaid ? "text-emerald-600" : "text-amber-600"
+                        }`}
+                    >
+                      {bankData?.isPaid ? "Paid" : "Payment Pending"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <Link
+                  href={`/addons/bank-account/${appNo}`}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2.5 text-xs font-semibold text-white transition shadow-sm"
+                >
+                  Manage Bank Account Service <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
             </div>
-
-            <div className="mt-6 pt-4 border-t border-gray-100">
-              <Link
-                href={`/addons/bank-account/${appNo}`}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2.5 text-xs font-semibold text-white transition shadow-sm"
-              >
-                Manage Bank Account Service <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

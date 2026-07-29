@@ -7,11 +7,13 @@ import { Search, RefreshCw, Eye } from "lucide-react";
 
 import { clientsApi } from "@/lib/api/clients";
 
+import { RegistrationType } from "@/types/enums";
+
 interface GSTClientItem {
   _id: string;
   applicationNo: string;
-  companyName?: string;
-  registrationType: "full_incorporation" | "addon_only";
+  companyName: string;
+  registrationType: RegistrationType;
   companyType: string;
   companyStatus: string;
   updatedAt: string;
@@ -70,8 +72,8 @@ export default function GSTServiceListContent({ addonId }: { addonId: string }) 
     setSearch(searchInput.trim());
   };
 
-  const standaloneCount = clients.filter((c) => c.registrationType === "addon_only").length;
-  const incCount = clients.filter((c) => c.registrationType !== "addon_only").length;
+  const standaloneCount = clients.filter((c) => c.registrationType === RegistrationType.ADDON_ONLY).length;
+  const incCount = clients.filter((c) => c.registrationType !== RegistrationType.ADDON_ONLY).length;
   const submittedCount = clients.filter((c) => c.isFormSubmitted).length;
 
   return (
@@ -150,7 +152,7 @@ export default function GSTServiceListContent({ addonId }: { addonId: string }) 
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {clients.map((item) => {
                   const clientName = `${item.admin?.firstName || ""} ${item.admin?.lastName || ""}`.trim() || "N/A";
-                  const isStandalone = item.registrationType === "addon_only";
+                  const isStandalone = item.registrationType === RegistrationType.ADDON_ONLY;
                   const companyName = item.companyName || item.gstDetails?.legalName || item.gstDetails?.tradeName || item.companyType;
                   const progress = item.trackerProgress || 0;
 

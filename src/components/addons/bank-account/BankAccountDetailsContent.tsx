@@ -26,6 +26,14 @@ interface AdminDocEntry {
   uploadedAt: string;
 }
 
+export interface BankMiscDocView {
+  name?: string;
+  path?: string;
+  docType?: string;
+  status?: string;
+  uploadedAt?: string;
+}
+
 interface BankAccountData {
   _id: string;
   org: string;
@@ -57,6 +65,7 @@ interface BankAccountData {
   };
   status?: string;
   adminDocs?: AdminDocEntry[];
+  miscDocs?: BankMiscDocView[];
   createdAt: string;
 }
 
@@ -73,6 +82,7 @@ interface BankAccountDetailsContentProps {
     adminDocId?: string,
     docName?: string
   ) => Promise<void>;
+  downloadBankMiscDoc?: (index: number, mode?: "preview" | "download") => Promise<void>;
   handleAdminDocUpload: (file: File) => Promise<void>;
   uploadingAdminDoc?: boolean;
 }
@@ -85,6 +95,7 @@ export default function BankAccountDetailsContent({
   kycLoading,
   onKycVerifiedChange,
   downloadBankDoc,
+  downloadBankMiscDoc,
   handleAdminDocUpload,
   uploadingAdminDoc,
 }: BankAccountDetailsContentProps) {
@@ -180,7 +191,7 @@ export default function BankAccountDetailsContent({
                   className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-xs font-medium text-gray-700 truncate max-w-[220px]">
+                    <span className="text-xs font-medium text-gray-700 truncate max-w-55">
                       {field.label}
                     </span>
                     <span
@@ -216,6 +227,65 @@ export default function BankAccountDetailsContent({
             })}
           </div>
         </div>
+
+        {/* Miscellaneous Documents */}
+        {bankData?.miscDocs && bankData.miscDocs.length > 0 && (
+          <div className="rounded-xl border border-gray-200 bg-white p-5">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              Miscellaneous Documents
+            </h3>
+            <div className="space-y-2">
+              {bankData.miscDocs.map((doc: BankMiscDocView, idx: number) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs font-medium text-gray-700 truncate max-w-45">
+                      {doc.name || `Document ${idx + 1}`}
+                    </span>
+                    <span
+                      className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                        doc.status === "clientUpload"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-500"
+                      }`}
+                    >
+                      {doc.status === "clientUpload" ? "Uploaded" : "Pending"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {doc.docType && (
+                      <span className="text-[10px] text-gray-400 italic max-w-30 truncate">
+                        {doc.docType}
+                      </span>
+                    )}
+                    {doc.path && downloadBankMiscDoc && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => downloadBankMiscDoc(idx, "preview")}
+                          className="text-blue-600 hover:text-blue-700 p-1"
+                          title="Preview"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => downloadBankMiscDoc(idx, "download")}
+                          className="text-blue-600 hover:text-blue-700 p-1"
+                          title="Download"
+                        >
+                          <Download size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Column: Admin File Uploads */}
@@ -225,6 +295,8 @@ export default function BankAccountDetailsContent({
         </h3>
 
         <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+          <p className="text-xs font-semibold text-gray-700">Board Resolution for Account Opening</p>
+
           {adminDocs && adminDocs.length > 0 ? (
             <div className="space-y-3">
               {adminDocs.map((doc, idx) => (
@@ -259,7 +331,7 @@ export default function BankAccountDetailsContent({
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4 text-center">
-              <p className="text-xs text-gray-400">No admin documents uploaded yet.</p>
+              <p className="text-xs text-gray-400">No file uploaded</p>
             </div>
           )}
 
@@ -278,7 +350,7 @@ export default function BankAccountDetailsContent({
                   ) : (
                     <Upload size={14} />
                   )}
-                  {uploadingAdminDoc ? "Uploading..." : "Upload New Document"}
+                  {uploadingAdminDoc ? "Uploading..." : "Upload"}
                 </button>
               )}
             />
