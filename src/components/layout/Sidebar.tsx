@@ -447,6 +447,13 @@ export default function Sidebar() {
                 active={pathname === "/accounting/razorpay"}
                 collapsed={effectiveCollapsed}
               />
+              <SubItem
+                label="SMS Usage"
+                href="/accounting/sms-usage"
+                icon={<MessageSquare size={15} />}
+                active={pathname === "/accounting/sms-usage"}
+                collapsed={effectiveCollapsed}
+              />
             </SidebarSection>
           )}
         </nav>
