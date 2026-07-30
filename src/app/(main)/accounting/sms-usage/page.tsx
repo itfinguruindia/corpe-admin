@@ -325,6 +325,7 @@ export default function SmsUsageAccountingPage() {
             <DataTable
               columns={byDateColumns}
               data={report.byDate}
+              keyField="date"
               emptyMessage="No messages in this date range."
               columnVisibilityStorageKey="accounting-sms-by-date"
             />
@@ -337,6 +338,7 @@ export default function SmsUsageAccountingPage() {
             <DataTable
               columns={byNumberColumns}
               data={report.byNumber}
+              keyField="to"
               emptyMessage="No destination numbers in this date range."
               columnVisibilityStorageKey="accounting-sms-by-number"
             />
