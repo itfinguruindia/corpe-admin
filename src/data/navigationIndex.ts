@@ -58,6 +58,22 @@ export const navigationIndex: SearchItem[] = [
     description: "View Razorpay payments, orders, refunds and settlements.",
   },
   {
+    id: "accounting-sms-usage",
+    title: "SMS Usage",
+    category: "Accounting",
+    path: "/accounting/sms-usage",
+    keywords: [
+      "sms",
+      "twilio",
+      "otp",
+      "messages",
+      "usage",
+      "accounting",
+      "cost",
+    ],
+    description: "Live Twilio SMS usage by date and destination number.",
+  },
+  {
     id: "templates",
     title: "Document Templates",
     category: "Documents",

@@ -68,7 +68,12 @@ export default function PendingRegistrationsPage() {
         search || undefined,
         stepFilter !== "" ? Number(stepFilter) : undefined,
       );
-      setRecords(data.data || []);
+      const rows = [...(data.data || [])].sort((a, b) => {
+        const aTime = new Date(a.lastActivityAt || a.createdAt || 0).getTime();
+        const bTime = new Date(b.lastActivityAt || b.createdAt || 0).getTime();
+        return bTime - aTime;
+      });
+      setRecords(rows);
       setTotalPages(data.totalPages || 1);
       setTotal(data.total || 0);
       setCurrentPage(page);
