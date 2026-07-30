@@ -1,10 +1,13 @@
-"use client";
+import { RegistrationType } from "@/types/enums";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+
+import { Chip, Spinner, Switch } from "@heroui/react";
+
 import { CompanyOverview } from "@/types/company";
 import { clientsApi } from "@/lib/api/clients";
 import { InfoField } from "@/components/ui";
-import { Chip, Spinner, Switch } from "@heroui/react";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { isLlpCompanyType } from "@/utils/companyTypeLabels";
@@ -183,7 +186,7 @@ export default function CompanyOverviewContent({
           <InfoField label="State" value={companyData.state} />
           <InfoField
             label="Registration Type"
-            value={registrationType === "addon_only" ? "Add-on Only (Standalone)" : "Full Incorporation"}
+            value={registrationType === RegistrationType.ADDON_ONLY ? "Add-on Only (Standalone)" : "Full Incorporation"}
           />
           <InfoField
             label="Jurisdiction of Police station"

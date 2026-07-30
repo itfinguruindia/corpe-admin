@@ -57,12 +57,12 @@ interface TrackerStep {
   title: string;
   description: string;
   status:
-    | "Done"
-    | "In Progress"
-    | "Action Needed"
-    | "Pending"
-    | "Not Available"
-    | "Rejected";
+  | "Done"
+  | "In Progress"
+  | "Action Needed"
+  | "Pending"
+  | "Not Available"
+  | "Rejected";
   ownerType: "admin" | "client" | "govt";
   visibleTo: "both" | "admin-only";
   statusChangedAt?: string | null;
@@ -196,7 +196,7 @@ export default function TrackingStatusContent({
         .then((res) => {
           if (res?.data) setExtensionStatus(res.data);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [appNo]);
 
@@ -219,7 +219,7 @@ export default function TrackingStatusContent({
         .then((res: any) => {
           if (res?.data) setExtensionStatus(res.data);
         })
-        .catch(() => {});
+        .catch(() => { });
     };
 
     const updateTimer = () => {
@@ -629,7 +629,7 @@ export default function TrackingStatusContent({
     stage.sections.forEach((section) => {
       section.steps.forEach((step) => {
         if (step.isHidden) return;
-        // Dual-role: KYC/DSC are managed on the director steps — hide duplicates
+        // Dual-role: KYC/DSC are managed on the director steps  hide duplicates
         if (isDualRoleShareholderStep(step)) return;
         allSteps.push(step);
         if (step.ownerType === "client") {
@@ -740,7 +740,7 @@ export default function TrackingStatusContent({
                 {Math.ceil(
                   (new Date().getTime() -
                     new Date(tracker.startedAt).getTime()) /
-                    (1000 * 60 * 60 * 24),
+                  (1000 * 60 * 60 * 24),
                 )}
               </div>
               <div className="text-[10px] text-slate-500 mt-0.5">
@@ -838,14 +838,14 @@ export default function TrackingStatusContent({
           <>
             {(extensionStatus.overallStatus === "expired_past" ||
               extensionStatus.overallStatus === "restart_required") && (
-              <div className="bg-red-600 text-white flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-lg shadow-sm mb-4">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>
-                  <strong>Admin alert:</strong> Client's MCA name hold has
-                  expired - name reservation lost. Take action immediately.
-                </span>
-              </div>
-            )}
+                <div className="bg-red-600 text-white flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-lg shadow-sm mb-4">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>
+                    <strong>Admin alert:</strong> Client's MCA name hold has
+                    expired - name reservation lost. Take action immediately.
+                  </span>
+                </div>
+              )}
             {extensionStatus.overallStatus === "expired_today" && (
               <div className="bg-amber-500 text-white flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-lg shadow-sm mb-4">
                 <Clock className="w-4 h-4 shrink-0" />
@@ -864,31 +864,29 @@ export default function TrackingStatusContent({
           extensionStatus.overallStatus !== "inactive" &&
           extensionStatus.overallStatus !== "done" && (
             <div
-              className={`rounded-xl p-4 flex items-center gap-3 shadow-sm border ${
-                extensionStatus.overallStatus === "restart_required" ||
-                extensionStatus.overallStatus === "expired_past" ||
-                extensionStatus.overallStatus === "expired"
-                  ? "bg-red-50 border-red-300"
-                  : extensionStatus.overallStatus === "paid" ||
-                      extensionStatus.overallStatus === "in_progress"
-                    ? "bg-blue-50 border-blue-300"
-                    : "bg-amber-50 border-amber-300"
-              }`}
-            >
-              <AlertCircle
-                className={`w-5 h-5 shrink-0 self-start mt-1 ${
-                  extensionStatus.overallStatus === "restart_required" ||
+              className={`rounded-xl p-4 flex items-center gap-3 shadow-sm border ${extensionStatus.overallStatus === "restart_required" ||
                   extensionStatus.overallStatus === "expired_past" ||
                   extensionStatus.overallStatus === "expired"
+                  ? "bg-red-50 border-red-300"
+                  : extensionStatus.overallStatus === "paid" ||
+                    extensionStatus.overallStatus === "in_progress"
+                    ? "bg-blue-50 border-blue-300"
+                    : "bg-amber-50 border-amber-300"
+                }`}
+            >
+              <AlertCircle
+                className={`w-5 h-5 shrink-0 self-start mt-1 ${extensionStatus.overallStatus === "restart_required" ||
+                    extensionStatus.overallStatus === "expired_past" ||
+                    extensionStatus.overallStatus === "expired"
                     ? "text-red-600"
                     : extensionStatus.overallStatus === "paid" ||
-                        extensionStatus.overallStatus === "in_progress"
+                      extensionStatus.overallStatus === "in_progress"
                       ? "text-blue-600"
                       : "text-amber-600"
-                }`}
+                  }`}
               />
               {extensionStatus.overallStatus === "restart_required" ||
-              extensionStatus.overallStatus === "expired_past" ? (
+                extensionStatus.overallStatus === "expired_past" ? (
                 <div className="flex-1 flex flex-col md:flex-row items-start justify-between gap-4">
                   <div className="space-y-3">
                     <p className="text-sm font-bold text-red-900 uppercase tracking-wide">
@@ -951,16 +949,15 @@ export default function TrackingStatusContent({
                 <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div>
                     <p
-                      className={`text-sm font-bold ${
-                        extensionStatus.overallStatus === "expired" ||
-                        extensionStatus.overallStatus === "expired_today" ||
-                        extensionStatus.overallStatus === "expired_past"
+                      className={`text-sm font-bold ${extensionStatus.overallStatus === "expired" ||
+                          extensionStatus.overallStatus === "expired_today" ||
+                          extensionStatus.overallStatus === "expired_past"
                           ? "text-red-900"
                           : extensionStatus.overallStatus === "paid" ||
-                              extensionStatus.overallStatus === "in_progress"
+                            extensionStatus.overallStatus === "in_progress"
                             ? "text-blue-900"
                             : "text-amber-900"
-                      }`}
+                        }`}
                     >
                       {extensionStatus.overallStatus === "monitoring" &&
                         `Name Hold Monitoring - ${formFilingLabel} pending`}
@@ -978,16 +975,15 @@ export default function TrackingStatusContent({
                         "Name Extension Expired"}
                     </p>
                     <p
-                      className={`text-xs mt-0.5 ${
-                        extensionStatus.overallStatus === "expired" ||
-                        extensionStatus.overallStatus === "expired_today" ||
-                        extensionStatus.overallStatus === "expired_past"
+                      className={`text-xs mt-0.5 ${extensionStatus.overallStatus === "expired" ||
+                          extensionStatus.overallStatus === "expired_today" ||
+                          extensionStatus.overallStatus === "expired_past"
                           ? "text-red-700"
                           : extensionStatus.overallStatus === "paid" ||
-                              extensionStatus.overallStatus === "in_progress"
+                            extensionStatus.overallStatus === "in_progress"
                             ? "text-blue-700"
                             : "text-amber-700"
-                      }`}
+                        }`}
                     >
                       {extensionStatus.overallStatus === "monitoring" &&
                         "Monitoring 20-day window. Name extension will activate at 5 days remaining."}
@@ -1051,20 +1047,18 @@ export default function TrackingStatusContent({
                   <button
                     key={`nav-${stage._id}`}
                     onClick={() => handleStageSelect(stage._id)}
-                    className={`flex items-center gap-2.5 p-2.5 rounded-lg border text-left transition-all ${
-                      isOpen
+                    className={`flex items-center gap-2.5 p-2.5 rounded-lg border text-left transition-all ${isOpen
                         ? "bg-blue-50/70 border-blue-200 ring-2 ring-blue-100 font-bold"
                         : "bg-slate-50/30 border-slate-200 hover:bg-slate-50 hover:border-slate-300 cursor-pointer"
-                    }`}
+                      }`}
                   >
                     <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                        stage.status === "Completed"
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${stage.status === "Completed"
                           ? "bg-emerald-500 text-white"
                           : stage.status === "In Progress"
                             ? "bg-amber-500 text-white"
                             : "bg-slate-200 text-slate-600"
-                      }`}
+                        }`}
                     >
                       {stage.order}
                     </div>
@@ -1097,9 +1091,8 @@ export default function TrackingStatusContent({
                 <Card
                   key={stage._id}
                   id={`stage-card-${stage._id}`}
-                  className={`border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl transition-all scroll-mt-24 ${
-                    isCurrent ? "ring-1 ring-blue-500" : ""
-                  }`}
+                  className={`border border-slate-200 shadow-sm overflow-hidden bg-white rounded-xl transition-all scroll-mt-24 ${isCurrent ? "ring-1 ring-blue-500" : ""
+                    }`}
                 >
                   {/* Stage Card Header */}
                   <div
@@ -1108,13 +1101,12 @@ export default function TrackingStatusContent({
                   >
                     <div className="flex items-center gap-2.5">
                       <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          stage.status === "Completed"
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${stage.status === "Completed"
                             ? "bg-emerald-100 text-emerald-800"
                             : stage.status === "In Progress"
                               ? "bg-amber-100 text-amber-800"
                               : "bg-slate-100 text-slate-600"
-                        }`}
+                          }`}
                       >
                         {stage.order}
                       </div>
@@ -1172,11 +1164,10 @@ export default function TrackingStatusContent({
                                       [stage._id]: idx,
                                     }))
                                   }
-                                  className={`px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all duration-200 ${
-                                    isActive
+                                  className={`px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all duration-200 ${isActive
                                       ? "bg-white text-slate-900 shadow-sm border border-slate-200/50"
                                       : "text-slate-500 hover:text-slate-900 hover:bg-white/30"
-                                  }`}
+                                    }`}
                                 >
                                   Attempt {idx + 1}{" "}
                                   {idx === (stage.attempts?.length || 0) - 1
@@ -1204,7 +1195,7 @@ export default function TrackingStatusContent({
                               {(section.label ===
                                 "Digital Signature Certificate (DSC)" ||
                                 section.label ===
-                                  "Digital Signature Certificate (DSC) procedure" ||
+                                "Digital Signature Certificate (DSC) procedure" ||
                                 section.label === "DSC procedure") &&
                                 tracker.installmentInfo
                                   ?.firstInstallmentDue && (
@@ -1248,9 +1239,9 @@ export default function TrackingStatusContent({
                               .map((step) => {
                                 const isRocStep =
                                   step.title.toLowerCase() ===
-                                    "query resolution/resubmission" ||
+                                  "query resolution/resubmission" ||
                                   step.title.toLowerCase() ===
-                                    "query resolution / resubmission";
+                                  "query resolution / resubmission";
                                 const isUrgent =
                                   step.status === "Action Needed";
                                 const coverageNote =
@@ -1266,42 +1257,39 @@ export default function TrackingStatusContent({
                                 return (
                                   <div
                                     key={step._id}
-                                    className={`p-3.5 flex flex-col md:flex-row md:flex-wrap md:items-start justify-between gap-4 transition-colors ${
-                                      isUrgent
+                                    className={`p-3.5 flex flex-col md:flex-row md:flex-wrap md:items-start justify-between gap-4 transition-colors ${isUrgent
                                         ? "bg-amber-50/30"
                                         : "hover:bg-slate-50/50"
-                                    }`}
+                                      }`}
                                   >
                                     {/* Step Details */}
                                     <div className="flex items-start gap-3 flex-1 min-w-0">
                                       <div
-                                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
-                                          step.status === "Done"
+                                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${step.status === "Done"
                                             ? "bg-emerald-500 border-emerald-500"
                                             : step.status === "In Progress"
                                               ? "bg-amber-100 border-amber-300 animate-pulse"
                                               : step.status === "Action Needed"
                                                 ? "bg-rose-100 border-rose-300"
                                                 : step.status ===
-                                                      "Not Available" ||
-                                                    step.status === "Rejected"
+                                                  "Not Available" ||
+                                                  step.status === "Rejected"
                                                   ? "bg-red-500 border-red-500"
                                                   : "bg-slate-50 border-slate-200"
-                                        }`}
+                                          }`}
                                       >
                                         {getStatusIcon(step.status)}
                                       </div>
                                       <div className="flex-1">
                                         <div className="flex items-center gap-2 flex-wrap">
                                           <h4
-                                            className={`text-sm font-semibold text-slate-800 ${
-                                              step.status === "Done" ||
-                                              step.status === "Not Available"
+                                            className={`text-sm font-semibold text-slate-800 ${step.status === "Done" ||
+                                                step.status === "Not Available"
                                                 ? "text-slate-400 line-through font-normal"
                                                 : step.status === "Rejected"
                                                   ? "text-red-600 font-semibold"
                                                   : ""
-                                            }`}
+                                              }`}
                                           >
                                             {formatStepLabels(step).title}
                                             {isRocStep &&
@@ -1323,13 +1311,12 @@ export default function TrackingStatusContent({
                                             </span>
                                           )}
                                           <span
-                                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
-                                              step.ownerType === "client"
+                                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${step.ownerType === "client"
                                                 ? "bg-amber-100 text-amber-800"
                                                 : step.ownerType === "govt"
                                                   ? "bg-emerald-100 text-emerald-800"
                                                   : "bg-blue-100 text-blue-800"
-                                            }`}
+                                              }`}
                                           >
                                             {getTrackerStepOwnerLabel(
                                               step.title,
@@ -1361,7 +1348,7 @@ export default function TrackingStatusContent({
                                           <div className="mt-2 flex flex-col gap-2">
                                             {/* Status-based card */}
                                             {extActiveAtt?.status === "paid" ||
-                                            extActiveAtt?.status ===
+                                              extActiveAtt?.status ===
                                               "in_progress" ? (
                                               <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 shadow-sm">
                                                 <div className="flex items-center gap-2">
@@ -1375,7 +1362,7 @@ export default function TrackingStatusContent({
                                                   Payment confirmed for attempt{" "}
                                                   {extActiveAtt.attemptNumber}.{" "}
                                                   {extActiveAtt.status ===
-                                                  "in_progress"
+                                                    "in_progress"
                                                     ? "Admin is working on MCA portal."
                                                     : "Awaiting admin action on MCA portal."}
                                                 </p>
@@ -1387,7 +1374,7 @@ export default function TrackingStatusContent({
                                                 <span>
                                                   Name reservation extended -{" "}
                                                   {extActiveAtt.attemptNumber ===
-                                                  1
+                                                    1
                                                     ? "1st"
                                                     : "2nd"}{" "}
                                                   attempt ✓
@@ -1411,19 +1398,18 @@ export default function TrackingStatusContent({
                                                 (att: any, attIdx: number) => (
                                                   <span
                                                     key={attIdx}
-                                                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono border ${
-                                                      att.status === "done"
+                                                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono border ${att.status === "done"
                                                         ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                                         : att.status ===
-                                                              "paid" ||
-                                                            att.status ===
-                                                              "in_progress"
+                                                          "paid" ||
+                                                          att.status ===
+                                                          "in_progress"
                                                           ? "bg-blue-50 text-blue-700 border-blue-200"
                                                           : att.status ===
-                                                              "expired"
+                                                            "expired"
                                                             ? "bg-red-50 text-red-700 border-red-200"
                                                             : "bg-amber-50 text-amber-700 border-amber-200"
-                                                    }`}
+                                                      }`}
                                                   >
                                                     Ext {att.attemptNumber}:{" "}
                                                     {att.status}
@@ -1432,10 +1418,10 @@ export default function TrackingStatusContent({
                                               )}
                                               {(step as any).extensionMetadata
                                                 .spiceBSubmitted && (
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded font-mono bg-green-50 text-green-700 border border-green-200">
-                                                  SPICe+ B ✓
-                                                </span>
-                                              )}
+                                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded font-mono bg-green-50 text-green-700 border border-green-200">
+                                                    SPICe+ B ✓
+                                                  </span>
+                                                )}
                                             </div>
                                           </div>
                                         )}
@@ -1467,7 +1453,7 @@ export default function TrackingStatusContent({
                                                 const isSystem =
                                                   note.isSystem === true ||
                                                   note.createdByName ===
-                                                    "System" ||
+                                                  "System" ||
                                                   String(
                                                     note.text || "",
                                                   ).includes(
@@ -1489,7 +1475,7 @@ export default function TrackingStatusContent({
                                                         {isSystem
                                                           ? "System"
                                                           : note.createdByName ||
-                                                            "Admin"}
+                                                          "Admin"}
                                                       </span>
                                                       <span>
                                                         {new Date(
@@ -1511,438 +1497,186 @@ export default function TrackingStatusContent({
                                           (step.rocQueryMetadata ||
                                             rocQueryStepId === step._id ||
                                             rocRejectionStepId ===
-                                              step._id) && (
+                                            step._id) && (
                                             <div className="mt-3 flex flex-col gap-3">
                                               {/* Record ROC Rejection Form Panel */}
                                               {rocRejectionStepId ===
                                                 step._id && (
-                                                <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-4 max-w-xl text-left">
-                                                  <div className="flex items-center justify-between">
-                                                    <h4 className="text-sm font-bold text-red-900">
-                                                      Record ROC Rejection
-                                                    </h4>
-                                                    <button
-                                                      onClick={() =>
-                                                        setRocRejectionStepId(
-                                                          "",
-                                                        )
-                                                      }
-                                                      className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"
-                                                    >
-                                                      <X className="w-4 h-4" />
-                                                    </button>
-                                                  </div>
-                                                  <p className="text-xs text-red-600 font-medium">
-                                                    This will notify the client
-                                                    immediately and start the
-                                                    decision process. Cannot be
-                                                    undone.
-                                                  </p>
-
-                                                  <div className="space-y-1">
-                                                    <label className="block text-xs font-semibold text-slate-600">
-                                                      Rejection Category
-                                                    </label>
-                                                    <select
-                                                      value={rejCategory}
-                                                      onChange={(e) =>
-                                                        setRejCategory(
-                                                          e.target.value,
-                                                        )
-                                                      }
-                                                      className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-red-400"
-                                                    >
-                                                      <option value="">
-                                                        Select category
-                                                      </option>
-                                                      <option value="Incomplete / incorrect documentation">
-                                                        Incomplete / incorrect
-                                                        documentation
-                                                      </option>
-                                                      <option value="Name availability issue">
-                                                        Name availability issue
-                                                      </option>
-                                                      <option value="Registered office address mismatch">
-                                                        Registered office
-                                                        address mismatch
-                                                      </option>
-                                                      <option value="Director KYC failure">
-                                                        Director KYC failure
-                                                      </option>
-                                                      <option value="MoA/AoA defects">
-                                                        MoA/AoA defects
-                                                      </option>
-                                                      <option value="Other (specify in reason)">
-                                                        Other (specify in
-                                                        reason)
-                                                      </option>
-                                                    </select>
-                                                  </div>
-
-                                                  <div className="space-y-1">
-                                                    <label className="block text-xs font-semibold text-slate-600">
-                                                      Reason from ROC (shown to
-                                                      client)
-                                                    </label>
-                                                    <textarea
-                                                      value={rejReason}
-                                                      onChange={(e) =>
-                                                        setRejReason(
-                                                          e.target.value,
-                                                        )
-                                                      }
-                                                      className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-red-400"
-                                                      placeholder="e.g. ROC has rejected the application due to discrepancies in the registered office address..."
-                                                    />
-                                                  </div>
-
-                                                  <div className="space-y-1">
-                                                    <label className="block text-xs font-semibold text-slate-600">
-                                                      Internal Note (admin only)
-                                                    </label>
-                                                    <textarea
-                                                      value={rejInternalNote}
-                                                      onChange={(e) =>
-                                                        setRejInternalNote(
-                                                          e.target.value,
-                                                        )
-                                                      }
-                                                      className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-red-400"
-                                                      placeholder="e.g. Client submitted an expired bill. Need to follow up on fresh utility bill..."
-                                                    />
-                                                  </div>
-
-                                                  <div className="space-y-1">
-                                                    <label className="block text-xs font-semibold text-slate-600">
-                                                      Rejection Document
-                                                      (optional)
-                                                    </label>
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                      <FileUploadComponent
-                                                        context="clients"
-                                                        allowedFileTypes=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                                                        enableExistingDocuments={
-                                                          false
-                                                        }
-                                                        title="Attach rejection document"
-                                                        subtitle="Upload from your computer or import from Google Drive."
-                                                        onFileSelect={(file) =>
-                                                          setRejectionFile(file)
-                                                        }
-                                                        renderTrigger={(
-                                                          openPicker,
-                                                        ) => (
-                                                          <button
-                                                            type="button"
-                                                            onClick={openPicker}
-                                                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
-                                                          >
-                                                            Choose file
-                                                          </button>
-                                                        )}
-                                                      />
-                                                      {rejectionFile && (
-                                                        <span className="text-xs text-slate-600 truncate max-w-[200px]">
-                                                          {rejectionFile.name}
-                                                        </span>
-                                                      )}
-                                                    </div>
-                                                  </div>
-
-                                                  <div className="flex gap-2">
-                                                    <button
-                                                      disabled={
-                                                        isSubmittingQuery
-                                                      }
-                                                      onClick={async () => {
-                                                        if (!rejCategory)
-                                                          return alert(
-                                                            "Please select a category",
-                                                          );
-                                                        if (!rejReason.trim())
-                                                          return alert(
-                                                            "Please enter the reason",
-                                                          );
-                                                        try {
-                                                          setIsSubmittingQuery(
-                                                            true,
-                                                          );
-                                                          await clientsApi.rejectRocQuery(
-                                                            tracker!.org._id,
-                                                            rejCategory,
-                                                            rejReason,
-                                                            rejInternalNote,
-                                                            rejectionFile ||
-                                                              undefined,
-                                                          );
+                                                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-4 max-w-xl text-left">
+                                                    <div className="flex items-center justify-between">
+                                                      <h4 className="text-sm font-bold text-red-900">
+                                                        Record ROC Rejection
+                                                      </h4>
+                                                      <button
+                                                        onClick={() =>
                                                           setRocRejectionStepId(
                                                             "",
-                                                          );
-                                                          setRejCategory("");
-                                                          setRejReason("");
+                                                          )
+                                                        }
+                                                        className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"
+                                                      >
+                                                        <X className="w-4 h-4" />
+                                                      </button>
+                                                    </div>
+                                                    <p className="text-xs text-red-600 font-medium">
+                                                      This will notify the client
+                                                      immediately and start the
+                                                      decision process. Cannot be
+                                                      undone.
+                                                    </p>
+
+                                                    <div className="space-y-1">
+                                                      <label className="block text-xs font-semibold text-slate-600">
+                                                        Rejection Category
+                                                      </label>
+                                                      <select
+                                                        value={rejCategory}
+                                                        onChange={(e) =>
+                                                          setRejCategory(
+                                                            e.target.value,
+                                                          )
+                                                        }
+                                                        className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-red-400"
+                                                      >
+                                                        <option value="">
+                                                          Select category
+                                                        </option>
+                                                        <option value="Incomplete / incorrect documentation">
+                                                          Incomplete / incorrect
+                                                          documentation
+                                                        </option>
+                                                        <option value="Name availability issue">
+                                                          Name availability issue
+                                                        </option>
+                                                        <option value="Registered office address mismatch">
+                                                          Registered office
+                                                          address mismatch
+                                                        </option>
+                                                        <option value="Director KYC failure">
+                                                          Director KYC failure
+                                                        </option>
+                                                        <option value="MoA/AoA defects">
+                                                          MoA/AoA defects
+                                                        </option>
+                                                        <option value="Other (specify in reason)">
+                                                          Other (specify in
+                                                          reason)
+                                                        </option>
+                                                      </select>
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                      <label className="block text-xs font-semibold text-slate-600">
+                                                        Reason from ROC (shown to
+                                                        client)
+                                                      </label>
+                                                      <textarea
+                                                        value={rejReason}
+                                                        onChange={(e) =>
+                                                          setRejReason(
+                                                            e.target.value,
+                                                          )
+                                                        }
+                                                        className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-red-400"
+                                                        placeholder="e.g. ROC has rejected the application due to discrepancies in the registered office address..."
+                                                      />
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                      <label className="block text-xs font-semibold text-slate-600">
+                                                        Internal Note (admin only)
+                                                      </label>
+                                                      <textarea
+                                                        value={rejInternalNote}
+                                                        onChange={(e) =>
                                                           setRejInternalNote(
-                                                            "",
-                                                          );
-                                                          setRejectionFile(
-                                                            null,
-                                                          );
-                                                          loadData();
-                                                        } catch (err: any) {
-                                                          alert(
-                                                            err.message ||
-                                                              "Failed to confirm rejection",
-                                                          );
-                                                        } finally {
-                                                          setIsSubmittingQuery(
-                                                            false,
-                                                          );
+                                                            e.target.value,
+                                                          )
                                                         }
-                                                      }}
-                                                      className="px-3 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer border-none"
-                                                    >
-                                                      {isSubmittingQuery
-                                                        ? "Submitting..."
-                                                        : "Confirm Rejection & Notify Client"}
-                                                    </button>
-                                                    <button
-                                                      onClick={() =>
-                                                        setRocRejectionStepId(
-                                                          "",
-                                                        )
-                                                      }
-                                                      className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-100 rounded-lg cursor-pointer bg-white"
-                                                    >
-                                                      Cancel
-                                                    </button>
-                                                  </div>
-                                                </div>
-                                              )}
+                                                        className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-red-400"
+                                                        placeholder="e.g. Client submitted an expired bill. Need to follow up on fresh utility bill..."
+                                                      />
+                                                    </div>
 
-                                              {/* Rejection Recorded Details Panel */}
-                                              {step.rocQueryMetadata?.status ===
-                                                "rejected" && (
-                                                <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-3 max-w-xl text-left text-xs">
-                                                  <h4 className="font-bold text-sm text-red-950">
-                                                    Rejection Recorded -
-                                                    Awaiting client decision
-                                                  </h4>
-                                                  <div className="p-3 bg-white border border-red-100 rounded-lg space-y-1.5">
-                                                    <div>
-                                                      <span className="font-bold text-red-800 uppercase tracking-wider text-[10px] block">
-                                                        Category
-                                                      </span>
-                                                      <span className="text-slate-800 text-sm font-semibold">
-                                                        {
-                                                          step.rocQueryMetadata
-                                                            .rejectionCategory
-                                                        }
-                                                      </span>
-                                                    </div>
-                                                    <div>
-                                                      <span className="font-bold text-red-800 uppercase tracking-wider text-[10px] block">
-                                                        Reason shown to client
-                                                      </span>
-                                                      <p className="text-slate-700 leading-relaxed">
-                                                        {
-                                                          step.rocQueryMetadata
-                                                            .rejectionReason
-                                                        }
-                                                      </p>
-                                                    </div>
-                                                    {step.rocQueryMetadata
-                                                      .internalNote && (
-                                                      <div className="pt-2 border-t border-slate-100">
-                                                        <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px] block">
-                                                          Internal Note (Admin
-                                                          only)
-                                                        </span>
-                                                        <p className="text-slate-600 italic">
-                                                          {
-                                                            step
-                                                              .rocQueryMetadata
-                                                              .internalNote
+                                                    <div className="space-y-1">
+                                                      <label className="block text-xs font-semibold text-slate-600">
+                                                        Rejection Document
+                                                        (optional)
+                                                      </label>
+                                                      <div className="flex flex-wrap items-center gap-2">
+                                                        <FileUploadComponent
+                                                          context="clients"
+                                                          allowedFileTypes=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                                                          enableExistingDocuments={
+                                                            false
                                                           }
-                                                        </p>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                              )}
-
-                                              {/* Client Deciding Status Panel */}
-                                              {step.rocQueryMetadata?.status ===
-                                                "client_deciding" && (
-                                                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2 max-w-xl text-left text-xs">
-                                                  <h4 className="font-bold text-sm text-amber-900">
-                                                    Client is reviewing their
-                                                    options
-                                                  </h4>
-                                                  <p className="text-slate-600">
-                                                    They are choosing between a
-                                                    Fresh Application or
-                                                    Continuing Ongoing.
-                                                  </p>
-                                                </div>
-                                              )}
-
-                                              {/* Client Chose: Fresh Application Panel */}
-                                              {(step.rocQueryMetadata
-                                                ?.status === "client_fresh" ||
-                                                tracker!.org.companyStatus ===
-                                                  "archived") && (
-                                                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-4 max-w-xl text-left text-xs">
-                                                  <h4 className="font-bold text-sm text-emerald-900">
-                                                    Client Chose: Fresh
-                                                    Application
-                                                  </h4>
-
-                                                  {tracker!.org
-                                                    .companyStatus !==
-                                                  "archived" ? (
-                                                    <div className="space-y-3">
-                                                      <div className="p-3 bg-white border border-emerald-100 rounded-lg text-slate-700">
-                                                        <strong className="text-emerald-800 uppercase tracking-wider text-[10px] block mb-1">
-                                                          Action Required
-                                                        </strong>
-                                                        <p className="leading-relaxed">
-                                                          You must archive this
-                                                          application first
-                                                          before generating a
-                                                          fresh application with
-                                                          a new application
-                                                          number.
-                                                        </p>
-                                                      </div>
-
-                                                      {showArchiveModal ? (
-                                                        <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg space-y-3">
-                                                          <label className="block font-semibold text-rose-900">
-                                                            Reason to Archive
-                                                          </label>
-                                                          <textarea
-                                                            value={
-                                                              archiveReason
-                                                            }
-                                                            onChange={(e) =>
-                                                              setArchiveReason(
-                                                                e.target.value,
-                                                              )
-                                                            }
-                                                            className="w-full p-2 border border-rose-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-rose-400"
-                                                            placeholder="Specify the reason to archive..."
-                                                          />
-                                                          <div className="flex gap-2">
-                                                            <button
-                                                              disabled={
-                                                                isSubmittingQuery
-                                                              }
-                                                              onClick={async () => {
-                                                                if (
-                                                                  !archiveReason.trim()
-                                                                )
-                                                                  return alert(
-                                                                    "Please enter the reason to archive",
-                                                                  );
-                                                                try {
-                                                                  setIsSubmittingQuery(
-                                                                    true,
-                                                                  );
-                                                                  await clientsApi.archiveApplication(
-                                                                    tracker!.org
-                                                                      ._id,
-                                                                    archiveReason,
-                                                                  );
-                                                                  setShowArchiveModal(
-                                                                    false,
-                                                                  );
-                                                                  setArchiveReason(
-                                                                    "",
-                                                                  );
-                                                                  alert(
-                                                                    "Application archived successfully.",
-                                                                  );
-                                                                  loadData();
-                                                                } catch (err: any) {
-                                                                  alert(
-                                                                    err.message ||
-                                                                      "Failed to archive application",
-                                                                  );
-                                                                } finally {
-                                                                  setIsSubmittingQuery(
-                                                                    false,
-                                                                  );
-                                                                }
-                                                              }}
-                                                              className="px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg cursor-pointer border-none"
-                                                            >
-                                                              Confirm Archive
-                                                            </button>
-                                                            <button
-                                                              onClick={() =>
-                                                                setShowArchiveModal(
-                                                                  false,
-                                                                )
-                                                              }
-                                                              className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-100 rounded-lg cursor-pointer bg-white"
-                                                            >
-                                                              Cancel
-                                                            </button>
-                                                          </div>
-                                                        </div>
-                                                      ) : (
-                                                        <button
-                                                          onClick={() =>
-                                                            setShowArchiveModal(
-                                                              true,
-                                                            )
+                                                          title="Attach rejection document"
+                                                          subtitle="Upload from your computer or import from Google Drive."
+                                                          onFileSelect={(file) =>
+                                                            setRejectionFile(file)
                                                           }
-                                                          className="px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg cursor-pointer border-none"
-                                                        >
-                                                          Archive this
-                                                          application
-                                                        </button>
-                                                      )}
-                                                    </div>
-                                                  ) : (
-                                                    <div className="space-y-3">
-                                                      <div className="p-3 bg-white border border-emerald-100 rounded-lg text-slate-700">
-                                                        <strong className="text-emerald-800 uppercase tracking-wider text-[10px] block mb-1">
-                                                          Application Archived
-                                                          Successfully
-                                                        </strong>
-                                                        <p className="leading-relaxed">
-                                                          You can now generate a
-                                                          new active
-                                                          application. The
-                                                          client will be
-                                                          automatically
-                                                          redirected.
-                                                        </p>
+                                                          renderTrigger={(
+                                                            openPicker,
+                                                          ) => (
+                                                            <button
+                                                              type="button"
+                                                              onClick={openPicker}
+                                                              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
+                                                            >
+                                                              Choose file
+                                                            </button>
+                                                          )}
+                                                        />
+                                                        {rejectionFile && (
+                                                          <span className="text-xs text-slate-600 truncate max-w-[200px]">
+                                                            {rejectionFile.name}
+                                                          </span>
+                                                        )}
                                                       </div>
+                                                    </div>
+
+                                                    <div className="flex gap-2">
                                                       <button
                                                         disabled={
                                                           isSubmittingQuery
                                                         }
                                                         onClick={async () => {
+                                                          if (!rejCategory)
+                                                            return alert(
+                                                              "Please select a category",
+                                                            );
+                                                          if (!rejReason.trim())
+                                                            return alert(
+                                                              "Please enter the reason",
+                                                            );
                                                           try {
                                                             setIsSubmittingQuery(
                                                               true,
                                                             );
-                                                            const res =
-                                                              await clientsApi.createFreshApplication(
-                                                                tracker!.org
-                                                                  ._id,
-                                                              );
-                                                            alert(
-                                                              "New application created successfully!",
+                                                            await clientsApi.rejectRocQuery(
+                                                              tracker!.org._id,
+                                                              rejCategory,
+                                                              rejReason,
+                                                              rejInternalNote,
+                                                              rejectionFile ||
+                                                              undefined,
                                                             );
-                                                            router.push(
-                                                              `/clients/${res.applicationNo}?tab=tracking-status`,
+                                                            setRocRejectionStepId(
+                                                              "",
                                                             );
+                                                            setRejCategory("");
+                                                            setRejReason("");
+                                                            setRejInternalNote(
+                                                              "",
+                                                            );
+                                                            setRejectionFile(
+                                                              null,
+                                                            );
+                                                            loadData();
                                                           } catch (err: any) {
                                                             alert(
                                                               err.message ||
-                                                                "Failed to create new application",
+                                                              "Failed to confirm rejection",
                                                             );
                                                           } finally {
                                                             setIsSubmittingQuery(
@@ -1950,66 +1684,318 @@ export default function TrackingStatusContent({
                                                             );
                                                           }
                                                         }}
-                                                        className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg cursor-pointer border-none flex items-center gap-1.5"
+                                                        className="px-3 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer border-none"
                                                       >
-                                                        {isSubmittingQuery && (
-                                                          <Spinner
-                                                            size="sm"
-                                                            color="current"
-                                                          />
-                                                        )}
-                                                        Create new application
+                                                        {isSubmittingQuery
+                                                          ? "Submitting..."
+                                                          : "Confirm Rejection & Notify Client"}
+                                                      </button>
+                                                      <button
+                                                        onClick={() =>
+                                                          setRocRejectionStepId(
+                                                            "",
+                                                          )
+                                                        }
+                                                        className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-100 rounded-lg cursor-pointer bg-white"
+                                                      >
+                                                        Cancel
                                                       </button>
                                                     </div>
-                                                  )}
-                                                </div>
-                                              )}
+                                                  </div>
+                                                )}
+
+                                              {/* Rejection Recorded Details Panel */}
+                                              {step.rocQueryMetadata?.status ===
+                                                "rejected" && (
+                                                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-3 max-w-xl text-left text-xs">
+                                                    <h4 className="font-bold text-sm text-red-950">
+                                                      Rejection Recorded -
+                                                      Awaiting client decision
+                                                    </h4>
+                                                    <div className="p-3 bg-white border border-red-100 rounded-lg space-y-1.5">
+                                                      <div>
+                                                        <span className="font-bold text-red-800 uppercase tracking-wider text-[10px] block">
+                                                          Category
+                                                        </span>
+                                                        <span className="text-slate-800 text-sm font-semibold">
+                                                          {
+                                                            step.rocQueryMetadata
+                                                              .rejectionCategory
+                                                          }
+                                                        </span>
+                                                      </div>
+                                                      <div>
+                                                        <span className="font-bold text-red-800 uppercase tracking-wider text-[10px] block">
+                                                          Reason shown to client
+                                                        </span>
+                                                        <p className="text-slate-700 leading-relaxed">
+                                                          {
+                                                            step.rocQueryMetadata
+                                                              .rejectionReason
+                                                          }
+                                                        </p>
+                                                      </div>
+                                                      {step.rocQueryMetadata
+                                                        .internalNote && (
+                                                          <div className="pt-2 border-t border-slate-100">
+                                                            <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px] block">
+                                                              Internal Note (Admin
+                                                              only)
+                                                            </span>
+                                                            <p className="text-slate-600 italic">
+                                                              {
+                                                                step
+                                                                  .rocQueryMetadata
+                                                                  .internalNote
+                                                              }
+                                                            </p>
+                                                          </div>
+                                                        )}
+                                                    </div>
+                                                  </div>
+                                                )}
+
+                                              {/* Client Deciding Status Panel */}
+                                              {step.rocQueryMetadata?.status ===
+                                                "client_deciding" && (
+                                                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2 max-w-xl text-left text-xs">
+                                                    <h4 className="font-bold text-sm text-amber-900">
+                                                      Client is reviewing their
+                                                      options
+                                                    </h4>
+                                                    <p className="text-slate-600">
+                                                      They are choosing between a
+                                                      Fresh Application or
+                                                      Continuing Ongoing.
+                                                    </p>
+                                                  </div>
+                                                )}
+
+                                              {/* Client Chose: Fresh Application Panel */}
+                                              {(step.rocQueryMetadata
+                                                ?.status === "client_fresh" ||
+                                                tracker!.org.companyStatus ===
+                                                "archived") && (
+                                                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-4 max-w-xl text-left text-xs">
+                                                    <h4 className="font-bold text-sm text-emerald-900">
+                                                      Client Chose: Fresh
+                                                      Application
+                                                    </h4>
+
+                                                    {tracker!.org
+                                                      .companyStatus !==
+                                                      "archived" ? (
+                                                      <div className="space-y-3">
+                                                        <div className="p-3 bg-white border border-emerald-100 rounded-lg text-slate-700">
+                                                          <strong className="text-emerald-800 uppercase tracking-wider text-[10px] block mb-1">
+                                                            Action Required
+                                                          </strong>
+                                                          <p className="leading-relaxed">
+                                                            You must archive this
+                                                            application first
+                                                            before generating a
+                                                            fresh application with
+                                                            a new application
+                                                            number.
+                                                          </p>
+                                                        </div>
+
+                                                        {showArchiveModal ? (
+                                                          <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg space-y-3">
+                                                            <label className="block font-semibold text-rose-900">
+                                                              Reason to Archive
+                                                            </label>
+                                                            <textarea
+                                                              value={
+                                                                archiveReason
+                                                              }
+                                                              onChange={(e) =>
+                                                                setArchiveReason(
+                                                                  e.target.value,
+                                                                )
+                                                              }
+                                                              className="w-full p-2 border border-rose-200 rounded-lg text-sm bg-white text-slate-800 focus:outline-none focus:border-rose-400"
+                                                              placeholder="Specify the reason to archive..."
+                                                            />
+                                                            <div className="flex gap-2">
+                                                              <button
+                                                                disabled={
+                                                                  isSubmittingQuery
+                                                                }
+                                                                onClick={async () => {
+                                                                  if (
+                                                                    !archiveReason.trim()
+                                                                  )
+                                                                    return alert(
+                                                                      "Please enter the reason to archive",
+                                                                    );
+                                                                  try {
+                                                                    setIsSubmittingQuery(
+                                                                      true,
+                                                                    );
+                                                                    await clientsApi.archiveApplication(
+                                                                      tracker!.org
+                                                                        ._id,
+                                                                      archiveReason,
+                                                                    );
+                                                                    setShowArchiveModal(
+                                                                      false,
+                                                                    );
+                                                                    setArchiveReason(
+                                                                      "",
+                                                                    );
+                                                                    alert(
+                                                                      "Application archived successfully.",
+                                                                    );
+                                                                    loadData();
+                                                                  } catch (err: any) {
+                                                                    alert(
+                                                                      err.message ||
+                                                                      "Failed to archive application",
+                                                                    );
+                                                                  } finally {
+                                                                    setIsSubmittingQuery(
+                                                                      false,
+                                                                    );
+                                                                  }
+                                                                }}
+                                                                className="px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg cursor-pointer border-none"
+                                                              >
+                                                                Confirm Archive
+                                                              </button>
+                                                              <button
+                                                                onClick={() =>
+                                                                  setShowArchiveModal(
+                                                                    false,
+                                                                  )
+                                                                }
+                                                                className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-100 rounded-lg cursor-pointer bg-white"
+                                                              >
+                                                                Cancel
+                                                              </button>
+                                                            </div>
+                                                          </div>
+                                                        ) : (
+                                                          <button
+                                                            onClick={() =>
+                                                              setShowArchiveModal(
+                                                                true,
+                                                              )
+                                                            }
+                                                            className="px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg cursor-pointer border-none"
+                                                          >
+                                                            Archive this
+                                                            application
+                                                          </button>
+                                                        )}
+                                                      </div>
+                                                    ) : (
+                                                      <div className="space-y-3">
+                                                        <div className="p-3 bg-white border border-emerald-100 rounded-lg text-slate-700">
+                                                          <strong className="text-emerald-800 uppercase tracking-wider text-[10px] block mb-1">
+                                                            Application Archived
+                                                            Successfully
+                                                          </strong>
+                                                          <p className="leading-relaxed">
+                                                            You can now generate a
+                                                            new active
+                                                            application. The
+                                                            client will be
+                                                            automatically
+                                                            redirected.
+                                                          </p>
+                                                        </div>
+                                                        <button
+                                                          disabled={
+                                                            isSubmittingQuery
+                                                          }
+                                                          onClick={async () => {
+                                                            try {
+                                                              setIsSubmittingQuery(
+                                                                true,
+                                                              );
+                                                              const res =
+                                                                await clientsApi.createFreshApplication(
+                                                                  tracker!.org
+                                                                    ._id,
+                                                                );
+                                                              alert(
+                                                                "New application created successfully!",
+                                                              );
+                                                              router.push(
+                                                                `/clients/${res.applicationNo}?tab=tracking-status`,
+                                                              );
+                                                            } catch (err: any) {
+                                                              alert(
+                                                                err.message ||
+                                                                "Failed to create new application",
+                                                              );
+                                                            } finally {
+                                                              setIsSubmittingQuery(
+                                                                false,
+                                                              );
+                                                            }
+                                                          }}
+                                                          className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg cursor-pointer border-none flex items-center gap-1.5"
+                                                        >
+                                                          {isSubmittingQuery && (
+                                                            <Spinner
+                                                              size="sm"
+                                                              color="current"
+                                                            />
+                                                          )}
+                                                          Create new application
+                                                        </button>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                )}
 
                                               {/* Client Chose: Continue Ongoing Panel */}
                                               {step.rocQueryMetadata?.status ===
                                                 "client_ongoing" && (
-                                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-3 max-w-xl text-left text-xs">
-                                                  <h4 className="font-bold text-sm text-blue-900">
-                                                    Client Chose: Continue
-                                                    Ongoing
-                                                  </h4>
-                                                  <div className="p-3 bg-white border border-blue-100 rounded-lg text-slate-700">
-                                                    <strong className="text-blue-800 uppercase tracking-wider text-[10px] block mb-1">
-                                                      Ops Decision Required
-                                                    </strong>
-                                                    <p className="leading-relaxed">
-                                                      The operational path for
-                                                      "continue ongoing" after
-                                                      rejection has not yet been
-                                                      defined. Review options
-                                                      with the ops team.
-                                                    </p>
+                                                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-3 max-w-xl text-left text-xs">
+                                                    <h4 className="font-bold text-sm text-blue-900">
+                                                      Client Chose: Continue
+                                                      Ongoing
+                                                    </h4>
+                                                    <div className="p-3 bg-white border border-blue-100 rounded-lg text-slate-700">
+                                                      <strong className="text-blue-800 uppercase tracking-wider text-[10px] block mb-1">
+                                                        Ops Decision Required
+                                                      </strong>
+                                                      <p className="leading-relaxed">
+                                                        The operational path for
+                                                        "continue ongoing" after
+                                                        rejection has not yet been
+                                                        defined. Review options
+                                                        with the ops team.
+                                                      </p>
+                                                    </div>
+                                                    <button
+                                                      onClick={() =>
+                                                        alert(
+                                                          "Escalated to Operations Team successfully",
+                                                        )
+                                                      }
+                                                      className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg cursor-pointer border-none"
+                                                    >
+                                                      Escalate to ops team
+                                                    </button>
                                                   </div>
-                                                  <button
-                                                    onClick={() =>
-                                                      alert(
-                                                        "Escalated to Operations Team successfully",
-                                                      )
-                                                    }
-                                                    className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg cursor-pointer border-none"
-                                                  >
-                                                    Escalate to ops team
-                                                  </button>
-                                                </div>
-                                              )}
+                                                )}
 
                                               {/* Raise Query Panel: shows when status is 'pending' or 'resubmitted' */}
                                               {step.status !== "Rejected" &&
                                                 rocRejectionStepId !==
-                                                  step._id &&
+                                                step._id &&
                                                 (!step.rocQueryMetadata ||
                                                   step.rocQueryMetadata
                                                     ?.status === "pending" ||
                                                   step.rocQueryMetadata
                                                     ?.status ===
-                                                    "resubmitted" ||
+                                                  "resubmitted" ||
                                                   rocQueryStepId ===
-                                                    step._id) && (
+                                                  step._id) && (
                                                   <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-xl space-y-4 max-w-xl text-left">
                                                     <h4 className="text-sm font-bold text-amber-900">
                                                       Raise a query from ROC
@@ -2102,7 +2088,7 @@ export default function TrackingStatusContent({
                                                           } catch (err: any) {
                                                             alert(
                                                               err.message ||
-                                                                "Failed to raise query",
+                                                              "Failed to raise query",
                                                             );
                                                           } finally {
                                                             setIsSubmittingQuery(
@@ -2127,302 +2113,302 @@ export default function TrackingStatusContent({
                                               {/* Sent Waiting Panel: shows when status is 'query' */}
                                               {step.rocQueryMetadata?.status ===
                                                 "query" && (
-                                                <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-xl space-y-3 max-w-xl text-left">
-                                                  <div className="flex items-center justify-between">
-                                                    <h4 className="text-sm font-bold text-amber-900 flex items-center gap-1.5">
-                                                      <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-                                                      Query sent to client -
-                                                      waiting for response
-                                                    </h4>
-                                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-mono uppercase">
-                                                      Round{" "}
-                                                      {
-                                                        step.rocQueryMetadata
-                                                          ?.roundNumber
-                                                      }
-                                                    </span>
-                                                  </div>
-                                                  <div className="p-3 bg-white border border-amber-100 rounded-lg space-y-1">
-                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                      Query text
-                                                    </div>
-                                                    <p className="text-xs text-slate-800 leading-normal">
-                                                      {
-                                                        step.rocQueryMetadata
-                                                          ?.queryText
-                                                      }
-                                                    </p>
-                                                  </div>
-                                                  {step.rocQueryMetadata
-                                                    ?.rejectNote && (
-                                                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg space-y-1">
-                                                      <div className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">
-                                                        Send Back Rejection Note
-                                                      </div>
-                                                      <p className="text-xs text-rose-700 leading-normal">
+                                                  <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-xl space-y-3 max-w-xl text-left">
+                                                    <div className="flex items-center justify-between">
+                                                      <h4 className="text-sm font-bold text-amber-900 flex items-center gap-1.5">
+                                                        <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                                                        Query sent to client -
+                                                        waiting for response
+                                                      </h4>
+                                                      <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-mono uppercase">
+                                                        Round{" "}
                                                         {
                                                           step.rocQueryMetadata
-                                                            ?.rejectNote
+                                                            ?.roundNumber
+                                                        }
+                                                      </span>
+                                                    </div>
+                                                    <div className="p-3 bg-white border border-amber-100 rounded-lg space-y-1">
+                                                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                                        Query text
+                                                      </div>
+                                                      <p className="text-xs text-slate-800 leading-normal">
+                                                        {
+                                                          step.rocQueryMetadata
+                                                            ?.queryText
                                                         }
                                                       </p>
                                                     </div>
-                                                  )}
-                                                  <div className="text-xs text-blue-600 font-medium">
-                                                    Client has{" "}
-                                                    {
-                                                      step.rocQueryMetadata
-                                                        ?.daysRemaining
-                                                    }{" "}
-                                                    day(s) remaining to respond.
+                                                    {step.rocQueryMetadata
+                                                      ?.rejectNote && (
+                                                        <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg space-y-1">
+                                                          <div className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">
+                                                            Send Back Rejection Note
+                                                          </div>
+                                                          <p className="text-xs text-rose-700 leading-normal">
+                                                            {
+                                                              step.rocQueryMetadata
+                                                                ?.rejectNote
+                                                            }
+                                                          </p>
+                                                        </div>
+                                                      )}
+                                                    <div className="text-xs text-blue-600 font-medium">
+                                                      Client has{" "}
+                                                      {
+                                                        step.rocQueryMetadata
+                                                          ?.daysRemaining
+                                                      }{" "}
+                                                      day(s) remaining to respond.
+                                                    </div>
                                                   </div>
-                                                </div>
-                                              )}
+                                                )}
 
                                               {/* Review Panel: shows when status is 'client_submitted' */}
                                               {step.rocQueryMetadata?.status ===
                                                 "client_submitted" && (
-                                                <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl space-y-4 max-w-xl text-left">
-                                                  <h4 className="text-sm font-bold text-blue-900">
-                                                    Client response received -
-                                                    review before resubmitting
-                                                    to ROC
-                                                  </h4>
+                                                  <div className="p-4 bg-blue-50/50 border border-blue-200 rounded-xl space-y-4 max-w-xl text-left">
+                                                    <h4 className="text-sm font-bold text-blue-900">
+                                                      Client response received -
+                                                      review before resubmitting
+                                                      to ROC
+                                                    </h4>
 
-                                                  <div className="p-3 bg-white border border-blue-100 rounded-lg space-y-1">
-                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                      Original query
+                                                    <div className="p-3 bg-white border border-blue-100 rounded-lg space-y-1">
+                                                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                                        Original query
+                                                      </div>
+                                                      <p className="text-xs text-slate-800 leading-normal">
+                                                        {
+                                                          step.rocQueryMetadata
+                                                            ?.queryText
+                                                        }
+                                                      </p>
                                                     </div>
-                                                    <p className="text-xs text-slate-800 leading-normal">
-                                                      {
-                                                        step.rocQueryMetadata
-                                                          ?.queryText
-                                                      }
-                                                    </p>
-                                                  </div>
 
-                                                  <div className="p-3 bg-white border border-blue-100 rounded-lg space-y-2">
-                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                      Client submitted
-                                                    </div>
-                                                    <div className="space-y-1 text-xs font-semibold text-slate-700">
-                                                      {step.rocQueryMetadata
-                                                        ?.needsDocument && (
-                                                        <div className="flex items-center gap-1.5">
-                                                          {step.rocQueryMetadata
-                                                            ?.clientDocumentUrl ? (
-                                                            <>
-                                                              <span className="text-green-600 font-bold">
-                                                                ✓
-                                                              </span>
-                                                              <span>
-                                                                Document
-                                                                attached:
-                                                              </span>
-                                                              <span
-                                                                onClick={async () => {
-                                                                  try {
-                                                                    const blob =
-                                                                      await clientsApi.downloadRocQueryResponse(
-                                                                        appNo,
-                                                                      );
-                                                                    const blobUrl =
-                                                                      window.URL.createObjectURL(
-                                                                        blob,
-                                                                      );
-                                                                    window.open(
-                                                                      blobUrl,
-                                                                      "_blank",
-                                                                    );
-                                                                  } catch {
-                                                                    alert(
-                                                                      "Failed to download document",
-                                                                    );
-                                                                  }
-                                                                }}
-                                                                className="text-blue-600 underline font-medium hover:text-blue-700 cursor-pointer"
-                                                              >
+                                                    <div className="p-3 bg-white border border-blue-100 rounded-lg space-y-2">
+                                                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                                        Client submitted
+                                                      </div>
+                                                      <div className="space-y-1 text-xs font-semibold text-slate-700">
+                                                        {step.rocQueryMetadata
+                                                          ?.needsDocument && (
+                                                            <div className="flex items-center gap-1.5">
+                                                              {step.rocQueryMetadata
+                                                                ?.clientDocumentUrl ? (
+                                                                <>
+                                                                  <span className="text-green-600 font-bold">
+                                                                    ✓
+                                                                  </span>
+                                                                  <span>
+                                                                    Document
+                                                                    attached:
+                                                                  </span>
+                                                                  <span
+                                                                    onClick={async () => {
+                                                                      try {
+                                                                        const blob =
+                                                                          await clientsApi.downloadRocQueryResponse(
+                                                                            appNo,
+                                                                          );
+                                                                        const blobUrl =
+                                                                          window.URL.createObjectURL(
+                                                                            blob,
+                                                                          );
+                                                                        window.open(
+                                                                          blobUrl,
+                                                                          "_blank",
+                                                                        );
+                                                                      } catch {
+                                                                        alert(
+                                                                          "Failed to download document",
+                                                                        );
+                                                                      }
+                                                                    }}
+                                                                    className="text-blue-600 underline font-medium hover:text-blue-700 cursor-pointer"
+                                                                  >
+                                                                    {step
+                                                                      .rocQueryMetadata
+                                                                      ?.clientDocumentName ||
+                                                                      "Download document"}
+                                                                  </span>
+                                                                </>
+                                                              ) : (
+                                                                <>
+                                                                  <span className="text-red-500 font-bold">
+                                                                    ✗
+                                                                  </span>
+                                                                  <span className="text-red-600">
+                                                                    No document
+                                                                    attached
+                                                                  </span>
+                                                                </>
+                                                              )}
+                                                            </div>
+                                                          )}
+                                                        {step.rocQueryMetadata
+                                                          ?.needsTextResponse && (
+                                                            <div className="space-y-1">
+                                                              <div className="flex items-center gap-1.5">
                                                                 {step
                                                                   .rocQueryMetadata
-                                                                  ?.clientDocumentName ||
-                                                                  "Download document"}
-                                                              </span>
-                                                            </>
-                                                          ) : (
-                                                            <>
-                                                              <span className="text-red-500 font-bold">
-                                                                ✗
-                                                              </span>
-                                                              <span className="text-red-600">
-                                                                No document
-                                                                attached
-                                                              </span>
-                                                            </>
+                                                                  ?.clientTextResponse ? (
+                                                                  <>
+                                                                    <span className="text-green-600 font-bold">
+                                                                      ✓
+                                                                    </span>
+                                                                    <span>
+                                                                      Clarification
+                                                                      response:
+                                                                    </span>
+                                                                  </>
+                                                                ) : (
+                                                                  <>
+                                                                    <span className="text-red-500 font-bold">
+                                                                      ✗
+                                                                    </span>
+                                                                    <span className="text-red-600">
+                                                                      No written
+                                                                      response
+                                                                    </span>
+                                                                  </>
+                                                                )}
+                                                              </div>
+                                                              {step.rocQueryMetadata
+                                                                ?.clientTextResponse && (
+                                                                  <p className="p-2 bg-slate-50 border border-slate-100 rounded text-xs text-slate-800 font-normal leading-normal">
+                                                                    {
+                                                                      step
+                                                                        .rocQueryMetadata
+                                                                        ?.clientTextResponse
+                                                                    }
+                                                                  </p>
+                                                                )}
+                                                            </div>
                                                           )}
-                                                        </div>
-                                                      )}
-                                                      {step.rocQueryMetadata
-                                                        ?.needsTextResponse && (
-                                                        <div className="space-y-1">
-                                                          <div className="flex items-center gap-1.5">
-                                                            {step
-                                                              .rocQueryMetadata
-                                                              ?.clientTextResponse ? (
-                                                              <>
-                                                                <span className="text-green-600 font-bold">
-                                                                  ✓
-                                                                </span>
-                                                                <span>
-                                                                  Clarification
-                                                                  response:
-                                                                </span>
-                                                              </>
-                                                            ) : (
-                                                              <>
-                                                                <span className="text-red-500 font-bold">
-                                                                  ✗
-                                                                </span>
-                                                                <span className="text-red-600">
-                                                                  No written
-                                                                  response
-                                                                </span>
-                                                              </>
-                                                            )}
-                                                          </div>
-                                                          {step.rocQueryMetadata
-                                                            ?.clientTextResponse && (
-                                                            <p className="p-2 bg-slate-50 border border-slate-100 rounded text-xs text-slate-800 font-normal leading-normal">
-                                                              {
-                                                                step
-                                                                  .rocQueryMetadata
-                                                                  ?.clientTextResponse
-                                                              }
-                                                            </p>
-                                                          )}
-                                                        </div>
-                                                      )}
+                                                      </div>
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                      <label className="block text-xs font-semibold text-slate-600">
+                                                        Note (required if sending
+                                                        back)
+                                                      </label>
+                                                      <textarea
+                                                        value={adminSendBackNote}
+                                                        onChange={(e) =>
+                                                          setAdminSendBackNote(
+                                                            e.target.value,
+                                                          )
+                                                        }
+                                                        className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
+                                                        placeholder="Tell the client exactly what was missing or incorrect - they'll see this on their end."
+                                                      />
+                                                    </div>
+
+                                                    <div className="flex gap-2">
+                                                      <button
+                                                        disabled={
+                                                          isSubmittingQuery
+                                                        }
+                                                        onClick={async () => {
+                                                          try {
+                                                            setIsSubmittingQuery(
+                                                              true,
+                                                            );
+                                                            await clientsApi.approveRocResubmit(
+                                                              tracker!.org._id,
+                                                            );
+                                                            setAdminSendBackNote(
+                                                              "",
+                                                            );
+                                                            loadData();
+                                                          } catch (err: any) {
+                                                            alert(
+                                                              err.message ||
+                                                              "Failed to approve resubmission",
+                                                            );
+                                                          } finally {
+                                                            setIsSubmittingQuery(
+                                                              false,
+                                                            );
+                                                          }
+                                                        }}
+                                                        className="px-3 py-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-none"
+                                                      >
+                                                        {isSubmittingQuery && (
+                                                          <Spinner
+                                                            size="sm"
+                                                            color="current"
+                                                          />
+                                                        )}
+                                                        ✓ Sufficient - resubmit to
+                                                        ROC
+                                                      </button>
+                                                      <button
+                                                        disabled={
+                                                          isSubmittingQuery
+                                                        }
+                                                        onClick={async () => {
+                                                          if (
+                                                            !adminSendBackNote.trim()
+                                                          )
+                                                            return alert(
+                                                              "Please enter note explaining why you are sending it back",
+                                                            );
+                                                          try {
+                                                            setIsSubmittingQuery(
+                                                              true,
+                                                            );
+                                                            await clientsApi.sendBackRocQuery(
+                                                              tracker!.org._id,
+                                                              adminSendBackNote,
+                                                            );
+                                                            setAdminSendBackNote(
+                                                              "",
+                                                            );
+                                                            loadData();
+                                                          } catch (err: any) {
+                                                            alert(
+                                                              err.message ||
+                                                              "Failed to send back query",
+                                                            );
+                                                          } finally {
+                                                            setIsSubmittingQuery(
+                                                              false,
+                                                            );
+                                                          }
+                                                        }}
+                                                        className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                      >
+                                                        {isSubmittingQuery && (
+                                                          <Spinner
+                                                            size="sm"
+                                                            color="current"
+                                                          />
+                                                        )}
+                                                        ↩ Send back to client
+                                                      </button>
                                                     </div>
                                                   </div>
-
-                                                  <div className="space-y-1">
-                                                    <label className="block text-xs font-semibold text-slate-600">
-                                                      Note (required if sending
-                                                      back)
-                                                    </label>
-                                                    <textarea
-                                                      value={adminSendBackNote}
-                                                      onChange={(e) =>
-                                                        setAdminSendBackNote(
-                                                          e.target.value,
-                                                        )
-                                                      }
-                                                      className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
-                                                      placeholder="Tell the client exactly what was missing or incorrect - they'll see this on their end."
-                                                    />
-                                                  </div>
-
-                                                  <div className="flex gap-2">
-                                                    <button
-                                                      disabled={
-                                                        isSubmittingQuery
-                                                      }
-                                                      onClick={async () => {
-                                                        try {
-                                                          setIsSubmittingQuery(
-                                                            true,
-                                                          );
-                                                          await clientsApi.approveRocResubmit(
-                                                            tracker!.org._id,
-                                                          );
-                                                          setAdminSendBackNote(
-                                                            "",
-                                                          );
-                                                          loadData();
-                                                        } catch (err: any) {
-                                                          alert(
-                                                            err.message ||
-                                                              "Failed to approve resubmission",
-                                                          );
-                                                        } finally {
-                                                          setIsSubmittingQuery(
-                                                            false,
-                                                          );
-                                                        }
-                                                      }}
-                                                      className="px-3 py-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border-none"
-                                                    >
-                                                      {isSubmittingQuery && (
-                                                        <Spinner
-                                                          size="sm"
-                                                          color="current"
-                                                        />
-                                                      )}
-                                                      ✓ Sufficient - resubmit to
-                                                      ROC
-                                                    </button>
-                                                    <button
-                                                      disabled={
-                                                        isSubmittingQuery
-                                                      }
-                                                      onClick={async () => {
-                                                        if (
-                                                          !adminSendBackNote.trim()
-                                                        )
-                                                          return alert(
-                                                            "Please enter note explaining why you are sending it back",
-                                                          );
-                                                        try {
-                                                          setIsSubmittingQuery(
-                                                            true,
-                                                          );
-                                                          await clientsApi.sendBackRocQuery(
-                                                            tracker!.org._id,
-                                                            adminSendBackNote,
-                                                          );
-                                                          setAdminSendBackNote(
-                                                            "",
-                                                          );
-                                                          loadData();
-                                                        } catch (err: any) {
-                                                          alert(
-                                                            err.message ||
-                                                              "Failed to send back query",
-                                                          );
-                                                        } finally {
-                                                          setIsSubmittingQuery(
-                                                            false,
-                                                          );
-                                                        }
-                                                      }}
-                                                      className="px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200 hover:bg-slate-100 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                      {isSubmittingQuery && (
-                                                        <Spinner
-                                                          size="sm"
-                                                          color="current"
-                                                        />
-                                                      )}
-                                                      ↩ Send back to client
-                                                    </button>
-                                                  </div>
-                                                </div>
-                                              )}
+                                                )}
 
                                               {/* Lapsed Panel: shows when status is 'lapsed' */}
                                               {step.rocQueryMetadata?.status ===
                                                 "lapsed" && (
-                                                <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-2 max-w-xl text-rose-800 text-xs text-left">
-                                                  <h4 className="font-bold text-sm text-rose-900">
-                                                    Application Lapsed
-                                                  </h4>
-                                                  <p>
-                                                    The 10-day resubmission
-                                                    window closed without a
-                                                    response. Please contact
-                                                    your CorpE advisor to
-                                                    discuss next steps.
-                                                  </p>
-                                                </div>
-                                              )}
+                                                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-2 max-w-xl text-rose-800 text-xs text-left">
+                                                    <h4 className="font-bold text-sm text-rose-900">
+                                                      Application Lapsed
+                                                    </h4>
+                                                    <p>
+                                                      The 10-day resubmission
+                                                      window closed without a
+                                                      response. Please contact
+                                                      your CorpE advisor to
+                                                      discuss next steps.
+                                                    </p>
+                                                  </div>
+                                                )}
 
                                               {/* Round History / Activity Log Timeline */}
                                               {step.rocQueryMetadata
@@ -2479,20 +2465,20 @@ export default function TrackingStatusContent({
                                               rocQueryStepId === step._id
                                                 ? "query"
                                                 : rocRejectionStepId ===
-                                                    step._id
+                                                  step._id
                                                   ? "rejected"
                                                   : step.rocQueryMetadata
-                                                        ?.status ===
-                                                        "client_deciding" ||
-                                                      step.rocQueryMetadata
-                                                        ?.status ===
-                                                        "client_fresh" ||
-                                                      step.rocQueryMetadata
-                                                        ?.status ===
-                                                        "client_ongoing"
+                                                    ?.status ===
+                                                    "client_deciding" ||
+                                                    step.rocQueryMetadata
+                                                      ?.status ===
+                                                    "client_fresh" ||
+                                                    step.rocQueryMetadata
+                                                      ?.status ===
+                                                    "client_ongoing"
                                                     ? "rejected"
                                                     : step.rocQueryMetadata
-                                                        ?.status || "pending"
+                                                      ?.status || "pending"
                                             }
                                             isDisabled={!canEdit}
                                             onChange={async (val) => {
@@ -2603,12 +2589,12 @@ export default function TrackingStatusContent({
                                             isDisabled={
                                               step.isEditable === false ||
                                               step.title ===
-                                                "All documents delivered to you"
+                                              "All documents delivered to you"
                                             }
                                             onChange={(val) =>
                                               handleStatusChange(
                                                 currentStage.stageId ||
-                                                  stage._id,
+                                                stage._id,
                                                 section._id,
                                                 step._id,
                                                 val,
@@ -2660,9 +2646,9 @@ export default function TrackingStatusContent({
                                                 ) {
                                                   return (
                                                     step.title ===
-                                                      "Name availability check" ||
+                                                    "Name availability check" ||
                                                     step.title ===
-                                                      "Trademark Check"
+                                                    "Trademark Check"
                                                   );
                                                 }
 
@@ -2689,19 +2675,19 @@ export default function TrackingStatusContent({
                                         )}
                                       </div>
                                     </div>
-                                      {step.title === "COI issued" && (
-                                        <div className="w-full basis-full">
-                                          <PanTanEmailDisclaimer
-                                            variant="admin"
-                                            context="coi-tracker"
-                                            officeEmail={
-                                              companyOverview
-                                                ?.corporateStructure
-                                                ?.registeredOffice?.officeEmail
-                                            }
-                                          />
-                                        </div>
-                                      )}
+                                    {step.title === "COI issued" && (
+                                      <div className="w-full basis-full">
+                                        <PanTanEmailDisclaimer
+                                          variant="admin"
+                                          context="coi-tracker"
+                                          officeEmail={
+                                            companyOverview
+                                              ?.corporateStructure
+                                              ?.registeredOffice?.officeEmail
+                                          }
+                                        />
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}

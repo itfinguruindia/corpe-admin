@@ -300,14 +300,14 @@ export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
           )}
         </div>
 
-        <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl">
+        <div className="flex gap-1">
           <button
             type="button"
             onClick={() => setSubTab("details")}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all focus:outline-none ${
+            className={`px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${
               subTab === "details"
-                ? "bg-white text-gray-800 shadow-sm"
-                : "text-gray-500 hover:text-gray-800"
+                ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
             Form Details
@@ -315,10 +315,10 @@ export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
           <button
             type="button"
             onClick={() => setSubTab("tracker")}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all focus:outline-none ${
+            className={`px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${
               subTab === "tracker"
-                ? "bg-white text-gray-800 shadow-sm"
-                : "text-gray-500 hover:text-gray-800"
+                ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             }`}
           >
             Tracking Progress

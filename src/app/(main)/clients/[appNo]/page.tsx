@@ -21,6 +21,7 @@ import UploadedDocumentsContent from "@/components/clients/tabs/UploadedDocument
 import RegistrationDocumentsContent from "@/components/clients/tabs/RegistrationDocumentsContent";
 import PricingAndPaymentContent from "@/components/clients/tabs/PricingAndPaymentContent";
 import CommentsContent from "@/components/clients/tabs/CommentsContent";
+import AddonServicesContent from "@/components/clients/tabs/AddonServicesContent";
 import { safeRouterReplace } from "@/utils/navigation";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { clientsApi } from "@/lib/api/clients";
@@ -36,6 +37,11 @@ const TABS = [
     key: "tracking-status",
     label: "Tracking Status",
     component: TrackingStatusContent,
+  },
+  {
+    key: "addon-services",
+    label: "Add-on Services",
+    component: AddonServicesContent,
   },
   {
     key: "application",
@@ -100,14 +106,26 @@ function ClientDetailsTabs() {
 
   const visibleTabs = React.useMemo(() => {
     if (isAddonOnly) {
-      return TABS.filter((t) => t.key === "company-overview" || t.key === "comments" || t.key === "pricing-and-payment");
+      return TABS.filter(
+        (t) =>
+          t.key === "company-overview" ||
+          t.key === "addon-services" ||
+          t.key === "comments" ||
+          t.key === "pricing-and-payment",
+      );
     }
     return TABS.filter((t) => !(isLlp && t.key === "moa-aoa"));
   }, [isLlp, isAddonOnly]);
 
   const tabFromUrl = searchParams.get("tab") ?? "";
   const [activeTab, setActiveTab] = React.useState<TabKey>(
-    isTabKey(tabFromUrl) && (!isAddonOnly || tabFromUrl === "company-overview" || tabFromUrl === "comments" || tabFromUrl === "pricing-and-payment") && !(isLlp && tabFromUrl === "moa-aoa")
+    isTabKey(tabFromUrl) &&
+      (!isAddonOnly ||
+        tabFromUrl === "company-overview" ||
+        tabFromUrl === "addon-services" ||
+        tabFromUrl === "comments" ||
+        tabFromUrl === "pricing-and-payment") &&
+      !(isLlp && tabFromUrl === "moa-aoa")
       ? tabFromUrl
       : "company-overview",
   );

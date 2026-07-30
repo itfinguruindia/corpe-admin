@@ -213,15 +213,15 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
     const blob =
       section.kind === "moa-aoa"
         ? await clientsApi.downloadMoaAoaDocument(
-            appNo,
-            section.docType as MoaAoaDocType,
-            source,
-          )
+          appNo,
+          section.docType as MoaAoaDocType,
+          source,
+        )
         : await clientsApi.downloadCompanyMiscDocument(
-            appNo,
-            section.docType as CompanyMiscDocType,
-            source,
-          );
+          appNo,
+          section.docType as CompanyMiscDocType,
+          source,
+        );
 
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -260,15 +260,15 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
       const blob =
         section.kind === "moa-aoa"
           ? await clientsApi.downloadMoaAoaDocument(
-              appNo,
-              section.docType as MoaAoaDocType,
-              source,
-            )
+            appNo,
+            section.docType as MoaAoaDocType,
+            source,
+          )
           : await clientsApi.downloadCompanyMiscDocument(
-              appNo,
-              section.docType as CompanyMiscDocType,
-              source,
-            );
+            appNo,
+            section.docType as CompanyMiscDocType,
+            source,
+          );
 
       const url = window.URL.createObjectURL(blob);
       setPreviewUrl(url);
@@ -283,7 +283,7 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
   const handleAdminUpload = async (section: DocumentSection, file: File) => {
     if (!file) return;
     if (!requireEdit()) return;
-    // Consent template unlocks client download — allow even when installment is due
+    // Consent template unlocks client download  allow even when installment is due
     if (isLocked && section.docType !== "consentToAct") {
       toast("Action locked. Installment payment is due.", {
         variant: "danger",
@@ -336,9 +336,8 @@ export default function MoaAoaContent({ appNo }: MoaAoaContentProps) {
             <RefreshCw
               size={18}
               onClick={() => refreshSection(section.key)}
-              className={`cursor-pointer text-secondary hover:text-primary ${
-                refreshingKey === section.key ? "animate-spin" : ""
-              }`}
+              className={`cursor-pointer text-secondary hover:text-primary ${refreshingKey === section.key ? "animate-spin" : ""
+                }`}
             />
           </div>
           <DocumentIssueButton
