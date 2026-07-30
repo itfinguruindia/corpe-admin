@@ -30,6 +30,7 @@ import {
   Puzzle,
   Receipt,
   Building2,
+  Award,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
@@ -332,6 +333,13 @@ export default function Sidebar() {
                 href="/addon-services/bank-account-setup"
                 icon={<Building2 size={15} />}
                 active={pathname === "/addon-services/bank-account-setup"}
+                collapsed={effectiveCollapsed}
+              />
+              <SubItem
+                label="Trademark Registration"
+                href="/addon-services/trademark-registration"
+                icon={<Award size={15} />}
+                active={pathname === "/addon-services/trademark-registration"}
                 collapsed={effectiveCollapsed}
               />
             </SidebarSection>
