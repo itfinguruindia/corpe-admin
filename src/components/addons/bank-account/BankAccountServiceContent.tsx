@@ -42,6 +42,12 @@ interface BankAccountData {
     notes?: string;
     city?: string;
   };
+  openedAccountDetails?: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    bankName?: string;
+  };
   isPaid: boolean;
   amountPaid?: number;
   pricingDetails?: {
@@ -163,6 +169,22 @@ export default function BankAccountServiceContent({ appNo }: BankAccountServiceC
       notifyApiError(error, { fallback: "Failed to upload document." });
     } finally {
       setUploadingAdminDoc(false);
+    }
+  };
+
+  const handleOpenedAccountInfoSave = async (payload: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    bankName?: string;
+  }) => {
+    try {
+      await clientsApi.updateBankAccountOpenedInfo(appNo, payload);
+      toast.success("Opened account details saved successfully!");
+      loadBankData();
+    } catch (error) {
+      notifyApiError(error, { fallback: "Failed to save opened account details." });
+      throw error;
     }
   };
 
@@ -330,6 +352,7 @@ export default function BankAccountServiceContent({ appNo }: BankAccountServiceC
           downloadBankMiscDoc={downloadBankMiscDoc}
           handleAdminDocUpload={handleAdminDocUpload}
           uploadingAdminDoc={uploadingAdminDoc}
+          onOpenedAccountInfoSave={handleOpenedAccountInfoSave}
         />
       )}
     </div>

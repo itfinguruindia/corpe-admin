@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Download, Eye, Loader2, Upload } from "lucide-react";
 
 import { FileUploadComponent } from "@/components/upload";
@@ -54,6 +55,12 @@ interface BankAccountData {
     notes?: string;
     city?: string;
   };
+  openedAccountDetails?: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    bankName?: string;
+  };
   isPaid: boolean;
   amountPaid?: number;
   pricingDetails?: {
@@ -85,6 +92,12 @@ interface BankAccountDetailsContentProps {
   downloadBankMiscDoc?: (index: number, mode?: "preview" | "download") => Promise<void>;
   handleAdminDocUpload: (file: File) => Promise<void>;
   uploadingAdminDoc?: boolean;
+  onOpenedAccountInfoSave?: (payload: {
+    accountHolderName: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+  }) => Promise<void>;
 }
 
 export default function BankAccountDetailsContent({
@@ -98,7 +111,53 @@ export default function BankAccountDetailsContent({
   downloadBankMiscDoc,
   handleAdminDocUpload,
   uploadingAdminDoc,
+  onOpenedAccountInfoSave,
 }: BankAccountDetailsContentProps) {
+  const [openedAccountForm, setOpenedAccountForm] = useState({
+    accountHolderName: "",
+    accountNumber: "",
+    ifscCode: "",
+    bankName: "",
+  });
+  const [openedAccountSaving, setOpenedAccountSaving] = useState(false);
+  const [openedAccountError, setOpenedAccountError] = useState("");
+
+  useEffect(() => {
+    setOpenedAccountForm({
+      accountHolderName: bankData?.openedAccountDetails?.accountHolderName || "",
+      accountNumber: bankData?.openedAccountDetails?.accountNumber || "",
+      ifscCode: bankData?.openedAccountDetails?.ifscCode || "",
+      bankName: bankData?.openedAccountDetails?.bankName || "",
+    });
+  }, [bankData]);
+
+  const handleSaveOpenedAccount = async () => {
+    const accountNumber = openedAccountForm.accountNumber.trim();
+    const ifscCode = openedAccountForm.ifscCode.trim().toUpperCase();
+
+    if (accountNumber && !/^\d{9,18}$/.test(accountNumber)) {
+      setOpenedAccountError("Account number must be 9-18 digits.");
+      return;
+    }
+    if (ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifscCode)) {
+      setOpenedAccountError("Enter a valid IFSC code.");
+      return;
+    }
+
+    setOpenedAccountError("");
+    setOpenedAccountSaving(true);
+    try {
+      await onOpenedAccountInfoSave?.({
+        accountHolderName: openedAccountForm.accountHolderName.trim(),
+        accountNumber,
+        ifscCode,
+        bankName: openedAccountForm.bankName.trim(),
+      });
+    } finally {
+      setOpenedAccountSaving(false);
+    }
+  };
+
   if (!bankData) {
     return (
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-8 text-center">
@@ -356,6 +415,102 @@ export default function BankAccountDetailsContent({
             />
           </div>
         </div>
+
+        {/* Opened Account Details */}
+        {onOpenedAccountInfoSave !== undefined && (
+          <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-semibold text-gray-700">Opened Account Details</h3>
+                <p className="text-[10px] text-gray-400 mt-0.5">
+                  Actual account info once the account is activated
+                </p>
+              </div>
+              {bankData.openedAccountDetails?.accountNumber && (
+                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700">
+                  Saved
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">
+                  Account Holder Name
+                </label>
+                <input
+                  type="text"
+                  value={openedAccountForm.accountHolderName}
+                  onChange={(e) =>
+                    setOpenedAccountForm((prev) => ({ ...prev, accountHolderName: e.target.value }))
+                  }
+                  placeholder="e.g. Acme Solutions Pvt Ltd"
+                  className="w-full rounded border border-gray-400 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">
+                  Account Number
+                </label>
+                <input
+                  type="text"
+                  value={openedAccountForm.accountNumber}
+                  onChange={(e) =>
+                    setOpenedAccountForm((prev) => ({ ...prev, accountNumber: e.target.value }))
+                  }
+                  placeholder="9-18 digits"
+                  className="w-full rounded border border-gray-400 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">
+                  IFSC Code
+                </label>
+                <input
+                  type="text"
+                  value={openedAccountForm.ifscCode}
+                  onChange={(e) =>
+                    setOpenedAccountForm((prev) => ({ ...prev, ifscCode: e.target.value }))
+                  }
+                  placeholder="e.g. ICIC0001234"
+                  className="w-full rounded border border-gray-400 px-3 py-2 text-sm text-gray-900 uppercase focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">
+                  Bank Name
+                </label>
+                <input
+                  type="text"
+                  value={openedAccountForm.bankName}
+                  onChange={(e) =>
+                    setOpenedAccountForm((prev) => ({ ...prev, bankName: e.target.value }))
+                  }
+                  placeholder="e.g. ICICI Bank"
+                  className="w-full rounded border border-gray-400 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#FF6A3D]"
+                />
+              </div>
+            </div>
+
+            {openedAccountError && (
+              <p className="text-xs font-medium text-red-600">{openedAccountError}</p>
+            )}
+
+            <button
+              type="button"
+              onClick={handleSaveOpenedAccount}
+              disabled={openedAccountSaving}
+              className="inline-flex w-full items-center justify-center gap-2 rounded bg-[#FF6A3D] px-4 py-2 text-xs font-semibold text-white hover:bg-[#e55a35] disabled:opacity-60"
+            >
+              {openedAccountSaving ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Upload size={14} />
+              )}
+              {openedAccountSaving ? "Saving..." : "Save Account Details"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

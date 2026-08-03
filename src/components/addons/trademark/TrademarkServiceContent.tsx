@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { toast } from "@heroui/react";
 import { Loader2, Download, Eye, Upload } from "lucide-react";
 
 import { notifyApiError } from "@/utils/apiErrors";
 import axiosInstance from "@/lib/axios";
+import { clientsApi } from "@/lib/api/clients";
 import { FileUploadComponent } from "@/components/upload";
 import TrademarkAddonTrackerView from "./TrademarkAddonTrackerView";
 
@@ -22,8 +23,6 @@ interface TrademarkDocEntry {
 
 const ADMIN_DOC_SLOTS = [
   { id: "tm-48-power-of-attorney", label: "Power of Attorney (Form TM-48)" },
-  { id: "filing-receipt", label: "Trademark Application Filing Receipt" },
-  { id: "examination-report", label: "Examination Report" },
 ];
 
 export default function TrademarkServiceContent({ appNo }: TrademarkServiceContentProps) {
@@ -68,30 +67,24 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
     }
   };
 
-  const downloadDocFile = async (path?: string, mode: "preview" | "download" = "download") => {
-    if (!path) return;
-    if (path.startsWith("http://") || path.startsWith("https://")) {
-      if (mode === "preview") {
-        window.open(path, "_blank");
-      } else {
-        const a = document.createElement("a");
-        a.href = path;
-        a.download = path.split("/").pop() || "document";
-        a.click();
-      }
-      return;
-    }
+  const downloadDocFile = async (
+    docId: string,
+    mode: "preview" | "download" = "download",
+    adminDocId?: string,
+    filename?: string,
+  ) => {
     try {
-      const response = await axiosInstance.get(path, { responseType: "blob" });
+      const url = clientsApi.getTrademarkDocDownloadUrl(appNo, docId, adminDocId);
+      const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = response.data;
       const objectUrl = URL.createObjectURL(blob);
       if (mode === "preview") {
         window.open(objectUrl, "_blank");
       } else {
-        const filename = path.split("/").pop() || "document";
+        const name = filename || docId;
         const a = document.createElement("a");
         a.href = objectUrl;
-        a.download = filename;
+        a.download = name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -120,50 +113,60 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
   }
 
   const docsToRender = [
-    { label: "Logo Artwork", doc: tmData.logoDoc },
-    { label: "Sound Recording", doc: tmData.soundDoc },
-    { label: "Graphical Notation", doc: tmData.notationDoc },
-    { label: "Shape Images", doc: tmData.shapeDoc },
-    { label: "Business PAN Card", doc: tmData.docBusinessPan },
-    { label: "Certificate of Incorporation / Deed", doc: tmData.docIncorpProof },
-    { label: "Address Proof", doc: tmData.docAddressProof },
-    { label: "Signatory PAN Card", doc: tmData.docSignatoryPan },
-    { label: "Signatory Aadhaar Card", doc: tmData.docSignatoryAadhaar },
-    { label: "Signatory Photograph", doc: tmData.docSignatoryPhoto },
-    { label: "MSME / Udyam Certificate", doc: tmData.docMsmeCert },
-    { label: "User Affidavit", doc: tmData.docAffidavit },
-    { label: "Proof of Commercial Use", doc: tmData.docProofUse },
-    { label: "Invoice Proof", doc: tmData.docInvoiceProof },
+    { docId: "logoDoc", label: "Logo Artwork", doc: tmData.logoDoc },
+    { docId: "soundDoc", label: "Sound Recording", doc: tmData.soundDoc },
+    { docId: "notationDoc", label: "Graphical Notation", doc: tmData.notationDoc },
+    { docId: "shapeDoc", label: "Shape Images", doc: tmData.shapeDoc },
+    { docId: "docBusinessPan", label: "Business PAN Card", doc: tmData.docBusinessPan },
+    { docId: "docIncorpProof", label: "Certificate of Incorporation / Deed", doc: tmData.docIncorpProof },
+    { docId: "docAddressProof", label: "Address Proof", doc: tmData.docAddressProof },
+    { docId: "docSignatoryPan", label: "Signatory PAN Card", doc: tmData.docSignatoryPan },
+    { docId: "docSignatoryAadhaar", label: "Signatory Aadhaar Card", doc: tmData.docSignatoryAadhaar },
+    { docId: "docSignatoryPhoto", label: "Signatory Photograph", doc: tmData.docSignatoryPhoto },
+    { docId: "docMsmeCert", label: "MSME / Udyam Certificate", doc: tmData.docMsmeCert },
+    { docId: "docAffidavit", label: "User Affidavit", doc: tmData.docAffidavit },
+    { docId: "docProofUse", label: "Proof of Commercial Use", doc: tmData.docProofUse },
+    { docId: "docInvoiceProof", label: "Invoice Proof", doc: tmData.docInvoiceProof },
   ].filter((item) => item.doc && (item.doc.name || item.doc.path));
 
   const findAdminDoc = (slotId: string) => adminDocs.find((d) => d.id === slotId);
 
   return (
-    <div className="space-y-6 font-sans text-gray-800">
-      {/* Top Tab Controls */}
-      <div className="flex border-b border-gray-200">
-        <button
-          type="button"
-          onClick={() => setActiveTab("details")}
-          className={`px-5 py-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-            activeTab === "details"
-              ? "border-primary text-primary"
-              : "border-transparent text-gray-500 hover:text-gray-800"
-          }`}
-        >
-          Application &amp; Documents
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("tracker")}
-          className={`px-5 py-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-            activeTab === "tracker"
-              ? "border-primary text-primary"
-              : "border-transparent text-gray-500 hover:text-gray-800"
-          }`}
-        >
-          Tracker &amp; Progress
-        </button>
+    <div className="flex flex-col gap-6 font-sans text-gray-800">
+      <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-bold text-gray-800">Trademark Registration</h2>
+          {!tmData.isPaid && (
+            <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 uppercase">
+              Payment Pending
+            </span>
+          )}
+        </div>
+
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("details")}
+            className={`px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${
+              activeTab === "details"
+                ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            Form Details
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("tracker")}
+            className={`px-4 py-2.5 text-sm font-semibold transition-all border-b-2 ${
+              activeTab === "tracker"
+                ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            Tracking Progress
+          </button>
+        </div>
       </div>
 
       {activeTab === "details" && (
@@ -197,6 +200,23 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
                 )}
                 {tmData.soundDesc && <InfoRow label="Sound Description" value={tmData.soundDesc} className="col-span-2" />}
                 {tmData.shapeDesc && <InfoRow label="Shape Description" value={tmData.shapeDesc} className="col-span-2" />}
+                {tmData.markType === "colour" && tmData.colourSwatch && (
+                  <InfoRow
+                    label="Claimed Colour"
+                    value={
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          className="inline-block w-4 h-4 rounded-md border border-gray-200"
+                          style={{ background: tmData.colourSwatch }}
+                        />
+                        {tmData.colourSwatch}
+                      </span>
+                    }
+                  />
+                )}
+                {tmData.markType === "colour" && tmData.colourMarkDesc && (
+                  <InfoRow label="Colour Mark Description" value={tmData.colourMarkDesc} className="col-span-2" />
+                )}
                 <div className="col-span-2">
                   <span className="text-gray-400 block text-xs font-medium">Selected Classes</span>
                   <div className="flex flex-wrap gap-1.5 mt-1">
@@ -254,7 +274,7 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
               </h3>
               {docsToRender.length > 0 ? (
                 <div className="space-y-2">
-                  {docsToRender.map(({ label, doc }, i) => (
+                  {docsToRender.map(({ docId, label, doc }, i) => (
                     <div
                       key={i}
                       className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3"
@@ -271,7 +291,7 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
                         <div className="flex items-center gap-1.5 shrink-0">
                           <button
                             type="button"
-                            onClick={() => downloadDocFile(doc.path, "preview")}
+                            onClick={() => downloadDocFile(docId, "preview")}
                             className="text-blue-600 hover:text-blue-700 p-1"
                             title="Preview"
                           >
@@ -279,7 +299,7 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
                           </button>
                           <button
                             type="button"
-                            onClick={() => downloadDocFile(doc.path, "download")}
+                            onClick={() => downloadDocFile(docId, "download", undefined, doc.name)}
                             className="text-blue-600 hover:text-blue-700 p-1"
                             title="Download"
                           >
@@ -317,7 +337,7 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
                             <div className="flex items-center gap-1.5">
                               <button
                                 type="button"
-                                onClick={() => downloadDocFile(doc.path, "preview")}
+                                onClick={() => downloadDocFile(doc.id, "preview", slot.id)}
                                 className="text-orange-600 hover:text-orange-700"
                                 title="Preview"
                               >
@@ -325,7 +345,7 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
                               </button>
                               <button
                                 type="button"
-                                onClick={() => downloadDocFile(doc.path, "download")}
+                                onClick={() => downloadDocFile(doc.id, "download", slot.id, doc.name)}
                                 className="text-orange-600 hover:text-orange-700"
                                 title="Download"
                               >
@@ -381,7 +401,7 @@ function InfoRow({
   className = "",
 }: {
   label: string;
-  value?: string | number | null | boolean;
+  value?: ReactNode;
   className?: string;
 }) {
   return (
