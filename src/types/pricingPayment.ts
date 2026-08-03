@@ -15,6 +15,8 @@ export interface PaymentStep {
   invoice: string;
   paymentAlert: string;
   paymentModeCapture: string;
+  orderId?: string;
+  invoiceAvailable?: boolean;
   paymentLinkSent?: boolean;
   paymentLinkSentAt?: string | null;
   _isActiveAttempt?: boolean;
