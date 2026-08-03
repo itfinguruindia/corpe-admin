@@ -19,6 +19,11 @@ function isAuthRequest(url?: string) {
   );
 }
 
+/** Upstream services (e.g. Twilio) must never force an admin session logout. */
+function isUpstreamAccountingProbe(url?: string) {
+  return Boolean(url?.includes("/admin/accounting/sms-usage"));
+}
+
 function isAbortedRequest(error: unknown): boolean {
   if (!axios.isAxiosError(error)) {
     const msg =
@@ -90,6 +95,15 @@ axiosInstance.interceptors.response.use(
         window.location.pathname === "/register");
 
     if (status === 401 && (isAuthRequest(error.config?.url) || onAuthPage)) {
+      return Promise.reject(error);
+    }
+
+    // SMS usage hits Twilio live; never treat its failures as "session expired".
+    if (status === 401 && isUpstreamAccountingProbe(error.config?.url)) {
+      if (!isAuthRequest(error.config?.url)) {
+        toast.danger(message || "Failed to load SMS usage");
+        markErrorToastShown(error as MarkedApiError);
+      }
       return Promise.reject(error);
     }
 

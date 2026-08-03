@@ -17,6 +17,8 @@ import {
   type StakeholderLabels,
 } from "@/utils/companyTypeLabels";
 
+import { RegistrationType } from "@/types/enums";
+
 type ClientCompanyTypeContextValue = {
   companyType: string | null;
   registrationType: string | null;
@@ -76,7 +78,7 @@ export function ClientCompanyTypeProvider({
     () => ({
       companyType,
       registrationType,
-      isAddonOnly: registrationType === "addon_only",
+      isAddonOnly: registrationType === RegistrationType.ADDON_ONLY,
       isLlp: isLlpCompanyType(companyType),
       isOpc: isOpcCompanyType(companyType),
       isMoaAoaExcluded: isMoaAoaExcludedCompanyType(companyType),

@@ -31,6 +31,7 @@ export type PaymentStep = {
   status: "paid" | "pending" | "failed" | "due";
   orderId?: string;
   invoiceAvailable?: boolean;
+  invoiceUrl?: string;
   isLocked?: boolean;
   paymentLinkSent?: boolean;
   paymentLinkSentAt?: string | null;
@@ -62,6 +63,9 @@ export type PaymentStep = {
       paidAt?: string | null;
       markedDoneAt?: string | null;
       expiredAt?: string | null;
+      invoiceUrl?: string;
+      invoiceAvailable?: boolean;
+      orderId?: string;
     }>;
     currentAttempt?: number;
   };
@@ -104,12 +108,29 @@ export const pricingPaymentService = {
       }
       const response = await axiosInstance.post<{ success: boolean }>(
         `/admin/clients/${applicationNo}/payment-link/send`,
-        { stageNumber }
+        { stageNumber, reason }
       );
       return response.data.success;
     } catch (error) {
       console.error("Error sending payment link:", error);
       return false;
     }
+  },
+
+  async downloadStageInvoice(
+    applicationNo: string,
+    stageNumber: number,
+    options?: { attemptNumber?: number; disposition?: "attachment" | "inline" },
+  ): Promise<Blob> {
+    const params = new URLSearchParams();
+    params.set("disposition", options?.disposition || "attachment");
+    if (options?.attemptNumber) {
+      params.set("attempt", String(options.attemptNumber));
+    }
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/stages/${stageNumber}/invoice?${params.toString()}`,
+      { responseType: "blob" },
+    );
+    return response.data as Blob;
   },
 };

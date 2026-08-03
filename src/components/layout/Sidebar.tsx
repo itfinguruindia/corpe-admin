@@ -29,6 +29,7 @@ import {
   CreditCard,
   Puzzle,
   Receipt,
+  Building2,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
@@ -326,6 +327,13 @@ export default function Sidebar() {
                 active={pathname === "/addon-services/gst-registration"}
                 collapsed={effectiveCollapsed}
               />
+              <SubItem
+                label="Bank Account Setup"
+                href="/addon-services/bank-account-setup"
+                icon={<Building2 size={15} />}
+                active={pathname === "/addon-services/bank-account-setup"}
+                collapsed={effectiveCollapsed}
+              />
             </SidebarSection>
           )}
 
@@ -437,6 +445,13 @@ export default function Sidebar() {
                 href="/accounting/razorpay"
                 icon={<CreditCard size={15} />}
                 active={pathname === "/accounting/razorpay"}
+                collapsed={effectiveCollapsed}
+              />
+              <SubItem
+                label="SMS Usage"
+                href="/accounting/sms-usage"
+                icon={<MessageSquare size={15} />}
+                active={pathname === "/accounting/sms-usage"}
                 collapsed={effectiveCollapsed}
               />
             </SidebarSection>

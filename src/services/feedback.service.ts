@@ -3,7 +3,9 @@ import axiosInstance from "@/lib/axios";
 export interface IFeedbackItem {
   _id: string;
   appNo: string;
+  serviceType?: string;
   rating: number;
+  tags?: string[];
   feedback: string;
   clientName: string;
   entityType: string;

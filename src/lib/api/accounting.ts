@@ -33,6 +33,46 @@ export interface RazorpayListParams {
   export?: boolean;
 }
 
+export type SmsUsageByDate = {
+  date: string;
+  count: number;
+  segments: number;
+  cost: number;
+};
+
+export type SmsUsageByNumber = {
+  to: string;
+  count: number;
+  segments: number;
+  cost: number;
+};
+
+export type SmsUsageReport = {
+  startDate: string;
+  endDate: string;
+  truncated: boolean;
+  fetchedCount: number;
+  fetchCap: number;
+  totals: {
+    totalMessages: number;
+    totalSegments: number;
+    totalCost: number;
+    priceUnit: string;
+  };
+  byDate: SmsUsageByDate[];
+  byNumber: SmsUsageByNumber[];
+};
+
+export type SmsUsageTopNumbersResponse = {
+  startDate: string;
+  endDate: string;
+  truncated: boolean;
+  fetchedCount: number;
+  fetchCap: number;
+  totals: SmsUsageReport["totals"];
+  topNumbers: SmsUsageByNumber[];
+};
+
 function unwrapData<T>(payload: unknown): T {
   const body = payload as { data?: T };
   return (body?.data ?? payload) as T;
@@ -117,6 +157,32 @@ export const accountingApi = {
   getSettlement: async (settlementId: string): Promise<RazorpayEntity> => {
     const response = await axiosInstance.get(
       `/admin/accounting/razorpay/settlements/${settlementId}`,
+    );
+    return unwrapData(response.data);
+  },
+
+  getSmsUsage: async (params: {
+    startDate: string;
+    endDate: string;
+    orgFilterNumbers?: string;
+  }): Promise<SmsUsageReport> => {
+    const response = await axiosInstance.get("/admin/accounting/sms-usage", {
+      params,
+      // Live Twilio pagination can exceed the default 10s axios timeout.
+      timeout: 120000,
+    });
+    return unwrapData(response.data);
+  },
+
+  getSmsUsageTopNumbers: async (params: {
+    startDate: string;
+    endDate: string;
+    limit?: number;
+    orgFilterNumbers?: string;
+  }): Promise<SmsUsageTopNumbersResponse> => {
+    const response = await axiosInstance.get(
+      "/admin/accounting/sms-usage/top-numbers",
+      { params, timeout: 120000 },
     );
     return unwrapData(response.data);
   },
