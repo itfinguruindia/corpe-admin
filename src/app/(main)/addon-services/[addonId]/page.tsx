@@ -19,6 +19,11 @@ const TrademarkServiceListContent = dynamic(
   { loading: () => <div className="flex items-center justify-center p-12 text-slate-500 text-sm">Loading...</div> }
 );
 
+const AccountingBookkeepingServiceListContent = dynamic(
+  () => import("@/components/addons/accounting-bookkeeping/AccountingBookkeepingServiceListContent"),
+  { loading: () => <div className="flex items-center justify-center p-12 text-slate-500 text-sm">Loading...</div> }
+);
+
 const ADDON_MAP: Record<string, {
   title: string;
   desc: string;
@@ -38,6 +43,11 @@ const ADDON_MAP: Record<string, {
     title: "Trademark Registration",
     desc: "View and manage all clients enrolled in Trademark Registration (both standalone & incorporated).",
     Component: TrademarkServiceListContent,
+  },
+  "accounting-bookkeeping": {
+    title: "Accounting & Bookkeeping",
+    desc: "View and manage all clients enrolled in the monthly Accounting & Bookkeeping engagement.",
+    Component: AccountingBookkeepingServiceListContent,
   },
 };
 

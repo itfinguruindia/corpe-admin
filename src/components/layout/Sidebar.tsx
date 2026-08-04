@@ -31,6 +31,7 @@ import {
   Receipt,
   Building2,
   Award,
+  BookOpen,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
@@ -340,6 +341,13 @@ export default function Sidebar() {
                 href="/addon-services/trademark-registration"
                 icon={<Award size={15} />}
                 active={pathname === "/addon-services/trademark-registration"}
+                collapsed={effectiveCollapsed}
+              />
+              <SubItem
+                label="Accounting & Bookkeeping"
+                href="/addon-services/accounting-bookkeeping"
+                icon={<BookOpen size={15} />}
+                active={pathname === "/addon-services/accounting-bookkeeping"}
                 collapsed={effectiveCollapsed}
               />
             </SidebarSection>
