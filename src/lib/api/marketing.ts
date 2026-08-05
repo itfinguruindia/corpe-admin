@@ -22,6 +22,8 @@ export interface Lead {
   currentLat: number;
   currentLng: number;
   formType: string;
+  /** Optional free-form details (Help Me Choose Q&A, etc.) */
+  extraDetails?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }

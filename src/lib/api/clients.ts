@@ -1112,6 +1112,29 @@ export const clientsApi = {
     return response.data?.data ?? response.data;
   },
 
+  listDirectorChangeRequests: async (
+    applicationNo: string,
+    status?: string,
+  ) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/director-change-requests`,
+      { params: status ? { status } : undefined },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  reviewDirectorChangeRequest: async (
+    applicationNo: string,
+    requestId: string,
+    payload: { action: "approve" | "reject"; adminNote?: string },
+  ) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/director-change-requests/${requestId}/review`,
+      payload,
+    );
+    return response.data?.data ?? response.data;
+  },
+
   deleteDocumentIssue: async (applicationNo: string, issueId: string) => {
     const response = await axiosInstance.delete(
       `/admin/clients/${applicationNo}/document-issues/${issueId}`,
