@@ -6,10 +6,6 @@ import {
   Loader2,
   AlertCircle,
   Settings,
-  CheckCircle2,
-  XCircle,
-  Send,
-  RotateCcw,
 } from "lucide-react";
 
 import { clientsApi } from "@/lib/api/clients";
@@ -30,13 +26,6 @@ const statusOptions = [
   { id: "Action Needed", label: "Action Needed" },
   { id: "Done", label: "Done" },
 ];
-
-const STATUS_STYLE: Record<string, string> = {
-  Done: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  "In Progress": "bg-blue-100 text-blue-800 border-blue-300",
-  "Action Needed": "bg-orange-100 text-orange-800 border-orange-300",
-  Pending: "bg-slate-100 text-slate-600 border-slate-200",
-};
 
 const getOwnerTag = (owner?: string) => {
   if (owner === "client") return <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Client</span>;
@@ -62,19 +51,6 @@ export default function AccountingBookkeepingAdminTrackerView({
   const [loading, setLoading] = useState(true);
   const [activeStageId, setActiveStageId] = useState("s1");
   const [updatingStep, setUpdatingStep] = useState<string | null>(null);
-
-  // Query form states
-  const [queryFormText, setQueryFormText] = useState("");
-  const [queryNeedsDoc, setQueryNeedsDoc] = useState(true);
-  const [queryNeedsText, setQueryNeedsText] = useState(true);
-  const [isSubmittingQuery, setIsSubmittingQuery] = useState(false);
-  const [activeQueryStepId, setActiveQueryStepId] = useState<string | null>(null);
-
-  const [adminSendBackNote, setAdminSendBackNote] = useState("");
-  const [isApproving, setIsApproving] = useState(false);
-  const [isSendingBack, setIsSendingBack] = useState(false);
-  const [isResolving, setIsResolving] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
 
   const loadTracker = useCallback(async () => {
     try {
@@ -128,89 +104,6 @@ export default function AccountingBookkeepingAdminTrackerView({
     }
   };
 
-  const handleRaiseQuery = async (stepId: string) => {
-    if (!queryFormText.trim()) {
-      toast.danger("Please enter a query message for the client");
-      return;
-    }
-    setIsSubmittingQuery(true);
-    try {
-      await clientsApi.raiseAddonQuery(orgId, {
-        addonId: ADDON_ID,
-        stepId,
-        queryText: queryFormText.trim(),
-        needsDocument: queryNeedsDoc,
-        needsTextResponse: queryNeedsText,
-      });
-      toast.success("Query raised successfully");
-      setQueryFormText("");
-      setActiveQueryStepId(null);
-      await loadTracker();
-    } catch (error) {
-      notifyApiError(error, { fallback: "Failed to raise query" });
-    } finally {
-      setIsSubmittingQuery(false);
-    }
-  };
-
-  const handleApproveResubmit = async () => {
-    try {
-      setIsApproving(true);
-      await clientsApi.approveAddonQueryResubmit(orgId, ADDON_ID);
-      toast.success("Client response approved!");
-      await loadTracker();
-    } catch (error) {
-      notifyApiError(error, { fallback: "Failed to approve response." });
-    } finally {
-      setIsApproving(false);
-    }
-  };
-
-  const handleSendBack = async () => {
-    if (!adminSendBackNote.trim()) {
-      toast.danger("Please enter a note explaining why the response is insufficient");
-      return;
-    }
-    try {
-      setIsSendingBack(true);
-      await clientsApi.sendBackAddonQuery(orgId, adminSendBackNote.trim(), ADDON_ID);
-      toast.success("Query sent back to client!");
-      setAdminSendBackNote("");
-      await loadTracker();
-    } catch (error) {
-      notifyApiError(error, { fallback: "Failed to send back query." });
-    } finally {
-      setIsSendingBack(false);
-    }
-  };
-
-  const handleResolveQuery = async () => {
-    try {
-      setIsResolving(true);
-      await clientsApi.resolveAddonQuery(orgId, ADDON_ID);
-      toast.success("Query resolved!");
-      await loadTracker();
-    } catch (error) {
-      notifyApiError(error, { fallback: "Failed to resolve query." });
-    } finally {
-      setIsResolving(false);
-    }
-  };
-
-  const handleResetQuery = async () => {
-    try {
-      setIsResetting(true);
-      setActiveQueryStepId(null);
-      await clientsApi.resetAddonQueryToPending(orgId, ADDON_ID);
-      toast.success("Query reset to Pending.");
-      await loadTracker();
-    } catch (error) {
-      notifyApiError(error, { fallback: "Failed to reset query." });
-    } finally {
-      setIsResetting(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center py-16">
@@ -256,8 +149,6 @@ export default function AccountingBookkeepingAdminTrackerView({
   const stages = tracker.stages || [];
   const activeStage = stages.find((s: any) => (s.stageId || s.id) === activeStageId) || stages[0];
   const activeStageIndex = stages.findIndex((s: any) => (s.stageId || s.id) === (activeStage?.stageId || activeStage?.id));
-  const addonQuery = tracker.addonQuery;
-  const hasActiveQuery = addonQuery && addonQuery.status !== "resolved";
   const bankSyncInfo = tracker.bankSyncInfo || { connected: false, accounts: [] };
   const bankSyncConnected = !!bankSyncInfo.connected && (bankSyncInfo.accounts?.length || 0) > 0;
   const cycleLabel = tracker.billingCycle || "monthly";
@@ -308,6 +199,42 @@ export default function AccountingBookkeepingAdminTrackerView({
         </span>
       </div>
 
+      {/* Bank Sync Account Details (provided by client) */}
+      {(bankSyncInfo.accounts || []).length > 0 && (
+        <div className="bg-white border border-[#E3E6EB] rounded-[13px] px-5 py-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+              Connected Bank Account{(bankSyncInfo.accounts || []).length > 1 ? "s" : ""}
+            </h4>
+            {bankSyncInfo.permissionGranted && (
+              <span className="text-[10.5px] font-bold text-[#2fa66d]">
+                ✓ Permission granted by client
+              </span>
+            )}
+          </div>
+          {(bankSyncInfo.accounts || []).map((acc: any, i: number) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-lg border border-gray-100 bg-slate-50/40 px-4 py-3"
+            >
+              <div className="min-w-0">
+                <div className="text-xs font-bold text-gray-800 truncate">
+                  {acc.name || "Bank Account"} {acc.last4 ? `•••• ${acc.last4}` : ""}
+                </div>
+                {acc.holder && (
+                  <div className="text-[11px] text-gray-400 mt-0.5">
+                    Account Holder: {acc.holder}
+                  </div>
+                )}
+              </div>
+              <span className="shrink-0 ml-3 text-[10.5px] font-bold px-2.5 py-1 rounded-lg bg-[#eaf7f0] text-[#2fa66d]">
+                {acc.status || "Synced"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Stage Navigation Tabs */}
       <div className="flex gap-2 border-b border-gray-200 pb-px overflow-x-auto">
         {stages.map((stage: any, idx: number) => {
@@ -342,73 +269,6 @@ export default function AccountingBookkeepingAdminTrackerView({
         })}
       </div>
 
-      {/* Active Query Banner */}
-      {hasActiveQuery && (
-        <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-orange-600 shrink-0" />
-            <span className="text-sm font-semibold text-orange-800">Active Query</span>
-            <span className={`ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full border ${STATUS_STYLE[addonQuery.status] || STATUS_STYLE.Pending}`}>
-              {addonQuery.status}
-            </span>
-          </div>
-          <p className="text-xs text-orange-700 leading-relaxed">{addonQuery.queryText}</p>
-
-          {addonQuery.status === "Pending Client Response" && (
-            <div className="space-y-2">
-              <textarea
-                value={adminSendBackNote}
-                onChange={(e) => setAdminSendBackNote(e.target.value)}
-                placeholder="Enter note if sending back as insufficient..."
-                className="w-full border border-orange-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-orange-500 bg-white resize-none"
-                rows={2}
-              />
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={handleApproveResubmit}
-                  disabled={isApproving}
-                  className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-60"
-                >
-                  {isApproving ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
-                  Approve Response
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSendBack}
-                  disabled={isSendingBack}
-                  className="inline-flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-60"
-                >
-                  {isSendingBack ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
-                  Send Back
-                </button>
-                <button
-                  type="button"
-                  onClick={handleResolveQuery}
-                  disabled={isResolving}
-                  className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-60"
-                >
-                  {isResolving ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
-                  Resolve
-                </button>
-              </div>
-            </div>
-          )}
-
-          {addonQuery.status === "resolved" && (
-            <button
-              type="button"
-              onClick={handleResetQuery}
-              disabled={isResetting}
-              className="inline-flex items-center gap-1.5 border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-60"
-            >
-              {isResetting ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
-              Reset to Pending
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Stage Tasks Card */}
       {activeStage && (
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-xs space-y-5">
@@ -435,7 +295,6 @@ export default function AccountingBookkeepingAdminTrackerView({
                 {(section.steps || []).filter((s: any) => !s.isHidden).map((step: any, stepIdx: number) => {
                   const stepId = step._id || step.id || step.stepId || `step-${stepIdx}`;
                   const isUpdating = updatingStep === stepId;
-                  const isRaisingQuery = activeQueryStepId === stepId;
 
                   return (
                     <div
@@ -495,75 +354,8 @@ export default function AccountingBookkeepingAdminTrackerView({
                               <span className={`text-xs ${getStatusColorClass(val)}`}>{val}</span>
                             )}
                           />
-
-                          {!hasActiveQuery && (
-                            <button
-                              type="button"
-                              onClick={() => setActiveQueryStepId(isRaisingQuery ? null : stepId)}
-                              title="Raise Query"
-                              className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:text-blue-600 hover:border-blue-300 transition-colors cursor-pointer"
-                            >
-                              <Send className="w-3.5 h-3.5" />
-                            </button>
-                          )}
                         </div>
                       </div>
-
-                      {/* Raise Query Form */}
-                      {isRaisingQuery && !hasActiveQuery && (
-                        <div className="bg-amber-50/60 border border-amber-200 rounded-xl p-3 space-y-3 max-w-xl">
-                          <p className="text-xs font-semibold text-amber-900">Raise a Query for this Step</p>
-                          <textarea
-                            value={queryFormText}
-                            onChange={(e) => setQueryFormText(e.target.value)}
-                            placeholder="Enter your query or clarification request for the client..."
-                            className="w-full border border-amber-200 rounded-lg p-2.5 text-xs focus:outline-none focus:border-amber-500 bg-white resize-none"
-                            rows={3}
-                          />
-                          <div className="flex items-center gap-4 text-xs">
-                            <label className="flex items-center gap-1.5 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={queryNeedsDoc}
-                                onChange={(e) => setQueryNeedsDoc(e.target.checked)}
-                                className="rounded text-amber-500 focus:ring-amber-400"
-                              />
-                              <span className="text-slate-600">Requires document upload</span>
-                            </label>
-                            <label className="flex items-center gap-1.5 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={queryNeedsText}
-                                onChange={(e) => setQueryNeedsText(e.target.checked)}
-                                className="rounded text-amber-500 focus:ring-amber-400"
-                              />
-                              <span className="text-slate-600">Requires text response</span>
-                            </label>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleRaiseQuery(stepId)}
-                              disabled={isSubmittingQuery}
-                              className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-60 cursor-pointer"
-                            >
-                              {isSubmittingQuery ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Send className="w-3 h-3" />
-                              )}
-                              Send Query
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setActiveQueryStepId(null)}
-                              className="text-xs font-semibold text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg border border-gray-200"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}

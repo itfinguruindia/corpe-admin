@@ -86,6 +86,32 @@ export default function AccountingBookkeepingServiceContent({
     }
   };
 
+  const downloadMiscDoc = async (
+    index: number,
+    mode: "preview" | "download" = "download",
+    filename?: string
+  ) => {
+    try {
+      const url = `/admin/clients/${appNo}/accounting-bookkeeping/misc-doc/download?index=${index}`;
+      const response = await axiosInstance.get(url, { responseType: "blob" });
+      const blob = response.data;
+      const objectUrl = URL.createObjectURL(blob);
+      if (mode === "preview") {
+        window.open(objectUrl, "_blank");
+      } else {
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = filename || `misc-document-${index}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch {
+      toast.danger("Failed to download document");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-slate-500">
@@ -264,6 +290,54 @@ export default function AccountingBookkeepingServiceContent({
                 <p className="text-xs text-gray-400 italic">No documents uploaded yet.</p>
               )}
             </div>
+
+            {/* Miscellaneous Documents */}
+            {Array.isArray(abData.miscDocs) && abData.miscDocs.length > 0 && (
+              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                  Miscellaneous Documents
+                </h3>
+                <div className="space-y-2">
+                  {abData.miscDocs.map((doc: any, idx: number) =>
+                    doc?.path ? (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs font-semibold text-gray-800">
+                            {doc?.docType || `Document ${idx + 1}`}
+                          </span>
+                          {doc?.name && (
+                            <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700 truncate max-w-[180px]">
+                              {doc.name}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => downloadMiscDoc(idx, "preview")}
+                            className="text-blue-600 hover:text-blue-700 p-1"
+                            title="Preview"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadMiscDoc(idx, "download", doc.name)}
+                            className="text-blue-600 hover:text-blue-700 p-1"
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : null
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Column */}

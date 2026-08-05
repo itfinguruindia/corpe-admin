@@ -1292,6 +1292,9 @@ export const clientsApi = {
   getBankMiscDocDownloadUrl: (applicationNo: string, index: number) =>
     `/admin/clients/${applicationNo}/bank-account-setup/misc-doc/download?index=${index}`,
 
+  getAccountingMiscDocDownloadUrl: (applicationNo: string, index: number) =>
+    `/admin/clients/${applicationNo}/accounting-bookkeeping/misc-doc/download?index=${index}`,
+
   uploadBankAccountAdminDoc: async (applicationNo: string, docType: string, file: File) => {
     const formData = new FormData();
     formData.append("file", file);
