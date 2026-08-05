@@ -30,16 +30,12 @@ function attachSocketListeners(instance: Socket) {
   });
 
   instance.on("connect_error", (err) => {
-    // Transient while backend restarts — socket.io will auto-retry
-    if (process.env.NODE_ENV === "development") {
-      console.warn("[Socket.IO] Connection error (retrying):", err.message);
-    }
+    // Always log — prod chat breakage is hard to spot without this
+    console.warn("[Socket.IO] Connection error (retrying):", err.message);
   });
 
   instance.on("disconnect", (reason) => {
-    if (process.env.NODE_ENV === "development") {
-      console.log("[Socket.IO] Disconnected:", reason);
-    }
+    console.log("[Socket.IO] Disconnected:", reason);
   });
 }
 
@@ -67,10 +63,15 @@ export function connectSocket(): Socket | null {
     return socket;
   }
 
+  // Polling first: prod nginx for api.corpe.io currently fails WebSocket
+  // upgrades (HTTP 400 / Engine.IO code 3). Starting with websocket-first
+  // never falls back and breaks chat entirely. Polling works on both envs;
+  // socket.io will upgrade to websocket when the proxy allows it.
   socket = io(url, {
     path,
     auth: { token },
-    transports: ["websocket", "polling"],
+    transports: ["polling", "websocket"],
+    upgrade: true,
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 1000,
