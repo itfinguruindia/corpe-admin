@@ -35,13 +35,17 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
             const linkedShIdx = shareholders.findIndex((s: any) =>
               isSameStakeholderPerson(d, s),
             );
+            const stakeholderId = toStakeholderId(d, idx);
+            const displayName = d.name || "-";
             return {
-              id: toStakeholderId(d, idx),
+              id: stakeholderId,
+              directorId: stakeholderId,
               applicationNo: appNo,
               directorNumber: idx + 1,
               hasDIN: d.hasDIN || false,
               din: d.dinNumber || "",
-              directorName: d.name || "-",
+              name: displayName,
+              directorName: displayName,
               fatherName: d.fatherName || "-",
               email: d.email || "-",
               phoneNo: d.phoneNumber || "-",
@@ -200,34 +204,38 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                     <Chip label="Pending" variant="orange" className="text-xs" />
                   </div>
 
-                  <TextArea
-                    label="Admin note (optional)"
-                    minRows={2}
-                    value={adminNotes[req._id] || ""}
-                    onChange={(e) =>
-                      setAdminNotes((prev) => ({
-                        ...prev,
-                        [req._id]: e.target.value,
-                      }))
-                    }
-                  />
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-600">
+                      Admin note (optional)
+                    </label>
+                    <TextArea
+                      rows={2}
+                      value={adminNotes[req._id] || ""}
+                      onChange={(e) =>
+                        setAdminNotes((prev) => ({
+                          ...prev,
+                          [req._id]: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
 
                   <div className="flex flex-wrap gap-2 justify-end">
                     <Button
-                      variant="bordered"
-                      color="danger"
-                      isLoading={reviewingId === req._id}
-                      onPress={() => handleReview(req._id, "reject")}
+                      variant="danger-soft"
+                      isDisabled={reviewingId === req._id}
+                      onClick={() => handleReview(req._id, "reject")}
                     >
-                      Reject
+                      {reviewingId === req._id ? "Rejecting..." : "Reject"}
                     </Button>
                     <Button
-                      color="success"
-                      className="text-white"
-                      isLoading={reviewingId === req._id}
-                      onPress={() => handleReview(req._id, "approve")}
+                      variant="primary"
+                      isDisabled={reviewingId === req._id}
+                      onClick={() => handleReview(req._id, "approve")}
                     >
-                      Approve replacement
+                      {reviewingId === req._id
+                        ? "Approving..."
+                        : "Approve replacement"}
                     </Button>
                   </div>
                 </div>

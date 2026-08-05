@@ -2735,7 +2735,7 @@ export default function TrackingStatusContent({
                         {(companyOverview?.approvedName?.preference ||
                           (tracker as any)?.approvedName?.preference) && (
                           <Chip
-                            color="primary"
+                            color="accent"
                             variant="soft"
                             size="sm"
                             className="font-semibold"
