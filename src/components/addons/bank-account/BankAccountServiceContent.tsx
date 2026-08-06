@@ -31,7 +31,9 @@ interface BankAccountData {
   incorporationCertificate?: { name?: string; path?: string };
   gstCertificate?: { name?: string; path?: string };
   addressProof?: { name?: string; path?: string };
-  signatoryDocs?: { name?: string; path?: string };
+  signatoryPan?: { name?: string; path?: string };
+  signatoryAadhaar?: { name?: string; path?: string };
+  signatoryPhoto?: { name?: string; path?: string };
   boardResolution?: { name?: string; path?: string };
   specimenSignature?: { name?: string; path?: string };
   accountDetails?: {

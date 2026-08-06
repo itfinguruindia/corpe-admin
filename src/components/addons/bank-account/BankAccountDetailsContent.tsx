@@ -44,7 +44,9 @@ interface BankAccountData {
   incorporationCertificate?: BankAccountDocView;
   gstCertificate?: BankAccountDocView;
   addressProof?: BankAccountDocView;
-  signatoryDocs?: BankAccountDocView;
+  signatoryPan?: BankAccountDocView;
+  signatoryAadhaar?: BankAccountDocView;
+  signatoryPhoto?: BankAccountDocView;
   boardResolution?: BankAccountDocView;
   specimenSignature?: BankAccountDocView;
   accountDetails?: {
@@ -171,7 +173,9 @@ export default function BankAccountDetailsContent({
     { label: "Certificate of Incorporation", key: "incorporationCertificate" },
     { label: "GST Registration Certificate", key: "gstCertificate" },
     { label: "Place of Business Proof", key: "addressProof" },
-    { label: "Signatory PAN, Aadhaar & Photo", key: "signatoryDocs" },
+    { label: "Signatory PAN Card", key: "signatoryPan" },
+    { label: "Signatory Aadhaar Card", key: "signatoryAadhaar" },
+    { label: "Signatory Photograph", key: "signatoryPhoto" },
     { label: "Board Resolution", key: "boardResolution" },
     { label: "Specimen Signature", key: "specimenSignature" },
   ];
