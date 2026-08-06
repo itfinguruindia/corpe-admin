@@ -2,6 +2,7 @@
 
 import Modal from "@/components/ui/Modal";
 import type { PendingRegistrationItem } from "@/lib/api/marketing";
+import { formatCompanyNameDisplay } from "@/utils/formatCompanyName";
 
 const STEP_LABELS: Record<number, string> = {
   0: "Phone verified",
@@ -89,16 +90,24 @@ const buildDetailSections = (
       const label = entry?.isSelected
         ? `Name option ${index + 1} (preferred)`
         : `Name option ${index + 1}`;
-      pushRow(nameRows, label, entry?.fullName || entry?.name);
+      pushRow(
+        nameRows,
+        label,
+        formatCompanyNameDisplay(entry?.fullName || entry?.name, ""),
+      );
     });
   } else {
-    pushRow(nameRows, "Name option 1", snapshot.name1);
-    pushRow(nameRows, "Name option 2", snapshot.name2);
-    pushRow(nameRows, "Name option 3", snapshot.name3);
+    pushRow(nameRows, "Name option 1", formatCompanyNameDisplay(snapshot.name1 as string, ""));
+    pushRow(nameRows, "Name option 2", formatCompanyNameDisplay(snapshot.name2 as string, ""));
+    pushRow(nameRows, "Name option 3", formatCompanyNameDisplay(snapshot.name3 as string, ""));
   }
 
   pushRow(nameRows, "Business brief", snapshot.businessBrief);
-  pushRow(nameRows, "Company names summary", record.companyName);
+  pushRow(
+    nameRows,
+    "Company names summary",
+    formatCompanyNameDisplay(record.companyName, ""),
+  );
 
   const progressRows: DetailRow[] = [];
   const completedSteps = Array.isArray(snapshot.completedSteps)

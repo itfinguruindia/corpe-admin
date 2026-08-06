@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { marketingApi, Lead } from "@/lib/api/marketing";
 import useSwal from "@/utils/useSwal";
 import { useDebouncedCallback } from "@/utils/helpers";
+import { formatCompanyNameDisplay } from "@/utils/formatCompanyName";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import { Button, Input, Label, TextField } from "@heroui/react";
 import CustomSelect from "@/components/ui/CustomSelect";
@@ -179,7 +180,7 @@ export default function LeadsPage() {
           lead.email,
           lead.CountryCode,
           lead.phone,
-          lead.companyName,
+          formatCompanyNameDisplay(lead.companyName, ""),
           lead.country,
           lead.message,
           lead.createdAt ? new Date(lead.createdAt).toLocaleString() : "",
@@ -251,7 +252,7 @@ export default function LeadsPage() {
       label: "Company",
       render: (lead) => (
         <span className="text-gray-700 whitespace-nowrap">
-          {lead.companyName}
+          {formatCompanyNameDisplay(lead.companyName, "")}
         </span>
       ),
     },
