@@ -52,12 +52,12 @@ export default function AccountingBookkeepingAdminTrackerView({
   const [activeStageId, setActiveStageId] = useState("s1");
   const [updatingStep, setUpdatingStep] = useState<string | null>(null);
 
-  const loadTracker = useCallback(async () => {
+  const loadTracker = useCallback(async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       const data = await clientsApi.getAddonTrackingStatus(appNo, ADDON_ID);
       setTracker(data);
-      if (data?.stages?.length > 0) {
+      if (isInitial && data?.stages?.length > 0) {
         const targetStage = data.stages[data.currentStageIndex || 0] || data.stages[0];
         if (targetStage) {
           setActiveStageId(targetStage.stageId || targetStage.id || "s1");
@@ -66,12 +66,12 @@ export default function AccountingBookkeepingAdminTrackerView({
     } catch (error) {
       console.error("Failed to load Accounting & Bookkeeping tracker:", error);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   }, [appNo]);
 
   useEffect(() => {
-    if (appNo) loadTracker();
+    if (appNo) loadTracker(true);
   }, [appNo, loadTracker]);
 
   const handleInitialize = async () => {
@@ -79,7 +79,7 @@ export default function AccountingBookkeepingAdminTrackerView({
       setLoading(true);
       await clientsApi.initializeAddonTracker(orgId, ADDON_ID);
       toast.success("Accounting & Bookkeeping Tracker initialized!");
-      loadTracker();
+      loadTracker(true);
     } catch (error) {
       notifyApiError(error, { fallback: "Failed to initialize tracker." });
       setLoading(false);
@@ -93,12 +93,32 @@ export default function AccountingBookkeepingAdminTrackerView({
     newStatus: string
   ) => {
     setUpdatingStep(stepId);
+    // Optimistic UI update to prevent UI flickering / full page refresh
+    setTracker((prev: any) => {
+      if (!prev || !prev.stages) return prev;
+      const copy = JSON.parse(JSON.stringify(prev));
+      for (const stage of copy.stages) {
+        if (stage.stageId === stageId || stage.id === stageId || !stageId) {
+          for (const sec of stage.sections || []) {
+            for (const stp of sec.steps || []) {
+              const sid = stp.stepId || stp._id?.toString() || stp.id;
+              if (sid === stepId || stp.title === stepId) {
+                stp.status = newStatus;
+              }
+            }
+          }
+        }
+      }
+      return copy;
+    });
+
     try {
-      await clientsApi.updateAddonStepStatus(orgId, ADDON_ID, stageId, sectionId, stepId, newStatus);
+      const res = await clientsApi.updateAddonStepStatus(orgId, ADDON_ID, stageId, sectionId, stepId, newStatus);
+      if (res) setTracker(res);
       toast.success("Step status updated successfully");
-      await loadTracker();
     } catch (error) {
       notifyApiError(error, { fallback: "Failed to update step status" });
+      await loadTracker(false);
     } finally {
       setUpdatingStep(null);
     }
@@ -169,6 +189,24 @@ export default function AccountingBookkeepingAdminTrackerView({
           </div>
           <span className="text-[10px] font-bold px-2.5 py-1 bg-amber-100 text-amber-800 rounded-md uppercase tracking-wider shrink-0 border border-amber-200">
             Payment Pending
+          </span>
+        </div>
+      )}
+
+      {/* Renewal Payment Status Banner */}
+      {tracker?.renewalStatus === "due" && (
+        <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-purple-600 shrink-0" />
+            <div>
+              <h4 className="text-xs font-bold text-purple-900">Next Billing Cycle Renewal Pending</h4>
+              <p className="text-[11px] text-purple-800 mt-0.5">
+                The client completed the previous cycle. Next cycle payment is due before proceeding.
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold px-2.5 py-1 bg-purple-100 text-purple-800 rounded-md uppercase tracking-wider shrink-0 border border-purple-200">
+            Renewal Pending
           </span>
         </div>
       )}
@@ -277,7 +315,9 @@ export default function AccountingBookkeepingAdminTrackerView({
               {activeStage.label || activeStage.title || `Stage ${activeStageIndex + 1}`} Tasks
             </h3>
             <span className="text-[10.5px] font-bold text-gray-400 uppercase tracking-wide">
-              {activeStage.sections?.[0]?.estimation && activeStage.sections[0].estimation !== "Pending"
+              {activeStage.sections?.[0]?.estimation &&
+              activeStage.sections[0].estimation !== "Pending" &&
+              (activeStage.stageId || activeStage.id) !== "s3"
                 ? `Est: ${activeStage.sections[0].estimation}`
                 : `Stage ${activeStageIndex + 1} of ${stages.length}`}
             </span>
@@ -293,7 +333,7 @@ export default function AccountingBookkeepingAdminTrackerView({
 
               <div className="space-y-3">
                 {(section.steps || []).filter((s: any) => !s.isHidden).map((step: any, stepIdx: number) => {
-                  const stepId = step._id || step.id || step.stepId || `step-${stepIdx}`;
+                  const stepId = step.stepId || step._id?.toString() || step.id || step.title;
                   const isUpdating = updatingStep === stepId;
 
                   return (

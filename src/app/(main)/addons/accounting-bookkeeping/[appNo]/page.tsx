@@ -13,7 +13,7 @@ export default function AccountingBookkeepingServicePage({
   const { appNo } = use(params);
 
   return (
-    <div className="w-full p-4 sm:p-6 space-y-6">
+    <div className="w-full space-y-6">
       <FixedBackButton
         href="/addon-services/accounting-bookkeeping"
         label="Back to Accounting & Bookkeeping Clients"
