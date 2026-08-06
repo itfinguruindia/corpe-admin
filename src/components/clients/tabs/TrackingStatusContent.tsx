@@ -43,6 +43,7 @@ import {
   getTrackerStepDisplayTitle,
   resolveTrackerStepLabels,
 } from "@/utils/trackerStepLabels";
+import { useAdminTrackerRealtimeSync } from "@/hooks/useAdminTrackerRealtimeSync";
 
 // Types matching updated backend application tracker
 interface TrackerNote {
@@ -283,6 +284,28 @@ export default function TrackingStatusContent({
       loadData();
     }
   }, [appNo]);
+
+  const refreshTrackerSoft = async () => {
+    try {
+      const trackerData = await clientsApi.getTrackingStatus(appNo);
+      if (trackerData) {
+        setTracker(trackerData);
+      }
+    } catch (err) {
+      console.error("Error soft-refreshing tracker:", err);
+    }
+  };
+
+  const realtimeOrgId =
+    tracker?.org?._id || companyOverview?._id || null;
+
+  useAdminTrackerRealtimeSync({
+    orgId: realtimeOrgId,
+    enabled: !!realtimeOrgId,
+    onRefresh: () => {
+      void refreshTrackerSoft();
+    },
+  });
 
   const loadData = async () => {
     try {
