@@ -31,7 +31,9 @@ interface BankAccountData {
   incorporationCertificate?: { name?: string; path?: string };
   gstCertificate?: { name?: string; path?: string };
   addressProof?: { name?: string; path?: string };
-  signatoryDocs?: { name?: string; path?: string };
+  signatoryPan?: { name?: string; path?: string };
+  signatoryAadhaar?: { name?: string; path?: string };
+  signatoryPhoto?: { name?: string; path?: string };
   boardResolution?: { name?: string; path?: string };
   specimenSignature?: { name?: string; path?: string };
   accountDetails?: {
@@ -41,6 +43,12 @@ interface BankAccountData {
     funding?: string;
     notes?: string;
     city?: string;
+  };
+  openedAccountDetails?: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    bankName?: string;
   };
   isPaid: boolean;
   amountPaid?: number;
@@ -163,6 +171,22 @@ export default function BankAccountServiceContent({ appNo }: BankAccountServiceC
       notifyApiError(error, { fallback: "Failed to upload document." });
     } finally {
       setUploadingAdminDoc(false);
+    }
+  };
+
+  const handleOpenedAccountInfoSave = async (payload: {
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    bankName?: string;
+  }) => {
+    try {
+      await clientsApi.updateBankAccountOpenedInfo(appNo, payload);
+      toast.success("Opened account details saved successfully!");
+      loadBankData();
+    } catch (error) {
+      notifyApiError(error, { fallback: "Failed to save opened account details." });
+      throw error;
     }
   };
 
@@ -330,6 +354,7 @@ export default function BankAccountServiceContent({ appNo }: BankAccountServiceC
           downloadBankMiscDoc={downloadBankMiscDoc}
           handleAdminDocUpload={handleAdminDocUpload}
           uploadingAdminDoc={uploadingAdminDoc}
+          onOpenedAccountInfoSave={handleOpenedAccountInfoSave}
         />
       )}
     </div>

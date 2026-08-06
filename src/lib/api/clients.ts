@@ -1298,6 +1298,13 @@ export const clientsApi = {
   getGstMiscDocDownloadUrl: (applicationNo: string, index: number) =>
     `/admin/clients/${applicationNo}/gst-registration/misc-doc/download?index=${index}`,
 
+  getTrademarkDocDownloadUrl: (applicationNo: string, docId: string, adminDocId?: string) => {
+    if (adminDocId) {
+      return `/admin/clients/${applicationNo}/trademark-registration/doc/download?adminDocId=${encodeURIComponent(adminDocId)}`;
+    }
+    return `/admin/clients/${applicationNo}/trademark-registration/doc/download?docId=${encodeURIComponent(docId)}`;
+  },
+
   getBankAccountDocDownloadUrl: (applicationNo: string, docType: string, adminDocId?: string) => {
     if (adminDocId) {
       return `/admin/clients/${applicationNo}/bank-account-setup/doc/download?adminDocId=${encodeURIComponent(adminDocId)}`;
@@ -1308,6 +1315,9 @@ export const clientsApi = {
   getBankMiscDocDownloadUrl: (applicationNo: string, index: number) =>
     `/admin/clients/${applicationNo}/bank-account-setup/misc-doc/download?index=${index}`,
 
+  getAccountingMiscDocDownloadUrl: (applicationNo: string, index: number) =>
+    `/admin/clients/${applicationNo}/accounting-bookkeeping/misc-doc/download?index=${index}`,
+
   uploadBankAccountAdminDoc: async (applicationNo: string, docType: string, file: File) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -1315,6 +1325,22 @@ export const clientsApi = {
       `/admin/clients/${applicationNo}/bank-account-setup/upload-admin-doc?docType=${docType}`,
       formData,
       { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  updateBankAccountOpenedInfo: async (
+    applicationNo: string,
+    payload: {
+      accountHolderName?: string;
+      accountNumber?: string;
+      ifscCode?: string;
+      bankName?: string;
+    },
+  ) => {
+    const response = await axiosInstance.patch(
+      `/admin/clients/${applicationNo}/bank-account-setup/opened-account-info`,
+      payload,
     );
     return response.data?.data ?? response.data;
   },

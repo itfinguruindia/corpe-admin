@@ -1042,35 +1042,86 @@ export default function PricingAndPaymentContent({
                             Pricing Breakdown
                           </h4>
                           <div className="space-y-1.5 text-sm text-slate-700">
-                            <div className="flex justify-between gap-12">
-                              <span className="text-gray-500">GST Registration filing:</span>
-                              <span className="font-semibold">{formatCurrency(addon.breakdown.baseFee, pricingData.currency)}</span>
-                            </div>
-                            {addon.breakdown.pricingDetails?.dscFee > 0 && (
+                            {addon.planKey === "gst_registration" && (
+                              <>
+                                <div className="flex justify-between gap-12">
+                                  <span className="text-gray-500">GST Registration filing:</span>
+                                  <span className="font-semibold">{formatCurrency(addon.breakdown.baseFee, pricingData.currency)}</span>
+                                </div>
+                                {addon.breakdown.pricingDetails?.dscFee > 0 && (
+                                  <div className="flex justify-between gap-12">
+                                    <span className="text-gray-500">DSC Add-on ({addon.breakdown.pricingDetails.dsc}):</span>
+                                    <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails.dscFee, pricingData.currency)}</span>
+                                  </div>
+                                )}
+                                {addon.breakdown.pricingDetails?.statesFee > 0 && (
+                                  <div className="flex justify-between gap-12">
+                                    <span className="text-gray-500">Additional States ({addon.breakdown.pricingDetails.states} count):</span>
+                                    <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails.statesFee, pricingData.currency)}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between border-t border-slate-100 pt-2 mt-2 font-medium text-slate-900">
+                                  <span>Subtotal:</span>
+                                  <span>{formatCurrency(
+                                    (addon.breakdown.baseFee || 0) + 
+                                    (addon.breakdown.pricingDetails?.dscFee || 0) + 
+                                    (addon.breakdown.pricingDetails?.statesFee || 0), 
+                                    pricingData.currency
+                                  )}</span>
+                                </div>
+                                <div className="flex justify-between text-gray-500 text-xs">
+                                  <span>GST (18%):</span>
+                                  <span>{formatCurrency(addon.breakdown.gstFee, pricingData.currency)}</span>
+                                </div>
+                              </>
+                            )}
+                            {addon.planKey === "bank_account_setup" && (
+                              <>
+                                <div className="flex justify-between gap-12">
+                                  <span className="text-gray-500">Bank Account Setup (Base):</span>
+                                  <span className="font-semibold">{formatCurrency(addon.breakdown.baseFee, pricingData.currency)}</span>
+                                </div>
+                                {addon.breakdown.pricingDetails?.bundleDiscount > 0 && (
+                                  <div className="flex justify-between gap-12">
+                                    <span className="text-gray-500">GST Bundle Discount:</span>
+                                    <span className="font-semibold">-{formatCurrency(addon.breakdown.pricingDetails.bundleDiscount, pricingData.currency)}</span>
+                                  </div>
+                                )}
+                                <div className="flex justify-between border-t border-slate-100 pt-2 mt-2 font-medium text-slate-900">
+                                  <span>Subtotal:</span>
+                                  <span>{formatCurrency(
+                                    (addon.breakdown.baseFee || 0) - (addon.breakdown.pricingDetails?.bundleDiscount || 0), 
+                                    pricingData.currency
+                                  )}</span>
+                                </div>
+                                <div className="flex justify-between text-gray-500 text-xs">
+                                  <span>GST (18%):</span>
+                                  <span>{formatCurrency(addon.breakdown.gstFee, pricingData.currency)}</span>
+                                </div>
+                              </>
+                            )}
+                            {addon.planKey === "trademark_registration" && (
+                              <>
+                                <div className="flex justify-between gap-12">
+                                  <span className="text-gray-500">Filing Fee ({addon.breakdown.pricingDetails?.numClasses || 1} class/es):</span>
+                                  <span className="font-semibold">{formatCurrency(addon.breakdown.baseFee, pricingData.currency)}</span>
+                                </div>
+                                <div className="flex justify-between gap-12">
+                                  <span className="text-gray-500">Government Fee:</span>
+                                  <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails?.govtFee, pricingData.currency)}</span>
+                                </div>
+                                <div className="flex justify-between text-gray-500 text-xs">
+                                  <span>GST on Filing (18%):</span>
+                                  <span>{formatCurrency(addon.breakdown.gstFee, pricingData.currency)}</span>
+                                </div>
+                              </>
+                            )}
+                            {addon.planKey === "accounting_bookkeeping" && (
                               <div className="flex justify-between gap-12">
-                                <span className="text-gray-500">DSC Add-on ({addon.breakdown.pricingDetails.dsc}):</span>
-                                <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails.dscFee, pricingData.currency)}</span>
+                                <span className="text-gray-500">Subscription Fee:</span>
+                                <span className="font-semibold">{formatCurrency(addon.breakdown.baseFee, pricingData.currency)}</span>
                               </div>
                             )}
-                            {addon.breakdown.pricingDetails?.statesFee > 0 && (
-                              <div className="flex justify-between gap-12">
-                                <span className="text-gray-500">Additional States ({addon.breakdown.pricingDetails.states} count):</span>
-                                <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails.statesFee, pricingData.currency)}</span>
-                              </div>
-                            )}
-                            <div className="flex justify-between border-t border-slate-100 pt-2 mt-2 font-medium text-slate-900">
-                              <span>Subtotal:</span>
-                              <span>{formatCurrency(
-                                (addon.breakdown.baseFee || 0) + 
-                                (addon.breakdown.pricingDetails?.dscFee || 0) + 
-                                (addon.breakdown.pricingDetails?.statesFee || 0), 
-                                pricingData.currency
-                              )}</span>
-                            </div>
-                            <div className="flex justify-between text-gray-500 text-xs">
-                              <span>GST (18%):</span>
-                              <span>{formatCurrency(addon.breakdown.gstFee, pricingData.currency)}</span>
-                            </div>
                             <div className="flex justify-between border-t border-slate-200 pt-2 mt-2 font-bold text-blue-700 text-base">
                               <span>Total Paid:</span>
                               <span>{formatCurrency(addon.breakdown.amountPaid, pricingData.currency)}</span>
