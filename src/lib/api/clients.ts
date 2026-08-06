@@ -32,7 +32,11 @@ export const clientsApi = {
       params.export = true;
     }
     if (filters) {
+      if (filters.showDiscontinuedOnly) {
+        params.showDiscontinuedOnly = true;
+      }
       Object.entries(filters).forEach(([key, value]) => {
+        if (key === "showDiscontinuedOnly") return;
         if (typeof value === "object" && value !== null) {
           // For nested objects, flatten boolean filters (status, entityType, dateRange)
           Object.entries(value).forEach(([subKey, subValue]) => {
@@ -51,6 +55,8 @@ export const clientsApi = {
               if (ids) params[key] = ids;
             }
           });
+        } else if (typeof value === "boolean" && value) {
+          params[key] = true;
         } else if (typeof value === "string" && value) {
           params[key] = value;
         }
@@ -68,13 +74,41 @@ export const clientsApi = {
     page: number = 1,
     limit: number = 10,
     search?: string,
+    showDiscontinuedOnly?: boolean,
   ) => {
     const params: Record<string, any> = { page, limit };
     if (search) params.search = search;
+    if (showDiscontinuedOnly) params.showDiscontinuedOnly = true;
 
     const response = await axiosInstance.get(
       `/admin/clients/addon-service/${encodeURIComponent(addonId)}`,
       { params },
+    );
+    return response.data.data;
+  },
+
+  // Discontinue client application
+  discontinueClient: async (applicationNo: string, reason: string) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/discontinue`,
+      { reason },
+    );
+    return response.data;
+  },
+
+  // Restore discontinued client application
+  restoreClient: async (applicationNo: string, reason: string) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/restore`,
+      { reason },
+    );
+    return response.data;
+  },
+
+  // Fetch discontinue history
+  getDiscontinueHistory: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/discontinue-history`,
     );
     return response.data.data;
   },
