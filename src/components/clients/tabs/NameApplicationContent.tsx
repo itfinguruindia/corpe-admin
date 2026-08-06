@@ -72,6 +72,9 @@ export default function NameApplicationContent({
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRocReviewed, setIsRocReviewed] = useState(false);
+  const [isTrademarkDone, setIsTrademarkDone] = useState(false);
+  const [trackerOrgId, setTrackerOrgId] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>("");
@@ -100,6 +103,54 @@ export default function NameApplicationContent({
     if (company?.nameResubmission) return "Resubmission";
     return "Pending";
   };
+
+  const refreshTrackerDerivedGates = useCallback(async () => {
+    try {
+      const trackerRes = await clientsApi.getTrackingStatus(appNo);
+      if (!trackerRes) return;
+
+      const orgId =
+        trackerRes.org?._id ||
+        trackerRes.org ||
+        trackerRes.organisationId ||
+        null;
+      if (orgId) setTrackerOrgId(String(orgId));
+
+      const stage1Attempts = trackerRes.stages?.filter(
+        (s: any) =>
+          s.stageId === "stage_1_name_application" ||
+          s.stageId.startsWith("stage_1_name_application_attempt_"),
+      );
+      const activeStage1 = stage1Attempts?.[stage1Attempts.length - 1];
+      if (!activeStage1) return;
+
+      const sectionA = activeStage1.sections?.find(
+        (sec: any) =>
+          sec.label === "Name Search & Submission" || sec.order === 1,
+      );
+      if (sectionA?.steps) {
+        const findLastStep = (steps: any[], title: string) => {
+          for (let i = steps.length - 1; i >= 0; i--) {
+            if (steps[i].title === title) return steps[i];
+          }
+          return null;
+        };
+        const stepTrade = findLastStep(sectionA.steps, "Trademark Check");
+        setIsTrademarkDone(stepTrade?.status === "Done");
+      }
+
+      const sectionB = activeStage1.sections?.find(
+        (sec: any) =>
+          sec.label === "Object Clause & RUN Filing" || sec.order === 2,
+      );
+      const partAStep = sectionB?.steps?.find((st: any) =>
+        isRunFilingStepTitle(st.title),
+      );
+      setIsRocReviewed(partAStep?.status === "Done");
+    } catch (trackerErr) {
+      console.error("Error refreshing tracker gates:", trackerErr);
+    }
+  }, [appNo]);
 
   /* ---------------- HANDLERS ---------------- */
 
@@ -209,18 +260,19 @@ export default function NameApplicationContent({
     }
   };
 
-  const refreshObjectClauseStatus = async () => {
+  const refreshObjectClauseStatus = async (opts?: { silent?: boolean }) => {
     try {
-      setIsRefreshing(true);
+      if (!opts?.silent) setIsRefreshing(true);
       const statusData = await clientsApi.getObjectClauseStatus(appNo);
       setAdminFile(statusData.adminFile);
       setClientFile(statusData.clientFile);
-      toast.success("Status refreshed");
+      await refreshTrackerDerivedGates();
+      if (!opts?.silent) toast.success("Status refreshed");
     } catch (error) {
       console.error("Error refreshing status:", error);
-      toast("Failed to refresh status", { variant: "danger" });
+      if (!opts?.silent) toast("Failed to refresh status", { variant: "danger" });
     } finally {
-      setIsRefreshing(false);
+      if (!opts?.silent) setIsRefreshing(false);
     }
   };
 
@@ -229,6 +281,7 @@ export default function NameApplicationContent({
     if (!requireEdit()) return;
     try {
       await clientsApi.updateCompanyStatus(appNo, index, status);
+      await refreshTrackerDerivedGates();
     } catch (error) {
       console.error("Failed to update status", error);
       notifyApiError(error, {
@@ -244,6 +297,7 @@ export default function NameApplicationContent({
     try {
       await clientsApi.updateCompanyMcaApproval(appNo, index, value);
       toast.success("MCA approval status updated");
+      await refreshTrackerDerivedGates();
     } catch (error) {
       console.error("Failed to update MCA approval", error);
       toast("Failed to update MCA approval", { variant: "danger" });
@@ -256,6 +310,7 @@ export default function NameApplicationContent({
     try {
       await clientsApi.updateCompanyTradeConflict(appNo, index, value);
       toast.success("Trademark status updated");
+      await refreshTrackerDerivedGates();
     } catch (error) {
       console.error("Failed to update Trademark status", error);
       toast("Failed to update Trademark status", { variant: "danger" });
@@ -348,8 +403,14 @@ export default function NameApplicationContent({
 
   /* ---------------- API ---------------- */
 
-  const [isRocReviewed, setIsRocReviewed] = useState(false);
-  const [isTrademarkDone, setIsTrademarkDone] = useState(false);
+  // Keep Object Clause unlock / ROC gates in sync when tracker changes
+  useAdminTrackerRealtimeSync({
+    orgId: trackerOrgId,
+    enabled: !!trackerOrgId,
+    onRefresh: () => {
+      void refreshObjectClauseStatus({ silent: true });
+    },
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -391,49 +452,7 @@ export default function NameApplicationContent({
           setTradeConflictMap(initialTradeConflict);
         }
 
-        try {
-          const trackerRes = await clientsApi.getTrackingStatus(appNo);
-          if (trackerRes) {
-            const stage1Attempts = trackerRes.stages?.filter(
-              (s: any) =>
-                s.stageId === "stage_1_name_application" ||
-                s.stageId.startsWith("stage_1_name_application_attempt_"),
-            );
-            const activeStage1 = stage1Attempts?.[stage1Attempts.length - 1];
-            if (activeStage1) {
-              const sectionA = activeStage1.sections?.find(
-                (sec: any) =>
-                  sec.label === "Name Search & Submission" || sec.order === 1,
-              );
-              if (sectionA && sectionA.steps) {
-                const findLastStep = (steps: any[], title: string) => {
-                  for (let i = steps.length - 1; i >= 0; i--) {
-                    if (steps[i].title === title) {
-                      return steps[i];
-                    }
-                  }
-                  return null;
-                };
-                const stepTrade = findLastStep(
-                  sectionA.steps,
-                  "Trademark Check",
-                );
-                setIsTrademarkDone(stepTrade?.status === "Done");
-              }
-
-              const sectionB = activeStage1.sections?.find(
-                (sec: any) =>
-                  sec.label === "Object Clause & RUN Filing" || sec.order === 2,
-              );
-              const partAStep = sectionB?.steps?.find((st: any) =>
-                isRunFilingStepTitle(st.title),
-              );
-              setIsRocReviewed(partAStep?.status === "Done");
-            }
-          }
-        } catch (trackerErr) {
-          console.error("Error fetching tracker status:", trackerErr);
-        }
+        await refreshTrackerDerivedGates();
 
         // Fetch object clause status (both admin and client files)
         const statusData = await clientsApi.getObjectClauseStatus(appNo);
@@ -449,7 +468,7 @@ export default function NameApplicationContent({
     };
 
     fetchData();
-  }, [appNo]);
+  }, [appNo, refreshTrackerDerivedGates]);
 
   // Auto-refresh object clause status every 30 seconds to detect client uploads
   useEffect(() => {
