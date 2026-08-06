@@ -1,18 +1,20 @@
 "use client";
 
-import { Trash2, Search, RefreshCw } from "lucide-react";
+import { Trash2, Search, RefreshCw, Info } from "lucide-react";
 import * as XLSX from "xlsx";
 
 import { useEffect, useMemo, useState } from "react";
 import { marketingApi, Lead } from "@/lib/api/marketing";
 import useSwal from "@/utils/useSwal";
 import { useDebouncedCallback } from "@/utils/helpers";
+import { formatCompanyNameDisplay } from "@/utils/formatCompanyName";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import { Button, Input, Label, TextField } from "@heroui/react";
 import CustomSelect from "@/components/ui/CustomSelect";
 import ExportDropdown from "@/components/ui/ExportDropdown";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
+import LeadExtraDetailsModal from "@/components/marketing/LeadExtraDetailsModal";
 
 export default function LeadsPage() {
   const { hasPermission } = usePermissions();
@@ -27,9 +29,20 @@ export default function LeadsPage() {
   const [search, setSearch] = useState("");
   const [country, setCountry] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [detailsLead, setDetailsLead] = useState<Lead | null>(null);
   const itemsPerPage = 10;
   const swal = useSwal();
   const [countries, setCountries] = useState<string[]>([]);
+
+  const hasExtraDetails = (lead: Lead) => {
+    const details = lead?.extraDetails;
+    return (
+      !!details &&
+      typeof details === "object" &&
+      !Array.isArray(details) &&
+      Object.keys(details).length > 0
+    );
+  };
 
   // Debounced search handler
   const handleSearch = useDebouncedCallback((page: number) => {
@@ -167,7 +180,7 @@ export default function LeadsPage() {
           lead.email,
           lead.CountryCode,
           lead.phone,
-          lead.companyName,
+          formatCompanyNameDisplay(lead.companyName, ""),
           lead.country,
           lead.message,
           lead.createdAt ? new Date(lead.createdAt).toLocaleString() : "",
@@ -239,7 +252,7 @@ export default function LeadsPage() {
       label: "Company",
       render: (lead) => (
         <span className="text-gray-700 whitespace-nowrap">
-          {lead.companyName}
+          {formatCompanyNameDisplay(lead.companyName, "")}
         </span>
       ),
     },
@@ -290,6 +303,24 @@ export default function LeadsPage() {
           {lead.formType || "-"}
         </span>
       ),
+    },
+    {
+      id: "details",
+      label: "Details",
+      render: (lead) =>
+        hasExtraDetails(lead) ? (
+          <button
+            type="button"
+            onClick={() => setDetailsLead(lead)}
+            className="inline-flex items-center justify-center rounded-full p-1.5 text-sky-600 hover:bg-sky-50 hover:text-sky-800"
+            title="View extra details"
+            aria-label="View extra details"
+          >
+            <Info size={18} />
+          </button>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
     },
     {
       id: "action",
@@ -399,6 +430,12 @@ export default function LeadsPage() {
         totalItems={total}
         itemsPerPage={itemsPerPage}
         onPageChange={handlePageChange}
+      />
+
+      <LeadExtraDetailsModal
+        lead={detailsLead}
+        isOpen={!!detailsLead}
+        onClose={() => setDetailsLead(null)}
       />
     </div>
   );

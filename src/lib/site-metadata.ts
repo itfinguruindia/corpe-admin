@@ -189,6 +189,14 @@ const ROUTE_RULES: RouteRule[] = [
     },
   },
   {
+    pattern: /^\/accounting\/sms-usage$/,
+    meta: {
+      title: "SMS Usage",
+      description:
+        "Live Twilio SMS usage report by date and destination number.",
+    },
+  },
+  {
     pattern: /^\/documents\/templates$/,
     meta: {
       title: "Document Templates",

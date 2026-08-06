@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
+import { FileText, Users } from "lucide-react";
 
 import { clientsApi } from "@/lib/api/clients";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
@@ -97,69 +98,156 @@ export default function StakeholderNavTabs({
 
   const items = entityType === "director" ? directors : shareholders;
 
-  const buildHref = (type: EntityType, id: string) => {
+  const buildHref = (type: EntityType, id: string, documents = false) => {
     const segment = type === "director" ? "directors" : "shareholders";
     const base = `/clients/${appNo}/${segment}/${id}`;
-    return isDocumentsPath ? `${base}/documents` : base;
+    return documents ? `${base}/documents` : base;
   };
 
-  if (!appNo || isLoading || items.length === 0) {
-    return null;
+  if (!appNo || isLoading) {
+    return (
+      <div className="mb-5 h-24 animate-pulse rounded-xl border border-slate-200 bg-white" />
+    );
   }
 
+  if (items.length === 0) return null;
+
+  const activeItem =
+    items.find((item) => String(item.id) === String(currentId)) || items[0];
+
   const directorsHref = directors[0]
-    ? buildHref("director", directors[0].id)
+    ? buildHref("director", directors[0].id, isDocumentsPath)
     : `/clients/${appNo}?tab=directors`;
   const shareholdersHref = shareholders[0]
-    ? buildHref("shareholder", shareholders[0].id)
+    ? buildHref("shareholder", shareholders[0].id, isDocumentsPath)
     : `/clients/${appNo}?tab=shareholders`;
 
+  const listHref =
+    entityType === "director"
+      ? `/clients/${appNo}?tab=directors`
+      : `/clients/${appNo}?tab=shareholders`;
+
   return (
-    <div className="mb-4 space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href={directorsHref}
-          className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-            entityType === "director"
-              ? "bg-primary text-white"
-              : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-          }`}
-        >
-          {labels.directors}
-        </Link>
-        {shareholders.length > 0 && (
+    <div className="mb-5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      {/* Top bar: back + app + entity switch + details/docs */}
+      <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Link
-            href={shareholdersHref}
-            className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-              entityType === "shareholder"
-                ? "bg-primary text-white"
-                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+            href={listHref}
+            className="text-sm font-medium text-slate-500 transition-colors hover:text-[#2B4C7E]"
+          >
+            ← Back
+          </Link>
+          <span className="hidden h-4 w-px bg-slate-200 sm:block" />
+          <Link
+            href={`/clients/${appNo}?tab=tracking-status`}
+            className="text-base font-bold tracking-wide text-[#2B4C7E] hover:underline"
+          >
+            {appNo}
+          </Link>
+          <span className="hidden h-4 w-px bg-slate-200 sm:block" />
+          <div
+            className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+            role="tablist"
+            aria-label="Stakeholder type"
+          >
+            <Link
+              href={directorsHref}
+              role="tab"
+              aria-selected={entityType === "director"}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                entityType === "director"
+                  ? "bg-[#2B4C7E] text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Users className="h-3.5 w-3.5" />
+              {labels.directors}
+            </Link>
+            {shareholders.length > 0 && (
+              <Link
+                href={shareholdersHref}
+                role="tab"
+                aria-selected={entityType === "shareholder"}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  entityType === "shareholder"
+                    ? "bg-[#2B4C7E] text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Users className="h-3.5 w-3.5" />
+                {labels.shareholders}
+              </Link>
+            )}
+          </div>
+        </div>
+
+        <div
+          className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 self-start sm:self-auto"
+          role="tablist"
+          aria-label="Profile section"
+        >
+          <Link
+            href={buildHref(entityType, activeItem.id, false)}
+            role="tab"
+            aria-selected={!isDocumentsPath}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+              !isDocumentsPath
+                ? "bg-white text-[#2B4C7E] shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            {labels.shareholders}
+            Profile
           </Link>
-        )}
+          <Link
+            href={buildHref(entityType, activeItem.id, true)}
+            role="tab"
+            aria-selected={isDocumentsPath}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+              isDocumentsPath
+                ? "bg-white text-[#2B4C7E] shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Documents
+          </Link>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
+      {/* Person switcher — only one row */}
+      <div
+        className="flex gap-1 overflow-x-auto px-2 sm:px-3"
+        role="tablist"
+        aria-label={`${labels.director} list`}
+      >
         {items.map((item, index) => {
           const active = String(item.id) === String(currentId);
           return (
             <Link
               key={`${entityType}-${item.id}-${index}`}
-              href={buildHref(entityType, item.id)}
+              href={buildHref(entityType, item.id, isDocumentsPath)}
+              role="tab"
+              aria-selected={active}
               title={item.name}
-              className={`whitespace-nowrap rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+              className={`relative shrink-0 whitespace-nowrap px-3 py-3 text-sm transition-colors ${
                 active
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                  ? "font-semibold text-[#2B4C7E]"
+                  : "font-medium text-slate-500 hover:text-slate-800"
               }`}
             >
               <span>{item.label}</span>
               {item.name && item.name !== item.label ? (
-                <span className="ml-1.5 font-normal text-slate-500">
+                <span
+                  className={`ml-1.5 font-normal ${
+                    active ? "text-[#2B4C7E]/80" : "text-slate-400"
+                  }`}
+                >
                   · {item.name}
                 </span>
+              ) : null}
+              {active ? (
+                <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#E28743]" />
               ) : null}
             </Link>
           );

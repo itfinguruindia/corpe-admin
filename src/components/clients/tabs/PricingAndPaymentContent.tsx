@@ -15,6 +15,7 @@ import {
 import { InfoField, Chip, Switch } from "@/components/ui";
 import { Lock, MoreVertical, X } from "lucide-react";
 import { formatCurrency } from "@/utils/helpers";
+import { formatCompanyNameDisplay } from "@/utils/formatCompanyName";
 import useSwal from "@/utils/useSwal";
 import { Card, Spinner } from "@heroui/react";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
@@ -44,6 +45,11 @@ export default function PricingAndPaymentContent({
   const [selectedStep, setSelectedStep] = useState<FrontendPaymentStep | null>(
     null,
   );
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewStep, setReviewStep] = useState<FrontendPaymentStep | null>(
+    null,
+  );
+  const [invoiceBusy, setInvoiceBusy] = useState(false);
 
   useEffect(() => {
     const loadPricingData = async () => {
@@ -77,7 +83,7 @@ export default function PricingAndPaymentContent({
       if (success) {
         await swal({
           title: "Sent!",
-          text: "Payment link has been successfully marked as sent.",
+          text: "Payment link email has been sent to the client.",
           icon: "success",
         });
         // Refresh pricing data
@@ -97,6 +103,116 @@ export default function PricingAndPaymentContent({
       console.error(error);
     } finally {
       setSendingLink(false);
+    }
+  };
+
+  const refreshPricing = async () => {
+    const data = await pricingPaymentService.getPricingAndPayment(appNo);
+    if (data) {
+      setPricingData(mapBackendToFrontend(data));
+    }
+  };
+
+  const handleMenuSend = async (step: FrontendPaymentStep) => {
+    if (!requireEdit()) return;
+
+    if (step.status === "Paid") {
+      await swal({
+        title: "Already paid",
+        text: "This step is already paid. Use Download to get the invoice PDF.",
+        icon: "info",
+      });
+      return;
+    }
+
+    if (![4, 6, 7].includes(step.stepNumber)) {
+      await swal({
+        title: "Not available",
+        text: "Payment-link email is available for 1st Installment, 2nd Installment, and Name Extension.",
+        icon: "info",
+      });
+      return;
+    }
+
+    setSelectedStep(step);
+    if (step.stepNumber === 7) {
+      setPaymentLinkReason(
+        "Your MCA name reservation is approaching expiry. Please pay the name extension fee from Billing to keep the name hold active.",
+      );
+      setNotificationType("email_sms");
+      setIsPaymentLinkModalOpen(true);
+      return;
+    }
+
+    const confirmed = await swal({
+      title: step.paymentLinkSent ? "Resend payment link?" : "Send payment link?",
+      text: `An email will be sent to the client for ${step.installmentName} so they can pay from Billing.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: step.paymentLinkSent ? "Yes, Resend" : "Yes, Send",
+    });
+    if (!confirmed.isConfirmed) return;
+
+    try {
+      setInvoiceBusy(true);
+      const success = await pricingPaymentService.sendPaymentLink(
+        appNo,
+        step.stepNumber,
+        "email_sms",
+        `Please complete payment for ${step.installmentName} from your CorpE Billing page.`,
+      );
+      if (success) {
+        await swal({
+          title: "Sent!",
+          text: "Payment link email has been sent to the client.",
+          icon: "success",
+        });
+        await refreshPricing();
+      } else {
+        await swal({
+          title: "Error",
+          text: "Failed to send payment link email.",
+          icon: "error",
+        });
+      }
+    } finally {
+      setInvoiceBusy(false);
+    }
+  };
+
+  const handleMenuReview = (step: FrontendPaymentStep) => {
+    setReviewStep(step);
+    setIsReviewModalOpen(true);
+  };
+
+  const handleMenuDownload = async (step: FrontendPaymentStep) => {
+    try {
+      setInvoiceBusy(true);
+      const blob = await pricingPaymentService.downloadStageInvoice(
+        appNo,
+        step.stepNumber,
+        {
+          attemptNumber: step._attemptNumber,
+          disposition: "attachment",
+        },
+      );
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = `${step.installmentName.replace(/\s+/g, "-").toLowerCase()}-${appNo}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error(error);
+      await swal({
+        title: "Download failed",
+        text: "Unable to generate or download the invoice PDF. Please try again.",
+        icon: "error",
+      });
+    } finally {
+      setInvoiceBusy(false);
     }
   };
 
@@ -161,7 +277,11 @@ export default function PricingAndPaymentContent({
             effects: s.effects,
             status: mappedStatus,
             action: actionText,
-            invoice: att.invoiceAvailable ? "Sent" : "Not Sent",
+            invoice: att.invoiceAvailable
+              ? "Invoice Ready"
+              : att.paymentLinkSentAt
+                ? "Link Sent"
+                : "Not Sent",
             paymentAlert:
               att.paymentStatus === "paid"
                 ? "Paid Confirmation"
@@ -170,6 +290,8 @@ export default function PricingAndPaymentContent({
                   : "Awaiting",
             paymentModeCapture: att.paymentStatus === "paid" ? "Online" : "-",
             breakdown: bd,
+            orderId: att.orderId || s.orderId,
+            invoiceAvailable: !!att.invoiceAvailable,
             paymentLinkSent: !!att.paymentLinkSentAt,
             paymentLinkSentAt: att.paymentLinkSentAt || null,
             _isActiveAttempt: att.attemptNumber === bd.currentAttempt,
@@ -195,7 +317,11 @@ export default function PricingAndPaymentContent({
           effects: s.effects,
           status: mapStatus(s.status),
           action: actionText,
-          invoice: s.invoiceAvailable ? "Sent" : "Not Sent",
+          invoice: s.invoiceAvailable
+            ? "Invoice Ready"
+            : s.paymentLinkSent
+              ? "Link Sent"
+              : "Not Sent",
           paymentAlert:
             s.status === "paid"
               ? "Paid Confirmation"
@@ -204,6 +330,8 @@ export default function PricingAndPaymentContent({
                 : "Awaiting",
           paymentModeCapture: s.status === "paid" ? "Online" : "-",
           breakdown: s.breakdown,
+          orderId: s.orderId,
+          invoiceAvailable: !!s.invoiceAvailable,
           paymentLinkSent: s.paymentLinkSent,
           paymentLinkSentAt: s.paymentLinkSentAt,
         });
@@ -212,7 +340,7 @@ export default function PricingAndPaymentContent({
 
     return {
       applicationNo: summary.applicationNo,
-      companyName: summary.companyName || "N/A",
+      companyName: formatCompanyNameDisplay(summary.companyName, "N/A"),
       entityType: summary.entityType || "N/A",
       plan: summary.plan,
       packageType: summary.packageType,
@@ -823,62 +951,25 @@ export default function PricingAndPaymentContent({
                                 </button>
                                 <div className="absolute right-0 top-8 z-9999 hidden group-focus-within:block group-hover:block bg-white border border-gray-200 rounded shadow-lg min-w-35 py-1">
                                   <button
-                                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                                    onClick={async () => {
-                                      const result = await swal({
-                                        title:
-                                          step.invoice === "Sent"
-                                            ? "Resend Invoice?"
-                                            : "Send Invoice?",
-                                        text:
-                                          step.invoice === "Sent"
-                                            ? "Are you sure you want to resend this invoice?"
-                                            : "Are you sure you want to send this invoice?",
-                                        icon: "warning",
-                                        showCancelButton: true,
-                                        confirmButtonText:
-                                          step.invoice === "Sent"
-                                            ? "Yes, Resend"
-                                            : "Yes, Send",
-                                      });
-                                      if (result.isConfirmed) {
-                                        // TODO: Send/Resend logic
-                                      }
-                                    }}
+                                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 disabled:opacity-50"
+                                    disabled={invoiceBusy}
+                                    onClick={() => handleMenuSend(step)}
                                   >
-                                    {step.invoice === "Sent" ? "Resend" : "Send"}
+                                    {step.paymentLinkSent ||
+                                    step.invoice === "Link Sent"
+                                      ? "Resend"
+                                      : "Send"}
                                   </button>
                                   <button
                                     className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                                    onClick={async () => {
-                                      const result = await swal({
-                                        title: "Review Invoice?",
-                                        text: "Do you want to review this invoice?",
-                                        icon: "info",
-                                        showCancelButton: true,
-                                        confirmButtonText: "Review",
-                                      });
-                                      if (result.isConfirmed) {
-                                        // TODO: Review logic
-                                      }
-                                    }}
+                                    onClick={() => handleMenuReview(step)}
                                   >
                                     Review
                                   </button>
                                   <button
-                                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                                    onClick={async () => {
-                                      const result = await swal({
-                                        title: "Download Invoice?",
-                                        text: "Do you want to download this invoice?",
-                                        icon: "question",
-                                        showCancelButton: true,
-                                        confirmButtonText: "Download",
-                                      });
-                                      if (result.isConfirmed) {
-                                        // TODO: Download logic
-                                      }
-                                    }}
+                                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 disabled:opacity-50"
+                                    disabled={invoiceBusy}
+                                    onClick={() => handleMenuDownload(step)}
                                   >
                                     Download
                                   </button>
@@ -1064,6 +1155,223 @@ export default function PricingAndPaymentContent({
           </div>
         </div>
       </Card>
+
+      {/* Invoice / payment breakdown review */}
+      {isReviewModalOpen && reviewStep && pricingData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Invoice breakdown
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {reviewStep.installmentName} · {appNo}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsReviewModalOpen(false);
+                  setReviewStep(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1 bg-transparent border-none cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-slate-500">Status</span>
+                <Chip
+                  label={reviewStep.status}
+                  variant={
+                    reviewStep.status === "Paid"
+                      ? "green"
+                      : reviewStep.status === "Overdue"
+                        ? "red"
+                        : "yellow"
+                  }
+                />
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-sm">
+                {typeof reviewStep.breakdown?.installmentBase === "number" &&
+                  reviewStep.breakdown.installmentBase > 0 && (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-slate-500">Base installment</span>
+                      <span className="font-medium text-slate-800">
+                        {formatCurrency(
+                          reviewStep.breakdown.installmentBase,
+                          pricingData.currency || "INR",
+                        )}
+                      </span>
+                    </div>
+                  )}
+                {typeof reviewStep.breakdown?.gstAmount === "number" &&
+                  reviewStep.breakdown.gstAmount > 0 && (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-slate-500">
+                        GST (
+                        {reviewStep.breakdown.gstPercentage ?? 18}
+                        %)
+                      </span>
+                      <span className="font-medium text-slate-800">
+                        {formatCurrency(
+                          reviewStep.breakdown.gstAmount,
+                          pricingData.currency || "INR",
+                        )}
+                      </span>
+                    </div>
+                  )}
+                {typeof reviewStep.breakdown?.rejectionFee === "number" &&
+                  reviewStep.breakdown.rejectionFee > 0 && (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-slate-500">Rejection fee</span>
+                      <span className="font-medium text-slate-800">
+                        {formatCurrency(
+                          reviewStep.breakdown.rejectionFee,
+                          pricingData.currency || "INR",
+                        )}
+                      </span>
+                    </div>
+                  )}
+                {(reviewStep.breakdown?.indianCount || 0) > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">
+                      Extra Indian directors (
+                      {reviewStep.breakdown?.indianCount})
+                    </span>
+                    <span className="font-medium text-slate-800">
+                      {formatCurrency(
+                        (reviewStep.breakdown?.indianCount || 0) *
+                          (reviewStep.breakdown?.indianRate || 0),
+                        pricingData.currency || "INR",
+                      )}
+                    </span>
+                  </div>
+                )}
+                {(reviewStep.breakdown?.foreignCount || 0) > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">
+                      Extra foreign directors (
+                      {reviewStep.breakdown?.foreignCount})
+                    </span>
+                    <span className="font-medium text-slate-800">
+                      {formatCurrency(
+                        (reviewStep.breakdown?.foreignCount || 0) *
+                          (reviewStep.breakdown?.foreignRate || 0),
+                        pricingData.currency || "INR",
+                      )}
+                    </span>
+                  </div>
+                )}
+                {(reviewStep.breakdown?.nonShareholderCount || 0) > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">
+                      Non-shareholders (
+                      {reviewStep.breakdown?.nonShareholderCount})
+                    </span>
+                    <span className="font-medium text-slate-800">
+                      {formatCurrency(
+                        (reviewStep.breakdown?.nonShareholderCount || 0) *
+                          (reviewStep.breakdown?.nonShareholderRate || 0),
+                        pricingData.currency || "INR",
+                      )}
+                    </span>
+                  </div>
+                )}
+                {(reviewStep.breakdown?.dinCount || 0) > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">
+                      DIN activation ({reviewStep.breakdown?.dinCount})
+                    </span>
+                    <span className="font-medium text-slate-800">
+                      {formatCurrency(
+                        reviewStep.breakdown?.dinTotal ||
+                          (reviewStep.breakdown?.dinCount || 0) *
+                            (reviewStep.breakdown?.dinRate || 0),
+                        pricingData.currency || "INR",
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {!reviewStep.breakdown?.installmentBase &&
+                  !reviewStep.breakdown?.gstAmount &&
+                  !reviewStep.breakdown?.rejectionFee &&
+                  !(reviewStep.breakdown?.indianCount || 0) &&
+                  !(reviewStep.breakdown?.foreignCount || 0) &&
+                  !(reviewStep.breakdown?.nonShareholderCount || 0) &&
+                  !(reviewStep.breakdown?.dinCount || 0) && (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-slate-500">Amount</span>
+                      <span className="font-medium text-slate-800">
+                        {formatCurrency(
+                          reviewStep.amount,
+                          pricingData.currency || "INR",
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                <div className="flex justify-between gap-4 border-t border-slate-200 pt-2 mt-1">
+                  <span className="font-semibold text-slate-700">Total</span>
+                  <span className="font-bold text-[#1E3A6E]">
+                    {formatCurrency(
+                      reviewStep.breakdown?.installmentTotal ||
+                        reviewStep.amount,
+                      pricingData.currency || "INR",
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {(reviewStep.triggerGate || reviewStep.effects) && (
+                <div className="space-y-2 text-xs text-slate-500">
+                  {reviewStep.triggerGate && (
+                    <p className="mb-0">
+                      <span className="font-semibold text-slate-600">
+                        Trigger:
+                      </span>{" "}
+                      {reviewStep.triggerGate}
+                    </p>
+                  )}
+                  {reviewStep.effects && (
+                    <p className="mb-0">
+                      <span className="font-semibold text-slate-600">
+                        Effect:
+                      </span>{" "}
+                      {reviewStep.effects}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  onClick={() => {
+                    setIsReviewModalOpen(false);
+                    setReviewStep(null);
+                  }}
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg bg-[#F36E4B] px-4 py-2 text-sm font-semibold text-white hover:brightness-105 disabled:opacity-60"
+                  disabled={invoiceBusy}
+                  onClick={() => handleMenuDownload(reviewStep)}
+                >
+                  {invoiceBusy ? "Downloading…" : "Download PDF"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Send Payment Link Modal */}
       {isPaymentLinkModalOpen && selectedStep && (

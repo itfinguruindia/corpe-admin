@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { clientsApi } from "@/lib/api/clients";
+import { formatCompanyNameDisplay } from "@/utils/formatCompanyName";
 
 import {
   Spinner,
@@ -1221,11 +1222,6 @@ export default function TrackingStatusContent({
                                   </span>
                                 )}
                             </div>
-                            {section.estimation && (
-                              <span className="text-xs text-slate-400 font-mono shrink-0 ml-2">
-                                Est: {section.estimation}
-                              </span>
-                            )}
                           </div>
 
                           {/* Steps Checklist */}
@@ -2709,13 +2705,46 @@ export default function TrackingStatusContent({
                 <h3 className="font-bold text-slate-800">Client Information</h3>
               </div>
               <div className="p-0 divide-y divide-slate-50">
-                <div className="px-4 py-2 flex justify-between gap-3">
-                  <span className="text-slate-400 font-medium">
+                <div className="px-4 py-2 flex justify-between gap-3 items-start">
+                  <span className="text-slate-400 font-medium shrink-0">
                     Company Name
                   </span>
-                  <span className="font-semibold text-slate-800 text-right">
-                    {companyOverview?.companyName || "-"}
-                  </span>
+                  <div className="flex flex-col items-end gap-1.5 text-right min-w-0">
+                    <span className="font-semibold text-slate-800 break-words">
+                      {formatCompanyNameDisplay(
+                        companyOverview?.companyName ||
+                          companyOverview?.approvedName?.fullName ||
+                          (tracker as any)?.approvedName?.fullName,
+                      )}
+                    </span>
+                    {(companyOverview?.companyName ||
+                      companyOverview?.approvedName ||
+                      (tracker as any)?.approvedName) && (
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        <Chip
+                          color="success"
+                          variant="soft"
+                          size="sm"
+                          className="font-bold"
+                        >
+                          Approved
+                        </Chip>
+                        {(companyOverview?.approvedName?.preference ||
+                          (tracker as any)?.approvedName?.preference) && (
+                          <Chip
+                            color="accent"
+                            variant="soft"
+                            size="sm"
+                            className="font-semibold"
+                          >
+                            Preference{" "}
+                            {companyOverview?.approvedName?.preference ||
+                              (tracker as any)?.approvedName?.preference}
+                          </Chip>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="px-4 py-2 flex justify-between gap-3">
                   <span className="text-slate-400 font-medium">

@@ -224,6 +224,11 @@ export const NAV_PERMISSION_ITEMS: NavPermissionItem[] = [
     prefix: true,
   },
   {
+    href: "/accounting/sms-usage",
+    permissions: [PERMISSIONS.ACCOUNTING_VIEW],
+    prefix: true,
+  },
+  {
     href: "/documents/templates",
     permissions: [PERMISSIONS.DOC_VIEW],
     prefix: true,
