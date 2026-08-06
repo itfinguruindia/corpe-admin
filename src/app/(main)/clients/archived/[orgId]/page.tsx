@@ -19,6 +19,7 @@ import {
 import { Spinner } from "@heroui/react";
 
 import { clientsApi } from "@/lib/api";
+import { formatCompanyNameDisplay } from "@/utils/formatCompanyName";
 
 type TabKey = "overview" | "names" | "members" | "docs" | "pricing" | "roc";
 
@@ -297,8 +298,12 @@ export default function ArchivedClientDetailPage() {
                         <span className="text-xs font-bold text-primary bg-primary-50 px-2 py-0.5 rounded-full mb-3 inline-block">
                           Option {idx + 1}
                         </span>
-                        <h3 className="text-base font-bold text-gray-900 mb-1">{compName.name || "Unspecified"}</h3>
-                        <p className="text-xs text-gray-500 mb-4">{compName.fullName || ""}</p>
+                        <h3 className="text-base font-bold text-gray-900 mb-1">
+                          {formatCompanyNameDisplay(compName.name, "UNSPECIFIED")}
+                        </h3>
+                        <p className="text-xs text-gray-500 mb-4">
+                          {formatCompanyNameDisplay(compName.fullName, "")}
+                        </p>
                       </div>
                       <div className="space-y-2.5 pt-3 border-t border-gray-200/80 text-xs">
                         <div className="flex justify-between">

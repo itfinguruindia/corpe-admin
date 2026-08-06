@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { clientsApi } from "@/lib/api/clients";
+import { formatCompanyNameDisplay } from "@/utils/formatCompanyName";
 
 import {
   Spinner,
@@ -2710,10 +2711,11 @@ export default function TrackingStatusContent({
                   </span>
                   <div className="flex flex-col items-end gap-1.5 text-right min-w-0">
                     <span className="font-semibold text-slate-800 break-words">
-                      {companyOverview?.companyName ||
-                        companyOverview?.approvedName?.fullName ||
-                        (tracker as any)?.approvedName?.fullName ||
-                        "-"}
+                      {formatCompanyNameDisplay(
+                        companyOverview?.companyName ||
+                          companyOverview?.approvedName?.fullName ||
+                          (tracker as any)?.approvedName?.fullName,
+                      )}
                     </span>
                     {(companyOverview?.companyName ||
                       companyOverview?.approvedName ||

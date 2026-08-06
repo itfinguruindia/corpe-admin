@@ -15,6 +15,7 @@ import {
 import { InfoField, Chip, Switch } from "@/components/ui";
 import { Lock, MoreVertical, X } from "lucide-react";
 import { formatCurrency } from "@/utils/helpers";
+import { formatCompanyNameDisplay } from "@/utils/formatCompanyName";
 import useSwal from "@/utils/useSwal";
 import { Card, Spinner } from "@heroui/react";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
@@ -339,7 +340,7 @@ export default function PricingAndPaymentContent({
 
     return {
       applicationNo: summary.applicationNo,
-      companyName: summary.companyName || "N/A",
+      companyName: formatCompanyNameDisplay(summary.companyName, "N/A"),
       entityType: summary.entityType || "N/A",
       plan: summary.plan,
       packageType: summary.packageType,

@@ -11,6 +11,7 @@ import {
 import { PendingRegistrationDetailModal } from "@/components/marketing/PendingRegistrationDetailModal";
 import useSwal from "@/utils/useSwal";
 import { useDebouncedCallback } from "@/utils/helpers";
+import { formatCompanyNameDisplay } from "@/utils/formatCompanyName";
 import { DataTable, ColumnDef } from "@/components/ui/DataTable";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -164,9 +165,15 @@ export default function PendingRegistrationsPage() {
         render: (row) => (
           <span
             className="text-gray-700 max-w-[180px] truncate block"
-            title={row.companyType || row.companyName || ""}
+            title={
+              row.companyType ||
+              formatCompanyNameDisplay(row.companyName, "") ||
+              ""
+            }
           >
-            {row.companyType || row.companyName || "-"}
+            {row.companyType ||
+              formatCompanyNameDisplay(row.companyName) ||
+              "-"}
           </span>
         ),
       },
