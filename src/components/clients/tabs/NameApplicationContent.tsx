@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/Switch";
 
 import { clientsApi } from "@/lib/api/clients";
 import { getFileType } from "@/utils/helpers";
+import { formatCompanyNameDisplay } from "@/utils/formatCompanyName";
 import type { NameStatus } from "@/types/company";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
@@ -520,7 +521,7 @@ export default function NameApplicationContent({
                 <h3
                   className={`text-base font-bold sm:text-lg ${isDisabled ? "text-gray-400" : "text-[#a84420]"}`}
                 >
-                  {company.fullName || company.name}
+                  {formatCompanyNameDisplay(company.fullName || company.name)}
                 </h3>
               </div>
 
@@ -704,7 +705,7 @@ export default function NameApplicationContent({
                 </label>
                 <textarea
                   id={`company-comment-${isReadOnly ? "read" : "edit"}-${index}`}
-                  aria-label={`Comments for ${company.fullName || company.name || `company ${index + 1}`}`}
+                  aria-label={`Comments for ${formatCompanyNameDisplay(company.fullName || company.name, `company ${index + 1}`)}`}
                   className={`w-full min-h-[90px] rounded-lg text-sm placeholder:text-gray-400 outline-none border p-3.5 transition-all resize-y ${
                     isDisabled
                       ? "bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed"
