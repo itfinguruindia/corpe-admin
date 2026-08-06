@@ -73,7 +73,6 @@ export default function NameApplicationContent({
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRocReviewed, setIsRocReviewed] = useState(false);
-  const [isTrademarkDone, setIsTrademarkDone] = useState(false);
   const [trackerOrgId, setTrackerOrgId] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -123,21 +122,6 @@ export default function NameApplicationContent({
       );
       const activeStage1 = stage1Attempts?.[stage1Attempts.length - 1];
       if (!activeStage1) return;
-
-      const sectionA = activeStage1.sections?.find(
-        (sec: any) =>
-          sec.label === "Name Search & Submission" || sec.order === 1,
-      );
-      if (sectionA?.steps) {
-        const findLastStep = (steps: any[], title: string) => {
-          for (let i = steps.length - 1; i >= 0; i--) {
-            if (steps[i].title === title) return steps[i];
-          }
-          return null;
-        };
-        const stepTrade = findLastStep(sectionA.steps, "Trademark Check");
-        setIsTrademarkDone(stepTrade?.status === "Done");
-      }
 
       const sectionB = activeStage1.sections?.find(
         (sec: any) =>
@@ -504,6 +488,15 @@ export default function NameApplicationContent({
           { name: "company name 3", fullName: "company name 3", comment: "" },
         ];
 
+  // Object Clause unlocks only after Name Status + Trademark are set for every submitted name
+  const canUploadObjectClause =
+    companyNames.length > 0 &&
+    companyNames.every((_, index) => {
+      const mca = mcaApprovalMap[index] || "Pending";
+      const trade = tradeConflictMap[index] || "Pending";
+      return mca !== "Pending" && trade !== "Pending";
+    });
+
   const renderNameCards = (companiesList: any[], isReadOnly: boolean) => {
     return (
       <div className="space-y-6">
@@ -610,7 +603,7 @@ export default function NameApplicationContent({
                   </span>
                   <div
                     onClick={() => {
-                      if (isDisabled || isTrademarkDone) return;
+                      if (isDisabled) return;
                       setOpenDropdown(
                         openDropdown?.index === index &&
                           openDropdown?.field === "mca"
@@ -619,7 +612,7 @@ export default function NameApplicationContent({
                       );
                     }}
                     className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-                      isDisabled || isTrademarkDone
+                      isDisabled
                         ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
                         : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
                     }`}
@@ -661,7 +654,7 @@ export default function NameApplicationContent({
                   </span>
                   <div
                     onClick={() => {
-                      if (isDisabled || isTrademarkDone) return;
+                      if (isDisabled) return;
                       setOpenDropdown(
                         openDropdown?.index === index &&
                           openDropdown?.field === "trade"
@@ -670,7 +663,7 @@ export default function NameApplicationContent({
                       );
                     }}
                     className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-                      isDisabled || isTrademarkDone
+                      isDisabled
                         ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
                         : companyTrade === "Conflict"
                           ? "bg-[#fff8f8] text-[#b83232] border-[#f5c2c2] hover:border-[#e0a6a6] cursor-pointer"
@@ -911,22 +904,22 @@ export default function NameApplicationContent({
                   title="Upload Object Clause"
                   subtitle="Upload from your computer, Google Drive, or existing documents."
                   dropLabel="Drag and drop your file here"
-                  disabled={!isTrademarkDone}
+                  disabled={!canUploadObjectClause}
                   onBeforeOpen={() => requireEdit()}
                   onFileSelect={handleObjectClauseFileSelected}
                   renderTrigger={(openPicker) => (
                     <div
                       title={
-                        isTrademarkDone
+                        canUploadObjectClause
                           ? "Upload Object Clause (Admin)"
-                          : "Available after Trademark Check is marked Done"
+                          : "Set Name Status and Trademark Check for all names first"
                       }
                     >
                       <Upload
                         size={20}
-                        onClick={isTrademarkDone ? openPicker : undefined}
+                        onClick={canUploadObjectClause ? openPicker : undefined}
                         className={
-                          isTrademarkDone
+                          canUploadObjectClause
                             ? "cursor-pointer text-primary hover:text-secondary"
                             : "cursor-not-allowed text-gray-300 opacity-50"
                         }
