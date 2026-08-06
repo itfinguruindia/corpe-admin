@@ -1221,11 +1221,6 @@ export default function TrackingStatusContent({
                                   </span>
                                 )}
                             </div>
-                            {section.estimation && (
-                              <span className="text-xs text-slate-400 font-mono shrink-0 ml-2">
-                                Est: {section.estimation}
-                              </span>
-                            )}
                           </div>
 
                           {/* Steps Checklist */}
