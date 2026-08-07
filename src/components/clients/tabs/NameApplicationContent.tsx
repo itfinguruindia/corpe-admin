@@ -519,8 +519,13 @@ export default function NameApplicationContent({
             isReadOnly ||
             (hasAnyApproved && statusMap[index] !== "Approved") ||
             (companyMca === "Not Available" && companyTrade === "Conflict");
+          // MCA Approval (Approved/Pending) unlocks after ROC review; until then
+          // Name Status + Trademark stay editable. Once MCA Approval is enabled,
+          // lock the other two.
           const isNameStatusDisabled =
             isDisabled || (!isReadOnly && !isRocReviewed);
+          const isMcaTradeDisabled =
+            isDisabled || (!isReadOnly && isRocReviewed);
 
           return (
             <div
@@ -603,7 +608,7 @@ export default function NameApplicationContent({
                   </span>
                   <div
                     onClick={() => {
-                      if (isDisabled) return;
+                      if (isMcaTradeDisabled) return;
                       setOpenDropdown(
                         openDropdown?.index === index &&
                           openDropdown?.field === "mca"
@@ -612,7 +617,7 @@ export default function NameApplicationContent({
                       );
                     }}
                     className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-                      isDisabled
+                      isMcaTradeDisabled
                         ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
                         : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
                     }`}
@@ -654,7 +659,7 @@ export default function NameApplicationContent({
                   </span>
                   <div
                     onClick={() => {
-                      if (isDisabled) return;
+                      if (isMcaTradeDisabled) return;
                       setOpenDropdown(
                         openDropdown?.index === index &&
                           openDropdown?.field === "trade"
@@ -663,7 +668,7 @@ export default function NameApplicationContent({
                       );
                     }}
                     className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-                      isDisabled
+                      isMcaTradeDisabled
                         ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
                         : companyTrade === "Conflict"
                           ? "bg-[#fff8f8] text-[#b83232] border-[#f5c2c2] hover:border-[#e0a6a6] cursor-pointer"
