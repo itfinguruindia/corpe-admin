@@ -1003,8 +1003,8 @@ export const clientsApi = {
   },
 
   // Addon Query Methods
-  getAddonQuery: async (orgId: string, addonId: string = "gst-registration") => {
-    const response = await axiosInstance.get(`/admin/addon-tracker/${orgId}/query`, { params: { addonId } });
+  getAddonQuery: async (orgId: string, addonId: string = "gst-registration", stepId?: string) => {
+    const response = await axiosInstance.get(`/admin/addon-tracker/${orgId}/query`, { params: { addonId, stepId } });
     return response.data?.data ?? response.data;
   },
 
@@ -1013,29 +1013,29 @@ export const clientsApi = {
     return response.data?.data ?? response.data;
   },
 
-  approveAddonQueryResubmit: async (orgId: string, addonId: string = "gst-registration") => {
-    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/approve`, { addonId });
+  approveAddonQueryResubmit: async (orgId: string, addonId: string = "gst-registration", stepId?: string) => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/approve`, { addonId, stepId });
     return response.data?.data ?? response.data;
   },
 
-  sendBackAddonQuery: async (orgId: string, note: string, addonId: string = "gst-registration") => {
-    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/send-back`, { addonId, note });
+  sendBackAddonQuery: async (orgId: string, note: string, addonId: string = "gst-registration", stepId?: string) => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/send-back`, { addonId, note, stepId });
     return response.data?.data ?? response.data;
   },
 
-  resolveAddonQuery: async (orgId: string, addonId: string = "gst-registration") => {
-    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/resolve`, { addonId });
+  resolveAddonQuery: async (orgId: string, addonId: string = "gst-registration", stepId?: string) => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/resolve`, { addonId, stepId });
     return response.data?.data ?? response.data;
   },
 
-  resetAddonQueryToPending: async (orgId: string, addonId: string = "gst-registration") => {
-    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/reset`, { addonId });
+  resetAddonQueryToPending: async (orgId: string, addonId: string = "gst-registration", stepId?: string) => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/query/reset`, { addonId, stepId });
     return response.data?.data ?? response.data;
   },
 
-  downloadAddonQueryDocument: async (orgId: string, addonId: string = "gst-registration") => {
+  downloadAddonQueryDocument: async (orgId: string, addonId: string = "gst-registration", stepId?: string) => {
     const response = await axiosInstance.get(`/admin/addon-tracker/${orgId}/query/download`, {
-      params: { addonId },
+      params: { addonId, stepId },
       responseType: "blob",
     });
     return response.data as Blob;
@@ -1312,12 +1312,14 @@ export const clientsApi = {
     applicationNo: string,
     docType: string,
     file: File,
+    title?: string,
   ) => {
     const formData = new FormData();
     formData.append("file", file);
+    const titleParam = title ? `&title=${encodeURIComponent(title)}` : "";
 
     const response = await axiosInstance.post(
-      `/admin/clients/${applicationNo}/gst-registration/upload-admin-doc?docType=${encodeURIComponent(docType)}`,
+      `/admin/clients/${applicationNo}/gst-registration/upload-admin-doc?docType=${encodeURIComponent(docType)}${titleParam}`,
       formData,
       {
         headers: { "Content-Type": "multipart/form-data" },
@@ -1352,11 +1354,36 @@ export const clientsApi = {
   getAccountingMiscDocDownloadUrl: (applicationNo: string, index: number) =>
     `/admin/clients/${applicationNo}/accounting-bookkeeping/misc-doc/download?index=${index}`,
 
-  uploadBankAccountAdminDoc: async (applicationNo: string, docType: string, file: File) => {
+  uploadBankAccountAdminDoc: async (applicationNo: string, docType: string, file: File, title?: string) => {
     const formData = new FormData();
     formData.append("file", file);
+    const titleParam = title ? `&title=${encodeURIComponent(title)}` : "";
     const response = await axiosInstance.post(
-      `/admin/clients/${applicationNo}/bank-account-setup/upload-admin-doc?docType=${docType}`,
+      `/admin/clients/${applicationNo}/bank-account-setup/upload-admin-doc?docType=${encodeURIComponent(docType)}${titleParam}`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  uploadTrademarkAdminDoc: async (applicationNo: string, docType: string, file: File, title?: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const titleParam = title ? `&title=${encodeURIComponent(title)}` : "";
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/trademark-registration/upload-admin-doc?docType=${encodeURIComponent(docType)}${titleParam}`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  uploadAccountingBookkeepingAdminDoc: async (applicationNo: string, docType: string, file: File, title?: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const titleParam = title ? `&title=${encodeURIComponent(title)}` : "";
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/accounting-bookkeeping/upload-admin-doc?docType=${encodeURIComponent(docType)}${titleParam}`,
       formData,
       { headers: { "Content-Type": "multipart/form-data" } },
     );

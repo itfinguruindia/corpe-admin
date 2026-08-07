@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { toast } from "@heroui/react";
-import { Loader2, Download, Eye, BookOpen } from "lucide-react";
+import { Loader2, Download, Eye, BookOpen, Upload } from "lucide-react";
 
+import { clientsApi } from "@/lib/api/clients";
 import { notifyApiError } from "@/utils/apiErrors";
 import axiosInstance from "@/lib/axios";
+import { FileUploadComponent } from "@/components/upload";
 
 import AccountingBookkeepingAdminTrackerView from "./AccountingBookkeepingAdminTrackerView";
 
@@ -41,6 +43,8 @@ export default function AccountingBookkeepingServiceContent({
   const [abData, setAbData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"details" | "tracker">("details");
 
+  const [miscTitleInput, setMiscTitleInput] = useState("");
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -59,6 +63,22 @@ export default function AccountingBookkeepingServiceContent({
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleUploadAdminDoc = async (file: File) => {
+    try {
+      await clientsApi.uploadAccountingBookkeepingAdminDoc(
+        appNo,
+        `misc-${Date.now()}`,
+        file,
+        miscTitleInput
+      );
+      toast.success("Document uploaded successfully!");
+      setMiscTitleInput("");
+      fetchData();
+    } catch (error) {
+      notifyApiError(error, { fallback: "Failed to upload admin document." });
+    }
+  };
 
   const downloadDoc = async (
     docId: string,
@@ -342,7 +362,82 @@ export default function AccountingBookkeepingServiceContent({
 
           {/* Right Column */}
           <div className="space-y-6">
-          
+            {/* Miscellaneous Admin Documents */}
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs space-y-4">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                Miscellaneous Admin Documents
+              </h3>
+              <p className="text-xs text-gray-400">
+                Upload any additional document for this client. These will be visible and downloadable on the client portal.
+              </p>
+
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={miscTitleInput}
+                  onChange={(e) => setMiscTitleInput(e.target.value)}
+                  placeholder="Document Title / Note (Optional)"
+                  className="w-full p-2.5 border border-gray-200 rounded-lg text-xs bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-600"
+                />
+
+                <FileUploadComponent
+                  onFileSelect={(file) => handleUploadAdminDoc(file)}
+                  renderTrigger={(openPicker) => (
+                    <button
+                      type="button"
+                      onClick={openPicker}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-600 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                    >
+                      <Upload size={14} />
+                      Upload Miscellaneous Document
+                    </button>
+                  )}
+                />
+              </div>
+
+              {Array.isArray(abData.adminDocs) && abData.adminDocs.length > 0 && (
+                <div className="pt-2 space-y-2 border-t border-gray-100">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    Uploaded Admin Documents
+                  </span>
+                  {abData.adminDocs.map((doc: any, idx: number) => (
+                    <div
+                      key={doc.id || idx}
+                      className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs"
+                    >
+                      <div className="min-w-0 flex-1 pr-2">
+                        <p className="font-bold text-slate-800 truncate" title={doc.name}>
+                          {doc.name}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : ""}
+                        </p>
+                      </div>
+                      {doc.path && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => downloadDoc(doc.id || idx, "preview", doc.name)}
+                            className="text-blue-600 hover:text-blue-700 p-1"
+                            title="Preview"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadDoc(doc.id || idx, "download", doc.name)}
+                            className="text-blue-600 hover:text-blue-700 p-1"
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

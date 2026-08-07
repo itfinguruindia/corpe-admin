@@ -161,10 +161,11 @@ export default function BankAccountServiceContent({ appNo }: BankAccountServiceC
     }
   };
 
-  const handleAdminDocUpload = async (file: File) => {
+  const handleAdminDocUpload = async (file: File, title?: string) => {
     setUploadingAdminDoc(true);
     try {
-      await clientsApi.uploadBankAccountAdminDoc(appNo, "adminDoc", file);
+      const docType = `misc-${Date.now()}`;
+      await clientsApi.uploadBankAccountAdminDoc(appNo, docType, file, title);
       toast.success("Admin document uploaded successfully!");
       loadBankData();
     } catch (error) {

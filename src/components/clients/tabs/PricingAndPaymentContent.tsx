@@ -1045,27 +1045,32 @@ export default function PricingAndPaymentContent({
                             {addon.planKey === "gst_registration" && (
                               <>
                                 <div className="flex justify-between gap-12">
-                                  <span className="text-gray-500">GST Registration filing:</span>
+                                  <span className="text-gray-500">GST Registration - Standard Filing:</span>
                                   <span className="font-semibold">{formatCurrency(addon.breakdown.baseFee, pricingData.currency)}</span>
                                 </div>
-                                {addon.breakdown.pricingDetails?.dscFee > 0 && (
+                                <div className="flex justify-between gap-12 text-gray-500">
+                                  <span>Government Fee:</span>
+                                  <span className="font-semibold">{formatCurrency(0, pricingData.currency)}</span>
+                                </div>
+                                {(addon.breakdown.dscFee > 0 || addon.breakdown.pricingDetails?.dscFee > 0) && (
                                   <div className="flex justify-between gap-12">
-                                    <span className="text-gray-500">DSC Add-on ({addon.breakdown.pricingDetails.dsc}):</span>
-                                    <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails.dscFee, pricingData.currency)}</span>
+                                    <span className="text-gray-500">Digital Signature Certificate ({addon.breakdown.dscLabel || (addon.breakdown.pricingDetails?.dsc === "1yr" ? "1-Year DSC" : "2-Year DSC")}):</span>
+                                    <span className="font-semibold">{formatCurrency(addon.breakdown.dscFee || addon.breakdown.pricingDetails?.dscFee, pricingData.currency)}</span>
                                   </div>
                                 )}
-                                {addon.breakdown.pricingDetails?.statesFee > 0 && (
+                                {(addon.breakdown.statesFee > 0 || addon.breakdown.pricingDetails?.statesFee > 0) && (
                                   <div className="flex justify-between gap-12">
-                                    <span className="text-gray-500">Additional States ({addon.breakdown.pricingDetails.states} count):</span>
-                                    <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails.statesFee, pricingData.currency)}</span>
+                                    <span className="text-gray-500">Additional States ({addon.breakdown.states || addon.breakdown.pricingDetails?.states || 0} × ₹1,000):</span>
+                                    <span className="font-semibold">{formatCurrency(addon.breakdown.statesFee || addon.breakdown.pricingDetails?.statesFee, pricingData.currency)}</span>
                                   </div>
                                 )}
                                 <div className="flex justify-between border-t border-slate-100 pt-2 mt-2 font-medium text-slate-900">
                                   <span>Subtotal:</span>
                                   <span>{formatCurrency(
-                                    (addon.breakdown.baseFee || 0) + 
-                                    (addon.breakdown.pricingDetails?.dscFee || 0) + 
-                                    (addon.breakdown.pricingDetails?.statesFee || 0), 
+                                    addon.breakdown.subtotal || 
+                                    ((addon.breakdown.baseFee || 0) + 
+                                     (addon.breakdown.dscFee || addon.breakdown.pricingDetails?.dscFee || 0) + 
+                                     (addon.breakdown.statesFee || addon.breakdown.pricingDetails?.statesFee || 0)), 
                                     pricingData.currency
                                   )}</span>
                                 </div>
@@ -1077,20 +1082,27 @@ export default function PricingAndPaymentContent({
                             )}
                             {addon.planKey === "bank_account_setup" && (
                               <>
+                                {addon.breakdown.bankId && (
+                                  <div className="flex justify-between gap-12 pb-1.5 mb-1.5 border-b border-slate-100 font-medium text-slate-700">
+                                    <span>Selected Bank:</span>
+                                    <span className="capitalize">{addon.breakdown.bankId.replace(/_/g, " ")}</span>
+                                  </div>
+                                )}
                                 <div className="flex justify-between gap-12">
-                                  <span className="text-gray-500">Bank Account Setup (Base):</span>
+                                  <span className="text-gray-500">Bank Account Setup (Base Fee):</span>
                                   <span className="font-semibold">{formatCurrency(addon.breakdown.baseFee, pricingData.currency)}</span>
                                 </div>
-                                {addon.breakdown.pricingDetails?.bundleDiscount > 0 && (
-                                  <div className="flex justify-between gap-12">
-                                    <span className="text-gray-500">GST Bundle Discount:</span>
-                                    <span className="font-semibold">-{formatCurrency(addon.breakdown.pricingDetails.bundleDiscount, pricingData.currency)}</span>
+                                {(addon.breakdown.bundleDiscount > 0 || addon.breakdown.pricingDetails?.bundleDiscount > 0) && (
+                                  <div className="flex justify-between gap-12 text-emerald-600">
+                                    <span>Bundle Discount:</span>
+                                    <span className="font-semibold">- {formatCurrency(addon.breakdown.bundleDiscount || addon.breakdown.pricingDetails?.bundleDiscount, pricingData.currency)}</span>
                                   </div>
                                 )}
                                 <div className="flex justify-between border-t border-slate-100 pt-2 mt-2 font-medium text-slate-900">
                                   <span>Subtotal:</span>
                                   <span>{formatCurrency(
-                                    (addon.breakdown.baseFee || 0) - (addon.breakdown.pricingDetails?.bundleDiscount || 0), 
+                                    addon.breakdown.subtotal || 
+                                    ((addon.breakdown.baseFee || 0) - (addon.breakdown.bundleDiscount || addon.breakdown.pricingDetails?.bundleDiscount || 0)), 
                                     pricingData.currency
                                   )}</span>
                                 </div>
@@ -1103,24 +1115,61 @@ export default function PricingAndPaymentContent({
                             {addon.planKey === "trademark_registration" && (
                               <>
                                 <div className="flex justify-between gap-12">
-                                  <span className="text-gray-500">Filing Fee ({addon.breakdown.pricingDetails?.numClasses || 1} class/es):</span>
-                                  <span className="font-semibold">{formatCurrency(addon.breakdown.baseFee, pricingData.currency)}</span>
-                                </div>
-                                <div className="flex justify-between gap-12">
-                                  <span className="text-gray-500">Government Fee:</span>
-                                  <span className="font-semibold">{formatCurrency(addon.breakdown.pricingDetails?.govtFee, pricingData.currency)}</span>
+                                  <span className="text-gray-500">CorpE Filing Fee ({addon.breakdown.numClasses || addon.breakdown.pricingDetails?.numClasses || 1} class{(addon.breakdown.numClasses || addon.breakdown.pricingDetails?.numClasses || 1) > 1 ? "es" : ""} × ₹4,500):</span>
+                                  <span className="font-semibold">{formatCurrency(addon.breakdown.filingFee || addon.breakdown.baseFee, pricingData.currency)}</span>
                                 </div>
                                 <div className="flex justify-between text-gray-500 text-xs">
-                                  <span>GST on Filing (18%):</span>
-                                  <span>{formatCurrency(addon.breakdown.gstFee, pricingData.currency)}</span>
+                                  <span>GST (18% on CorpE Filing Fee):</span>
+                                  <span>{formatCurrency(addon.breakdown.gstFee || addon.breakdown.gstOnFilingFee, pricingData.currency)}</span>
+                                </div>
+                                <div className="flex justify-between gap-12">
+                                  <span className="text-gray-500">Government Fee ({addon.breakdown.numClasses || addon.breakdown.pricingDetails?.numClasses || 1} class{(addon.breakdown.numClasses || addon.breakdown.pricingDetails?.numClasses || 1) > 1 ? "es" : ""} × {formatCurrency(addon.breakdown.applicantFeePerClass || addon.breakdown.pricingDetails?.applicantFeePerClass || 9000, pricingData.currency)}):</span>
+                                  <span className="font-semibold">{formatCurrency(addon.breakdown.govtFee || addon.breakdown.pricingDetails?.govtFee, pricingData.currency)}</span>
                                 </div>
                               </>
                             )}
                             {addon.planKey === "accounting_bookkeeping" && (
-                              <div className="flex justify-between gap-12">
-                                <span className="text-gray-500">Subscription Fee:</span>
-                                <span className="font-semibold">{formatCurrency(addon.breakdown.baseFee, pricingData.currency)}</span>
-                              </div>
+                              <>
+                                <div className="flex justify-between gap-12">
+                                  <span className="text-gray-500">Base Plan — {addon.breakdown.tierName || addon.breakdown.pricingDetails?.tierName || "Base Plan"}:</span>
+                                  <span className="font-semibold">{formatCurrency(addon.breakdown.tierPrice || addon.breakdown.pricingDetails?.tierPrice || addon.breakdown.baseFee, pricingData.currency)}/mo</span>
+                                </div>
+
+                                {Array.isArray(addon.breakdown.addonDetails || addon.breakdown.pricingDetails?.addonDetails) && 
+                                  (addon.breakdown.addonDetails || addon.breakdown.pricingDetails?.addonDetails).map((item: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between gap-12 text-gray-500">
+                                      <span>+ {item.optionLabel || item.label}:</span>
+                                      <span className="font-semibold">{formatCurrency(item.price, pricingData.currency)}/mo</span>
+                                    </div>
+                                  ))
+                                }
+
+                                {(addon.breakdown.cycleMonths > 1 || addon.breakdown.pricingDetails?.cycleMonths > 1) && (
+                                  <div className="flex justify-between border-t border-slate-100 pt-2 mt-2 font-medium text-slate-900">
+                                    <span>{addon.breakdown.cycleLabel || addon.breakdown.pricingDetails?.cycleLabel} Subtotal (×{addon.breakdown.cycleMonths || addon.breakdown.pricingDetails?.cycleMonths}):</span>
+                                    <span>{formatCurrency(addon.breakdown.cycleGross || addon.breakdown.pricingDetails?.cycleGross, pricingData.currency)}</span>
+                                  </div>
+                                )}
+
+                                {(addon.breakdown.cycleDiscount > 0 || addon.breakdown.pricingDetails?.cycleDiscount > 0) && (
+                                  <div className="flex justify-between text-emerald-600">
+                                    <span>{addon.breakdown.cycleLabel || addon.breakdown.pricingDetails?.cycleLabel} Discount ({addon.breakdown.cycleDiscountPercent || addon.breakdown.pricingDetails?.cycleDiscountPercent}%):</span>
+                                    <span className="font-semibold">- {formatCurrency(addon.breakdown.cycleDiscount || addon.breakdown.pricingDetails?.cycleDiscount, pricingData.currency)}</span>
+                                  </div>
+                                )}
+
+                                {((addon.breakdown.cycleMonths > 1 || addon.breakdown.pricingDetails?.cycleMonths > 1) || (addon.breakdown.cycleDiscount > 0)) && (
+                                  <div className="flex justify-between font-medium text-slate-900">
+                                    <span>Subtotal:</span>
+                                    <span>{formatCurrency(addon.breakdown.cycleNet || addon.breakdown.pricingDetails?.cycleNet, pricingData.currency)}</span>
+                                  </div>
+                                )}
+
+                                <div className="flex justify-between text-gray-500 text-xs">
+                                  <span>Taxes (18% GST):</span>
+                                  <span>{formatCurrency(addon.breakdown.gstAmount || addon.breakdown.gstFee || addon.breakdown.pricingDetails?.gstAmount, pricingData.currency)}</span>
+                                </div>
+                              </>
                             )}
                             <div className="flex justify-between border-t border-slate-200 pt-2 mt-2 font-bold text-blue-700 text-base">
                               <span>Total Paid:</span>
