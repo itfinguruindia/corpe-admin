@@ -3,7 +3,7 @@
 import { Trash2, Search, RefreshCw, Info } from "lucide-react";
 import * as XLSX from "xlsx";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { marketingApi, Lead } from "@/lib/api/marketing";
 import useSwal from "@/utils/useSwal";
@@ -16,6 +16,7 @@ import ExportDropdown from "@/components/ui/ExportDropdown";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
 import LeadExtraDetailsModal from "@/components/marketing/LeadExtraDetailsModal";
+import { useAdminListRealtimeSync } from "@/hooks/useAdminListRealtimeSync";
 
 export default function LeadsPage() {
   const searchParams = useSearchParams();
@@ -53,9 +54,9 @@ export default function LeadsPage() {
     fetchLeads(page);
   }, 300);
 
-  const fetchLeads = async (page: number) => {
+  const fetchLeads = async (page: number, opts?: { silent?: boolean }) => {
     try {
-      setLoading(true);
+      if (!opts?.silent) setLoading(true);
       setError(null);
       const data = await marketingApi.getAllLeads(
         page,
@@ -75,6 +76,16 @@ export default function LeadsPage() {
       setLoading(false);
     }
   };
+
+  const softRefreshLeads = useCallback(() => {
+    void fetchLeads(currentPage, { silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, search, country]);
+
+  useAdminListRealtimeSync({
+    resource: "crm-leads",
+    onRefresh: softRefreshLeads,
+  });
 
   // Keep search in sync when landing from email deep links (?search=...)
   useEffect(() => {
