@@ -151,10 +151,10 @@ export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
     }
   };
 
-  const handleUpload = async (slotId: string, file: File) => {
+  const handleUpload = async (slotId: string, file: File, title?: string) => {
     try {
-      const result = await clientsApi.uploadGstAdminDocument(appNo, slotId, file);
-      toast.success(`${ADMIN_DOC_SLOTS.find((s) => s.id === slotId)?.label ?? slotId} uploaded successfully!`);
+      await clientsApi.uploadGstAdminDocument(appNo, slotId, file, title);
+      toast.success("Document uploaded successfully!");
       loadGst();
     } catch (error) {
       notifyApiError(error, { fallback: "Failed to upload document." });

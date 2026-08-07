@@ -47,11 +47,18 @@ export default function GSTServiceListContent({ addonId }: { addonId: string }) 
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [showDiscontinuedOnly, setShowDiscontinuedOnly] = useState(false);
 
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const data = await clientsApi.getAddonServiceClients(addonId, page, 10, search);
+      const data = await clientsApi.getAddonServiceClients(
+        addonId,
+        page,
+        10,
+        search,
+        showDiscontinuedOnly,
+      );
       setClients(data.clients || []);
       setTotal(data.total || 0);
       setTotalPages(data.totalPages || 1);
@@ -64,7 +71,7 @@ export default function GSTServiceListContent({ addonId }: { addonId: string }) 
 
   useEffect(() => {
     fetchClients();
-  }, [addonId, page, search]);
+  }, [addonId, page, search, showDiscontinuedOnly]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,8 +106,8 @@ export default function GSTServiceListContent({ addonId }: { addonId: string }) 
       </div>
 
       {/* Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="flex gap-2 max-w-md">
-        <div className="relative flex-1">
+      <form onSubmit={handleSearchSubmit} className="flex flex-wrap gap-2 max-w-xl items-center">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -119,10 +126,22 @@ export default function GSTServiceListContent({ addonId }: { addonId: string }) 
         <button
           type="button"
           onClick={() => fetchClients()}
-          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/40 transition"
+          className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/40 transition"
         >
           <RefreshCw className="w-3.5 h-3.5" /> Refresh
         </button>
+        <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showDiscontinuedOnly}
+            onChange={(e) => {
+              setShowDiscontinuedOnly(e.target.checked);
+              setPage(1);
+            }}
+            className="w-3.5 h-3.5 text-rose-600 rounded focus:ring-rose-500 border-slate-300"
+          />
+          Show Discontinued
+        </label>
       </form>
 
       {/* Table */}

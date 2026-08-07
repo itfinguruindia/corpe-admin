@@ -92,13 +92,13 @@ interface BankAccountDetailsContentProps {
     docName?: string
   ) => Promise<void>;
   downloadBankMiscDoc?: (index: number, mode?: "preview" | "download") => Promise<void>;
-  handleAdminDocUpload: (file: File) => Promise<void>;
+  handleAdminDocUpload: (file: File, title?: string) => Promise<void>;
   uploadingAdminDoc?: boolean;
   onOpenedAccountInfoSave?: (payload: {
-    accountHolderName: string;
-    accountNumber: string;
-    ifscCode: string;
-    bankName: string;
+    accountHolderName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+    bankName?: string;
   }) => Promise<void>;
 }
 
@@ -115,11 +115,12 @@ export default function BankAccountDetailsContent({
   uploadingAdminDoc,
   onOpenedAccountInfoSave,
 }: BankAccountDetailsContentProps) {
+  const [miscTitleInput, setMiscTitleInput] = useState("");
   const [openedAccountForm, setOpenedAccountForm] = useState({
-    accountHolderName: "",
-    accountNumber: "",
-    ifscCode: "",
-    bankName: "",
+    accountHolderName: bankData?.openedAccountDetails?.accountHolderName || "",
+    accountNumber: bankData?.openedAccountDetails?.accountNumber || "",
+    ifscCode: bankData?.openedAccountDetails?.ifscCode || "",
+    bankName: bankData?.openedAccountDetails?.bankName || "",
   });
   const [openedAccountSaving, setOpenedAccountSaving] = useState(false);
   const [openedAccountError, setOpenedAccountError] = useState("");
@@ -398,9 +399,20 @@ export default function BankAccountDetailsContent({
             </div>
           )}
 
-          <div className="pt-2">
+          <div className="pt-2 space-y-3">
+            <input
+              type="text"
+              value={miscTitleInput}
+              onChange={(e) => setMiscTitleInput(e.target.value)}
+              placeholder="Document Title / Note (Optional)"
+              className="w-full p-2.5 border border-gray-200 rounded-lg text-xs bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-primary"
+            />
+
             <FileUploadComponent
-              onFileSelect={(file) => handleAdminDocUpload(file)}
+              onFileSelect={(file) => {
+                handleAdminDocUpload(file, miscTitleInput);
+                setMiscTitleInput("");
+              }}
               renderTrigger={(openPicker) => (
                 <button
                   type="button"
@@ -413,7 +425,7 @@ export default function BankAccountDetailsContent({
                   ) : (
                     <Upload size={14} />
                   )}
-                  {uploadingAdminDoc ? "Uploading..." : "Upload"}
+                  {uploadingAdminDoc ? "Uploading..." : "Upload Document"}
                 </button>
               )}
             />

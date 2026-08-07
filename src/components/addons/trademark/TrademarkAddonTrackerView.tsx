@@ -136,7 +136,7 @@ export default function TrademarkAddonTrackerView({ appNo, orgId, isPaid = true 
   const handleApproveResubmit = async (stepId?: string) => {
     try {
       setIsApproving(true);
-      await clientsApi.approveAddonQueryResubmit(orgId, "trademark-registration");
+      await clientsApi.approveAddonQueryResubmit(orgId, "trademark-registration", stepId);
       toast.success("Client response approved & resubmitted to Trademark Registry!");
       await loadTracker();
     } catch (error) {
@@ -153,7 +153,7 @@ export default function TrademarkAddonTrackerView({ appNo, orgId, isPaid = true 
     }
     try {
       setIsSendingBack(true);
-      await clientsApi.sendBackAddonQuery(orgId, adminSendBackNote.trim(), "trademark-registration");
+      await clientsApi.sendBackAddonQuery(orgId, adminSendBackNote.trim(), "trademark-registration", stepId);
       toast.success("Query sent back to client as insufficient!");
       setAdminSendBackNote("");
       await loadTracker();
@@ -167,7 +167,7 @@ export default function TrademarkAddonTrackerView({ appNo, orgId, isPaid = true 
   const handleResolveQuery = async (stepId?: string) => {
     try {
       setIsResolving(true);
-      await clientsApi.resolveAddonQuery(orgId, "trademark-registration");
+      await clientsApi.resolveAddonQuery(orgId, "trademark-registration", stepId);
       toast.success("Query marked as resolved!");
       await loadTracker();
     } catch (error) {
@@ -181,7 +181,7 @@ export default function TrademarkAddonTrackerView({ appNo, orgId, isPaid = true 
     try {
       setIsResetting(true);
       setActiveQueryStepId(null);
-      await clientsApi.resetAddonQueryToPending(orgId, "trademark-registration");
+      await clientsApi.resetAddonQueryToPending(orgId, "trademark-registration", stepId);
       toast.success("Query reset to Pending.");
       await loadTracker();
     } catch (error) {
@@ -254,7 +254,18 @@ export default function TrademarkAddonTrackerView({ appNo, orgId, isPaid = true 
         {tracker.stages.map((stage: any, idx: number) => {
           const sId = stage.stageId || stage.id || `stage-${idx}`;
           const isActive = sId === activeStageId;
-          const isComplete = stage.status === "Completed" || idx < (tracker.currentStageIndex || 0);
+          const OPTIONAL_TITLES = [
+            "Respond to objections (if raised)",
+            "Respond to opposition (if filed)",
+          ];
+          const mandatory = (stage.sections || [])
+            .flatMap((sec: any) => sec.steps || [])
+            .filter((s: any) => !s.isHidden && !OPTIONAL_TITLES.includes(s.title));
+          const isComplete =
+            stage.status === "Completed" ||
+            idx < (tracker.currentStageIndex || 0) ||
+            (mandatory.length > 0 &&
+              mandatory.every((s: any) => s.status === "Done" || s.status === "Completed"));
 
           return (
             <button
@@ -563,7 +574,7 @@ export default function TrademarkAddonTrackerView({ appNo, orgId, isPaid = true 
                                             <span
                                               onClick={async () => {
                                                 try {
-                                                  const blob = await clientsApi.downloadAddonQueryDocument(orgId, "trademark-registration");
+                                                  const blob = await clientsApi.downloadAddonQueryDocument(orgId, "trademark-registration", stepIdVal);
                                                   const blobUrl = window.URL.createObjectURL(blob);
                                                   window.open(blobUrl, "_blank");
                                                 } catch {
