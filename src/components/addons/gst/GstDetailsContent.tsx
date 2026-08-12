@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Upload, Download, Eye, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui";
 import { FileUploadComponent } from "@/components/upload";
@@ -65,7 +66,7 @@ interface GstDetailsContentProps {
   setArnInput: (val: string) => void;
   setArnError: (val: string) => void;
   handleSaveArn: () => Promise<void>;
-  handleUpload: (slotId: string, file: File) => Promise<void>;
+  handleUpload: (slotId: string, file: File, title?: string) => Promise<void>;
   downloadBusinessDoc: (docId: string, mode: "preview" | "download") => Promise<void>;
   downloadMiscDoc: (index: number, mode: "preview" | "download") => Promise<void>;
   ADMIN_DOC_SLOTS: { id: string; label: string }[];
@@ -92,6 +93,7 @@ export default function GstDetailsContent({
   onKycVerifiedChange,
   kycLoading,
 }: GstDetailsContentProps) {
+  const [miscTitle, setMiscTitle] = useState("");
   const details = gstData?.gstDetails;
   const directors = gstData?.directors ?? [];
   const businessDocs = gstData?.businessDocs ?? {};
@@ -403,6 +405,87 @@ export default function GstDetailsContent({
             </div>
           );
         })}
+
+        {/* Miscellaneous Admin Documents */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+            Miscellaneous Admin Documents
+          </h3>
+          <p className="text-xs text-gray-400">
+            Upload any additional document for this client. These will be visible and downloadable on the client portal.
+          </p>
+
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={miscTitle}
+              onChange={(e) => setMiscTitle(e.target.value)}
+              placeholder="Document Title / Note (Optional)"
+              className="w-full p-2.5 border border-gray-200 rounded-lg text-xs bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-primary"
+            />
+
+            <FileUploadComponent
+              onFileSelect={(file) => {
+                const docId = `misc-${Date.now()}`;
+                handleUpload(docId, file, miscTitle);
+                setMiscTitle("");
+              }}
+              renderTrigger={(openPicker) => (
+                <button
+                  type="button"
+                  onClick={openPicker}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-primary px-3 py-2 text-xs font-semibold text-primary hover:bg-orange-50 transition-colors cursor-pointer"
+                >
+                  <Upload size={14} />
+                  Upload Miscellaneous Document
+                </button>
+              )}
+            />
+          </div>
+
+          {adminDocs.filter((d) => d.id?.startsWith("misc-")).length > 0 && (
+            <div className="pt-2 space-y-2 border-t border-gray-100">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                Uploaded Misc Documents
+              </span>
+              {adminDocs
+                .filter((d) => d.id?.startsWith("misc-"))
+                .map((doc, idx) => (
+                  <div
+                    key={doc.id || idx}
+                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs"
+                  >
+                    <div className="min-w-0 flex-1 pr-2">
+                      <p className="font-bold text-slate-800 truncate" title={doc.name}>
+                        {doc.name}
+                      </p>
+                      <p className="text-[10px] text-slate-400">
+                        {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => downloadMiscDoc(idx, "preview")}
+                        className="text-blue-600 hover:text-blue-700 p-1"
+                        title="Preview"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadMiscDoc(idx, "download")}
+                        className="text-blue-600 hover:text-blue-700 p-1"
+                        title="Download"
+                      >
+                        <Download size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -22,9 +22,9 @@ export default function DashboardLayout({
       <AuthSessionSync />
       <div className="flex h-screen w-full bg-[#F6FAFF]">
         <Sidebar />
-        <div className="sidebar-content flex h-screen flex-1 flex-col overflow-hidden max-md:!ml-0">
+        <div className="sidebar-content flex h-full overflow-hidden flex-1 flex-col max-md:!ml-0 bg-[#F6FAFF]">
           <DashboardHeader />
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 bg-[#F6FAFF]">
             <RoutePermissionGuard>{children}</RoutePermissionGuard>
           </main>
         </div>

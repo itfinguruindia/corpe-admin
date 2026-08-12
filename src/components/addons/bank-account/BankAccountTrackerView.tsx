@@ -186,28 +186,6 @@ export default function BankAccountTrackerView({ appNo, orgId }: BankAccountTrac
 
   return (
     <div className="space-y-6 min-w-0 font-sans">
-      {/* Overall Progress Banner */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <span className="text-xs font-semibold uppercase text-gray-500">Overall Progress</span>
-            <span className="ml-2 text-sm font-bold text-gray-800">{tracker.overallProgress}%</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => fetchTracker(false)}
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition"
-          >
-            <RefreshCw className="w-3 h-3" /> Refresh
-          </button>
-        </div>
-        <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-blue-600 transition-all rounded-full"
-            style={{ width: `${tracker.overallProgress}%` }}
-          />
-        </div>
-      </div>
 
       {/* Stage Navigation Tabs Strip */}
       <div className="flex gap-2 border-b border-gray-200 pb-px overflow-x-auto">
@@ -221,20 +199,18 @@ export default function BankAccountTrackerView({ appNo, orgId }: BankAccountTrac
               key={idKey}
               type="button"
               onClick={() => setActiveStageId(idKey)}
-              className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-all focus:outline-none ${
-                isActive
+              className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-all focus:outline-none ${isActive
                   ? "border-primary text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-800"
-              }`}
+                }`}
             >
               <span
-                className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
-                  isComplete
+                className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${isComplete
                     ? "bg-green-600 text-white"
                     : isActive
                       ? "bg-primary text-white"
                       : "bg-gray-200 text-gray-600"
-                }`}
+                  }`}
               >
                 {isComplete ? "✓" : idx + 1}
               </span>
@@ -270,9 +246,8 @@ export default function BankAccountTrackerView({ appNo, orgId }: BankAccountTrac
                       <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
-                            className={`text-xs font-bold ${
-                              step.status === "Done" ? "text-gray-400 line-through" : "text-gray-800"
-                            }`}
+                            className={`text-xs font-bold ${step.status === "Done" ? "text-gray-400 line-through" : "text-gray-800"
+                              }`}
                           >
                             {step.title}
                           </span>

@@ -52,4 +52,5 @@ export type Filters = {
   assignee: AssigneeFilters;
   assigner: AssignerFilters;
   search?: string;
+  showDiscontinuedOnly?: boolean;
 };
