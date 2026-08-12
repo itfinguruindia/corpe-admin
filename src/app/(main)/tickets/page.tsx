@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   RefreshCw,
   Ticket as TicketIcon,
@@ -24,6 +24,7 @@ import CustomSelect from "@/components/ui/CustomSelect";
 import Link from "next/link";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
+import { useAdminListRealtimeSync } from "@/hooks/useAdminListRealtimeSync";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -103,8 +104,8 @@ export default function RaisedTicketsPage() {
     [],
   );
 
-  const loadTickets = async () => {
-    setIsLoading(true);
+  const loadTickets = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setIsLoading(true);
     try {
       const response = await TicketApi.getAllTickets(
         currentPage,
@@ -125,14 +126,21 @@ export default function RaisedTicketsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, search, statusFilter, priorityFilter]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      loadTickets();
+      void loadTickets();
     }, 500);
     return () => clearTimeout(delayDebounceFn);
-  }, [currentPage, search, statusFilter, priorityFilter]);
+  }, [loadTickets]);
+
+  useAdminListRealtimeSync({
+    resource: "tickets",
+    onRefresh: () => {
+      void loadTickets({ silent: true });
+    },
+  });
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -443,7 +451,7 @@ export default function RaisedTicketsPage() {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={loadTickets}
+                    onClick={() => void loadTickets()}
                     isDisabled={isLoading}
                     aria-label="Refresh tickets"
                     className="min-w-0 h-auto p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors border shadow-sm border-gray-200 bg-white"

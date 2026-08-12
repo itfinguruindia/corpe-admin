@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, Archive } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { buildFiltersFromParams, useDebouncedCallback } from "@/utils/helpers";
@@ -23,6 +23,7 @@ import ClientsTable, {
 import DiscontinueModal from "@/components/clients/DiscontinueModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
+import { useAdminListRealtimeSync } from "@/hooks/useAdminListRealtimeSync";
 
 export default function ClientsPage() {
   const searchParams = useSearchParams();
@@ -74,9 +75,13 @@ export default function ClientsPage() {
     buildFiltersFromParams(searchParams),
   );
 
-  const fetchClients = async (page: number, filtersOverride?: Filters) => {
+  const fetchClients = async (
+    page: number,
+    filtersOverride?: Filters,
+    opts?: { silent?: boolean },
+  ) => {
     try {
-      setLoading(true);
+      if (!opts?.silent) setLoading(true);
       setError(null);
       const activeFilters = filtersOverride ?? filters;
       const data = await clientsApi.getAllClients(page, ITEMS_PER_PAGE, {
@@ -172,6 +177,16 @@ export default function ClientsPage() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const softRefreshClients = useCallback(() => {
+    void fetchClients(currentPage, filters, { silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, filters, sortDescriptor]);
+
+  useAdminListRealtimeSync({
+    resource: "clients",
+    onRefresh: softRefreshClients,
+  });
 
   // Update search in filters when input changes - debounced refetch
   const handleSearchInputChange = (value: string) => {
