@@ -73,6 +73,31 @@ export type SmsUsageTopNumbersResponse = {
   topNumbers: SmsUsageByNumber[];
 };
 
+export type OtpSessionRow = {
+  phone: string;
+  ips: string[];
+  attemptCount: number;
+  sentCount: number;
+  totalSmsSent: number;
+  sources: string[];
+  lastAttemptAt: string;
+  blocked: boolean;
+  blockedUntil: string | null;
+  blockReason: string | null;
+};
+
+export type OtpBlockedIpRow = {
+  ip: string;
+  blockedUntil: string;
+  reason: string;
+  createdAt: string;
+};
+
+export type OtpSessionsResponse = {
+  sessions: OtpSessionRow[];
+  blockedIps: OtpBlockedIpRow[];
+};
+
 function unwrapData<T>(payload: unknown): T {
   const body = payload as { data?: T };
   return (body?.data ?? payload) as T;
@@ -183,6 +208,27 @@ export const accountingApi = {
     const response = await axiosInstance.get(
       "/admin/accounting/sms-usage/top-numbers",
       { params, timeout: 120000 },
+    );
+    return unwrapData(response.data);
+  },
+
+  getOtpSessions: async (): Promise<OtpSessionsResponse> => {
+    const response = await axiosInstance.get(
+      "/admin/accounting/sms-usage/otp-sessions",
+    );
+    return unwrapData(response.data);
+  },
+
+  clearOtpSession: async (params: {
+    phone?: string;
+    ip?: string;
+  }): Promise<{
+    phone?: { phone: string; deletedAttempts: number; clearedIps: string[] };
+    ip?: { ip: string; deletedAttempts: number };
+  }> => {
+    const response = await axiosInstance.post(
+      "/admin/accounting/sms-usage/otp-sessions/clear",
+      params,
     );
     return unwrapData(response.data);
   },
