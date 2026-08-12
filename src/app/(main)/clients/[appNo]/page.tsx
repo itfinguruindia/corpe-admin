@@ -225,6 +225,8 @@ function ClientDetailsTabs() {
     });
   };
 
+  const showTrackingTab = visibleTabs.some((t) => t.key === "tracking-status");
+
   return (
     <div className="w-full p-4 sm:p-5">
       <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
@@ -239,11 +241,28 @@ function ClientDetailsTabs() {
             </Link>
           </h1>
         </div>
-        {isLlp && form3Countdown && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
-            Form 3 timer: {form3Countdown}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+          {isLlp && form3Countdown && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">
+              Form 3 timer: {form3Countdown}
+            </div>
+          )}
+          {showTrackingTab && (
+            <button
+              type="button"
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                activeTab === "tracking-status"
+                  ? "bg-primary text-white"
+                  : "border border-primary bg-white text-primary hover:bg-primary hover:text-white"
+              }`}
+              onClick={() => {
+                document.getElementById("tracking-status-tab")?.click();
+              }}
+            >
+              Tracking Status
+            </button>
+          )}
+        </div>
       </div>
 
       <Tabs
@@ -254,13 +273,37 @@ function ClientDetailsTabs() {
       >
         <Tabs.ListContainer>
           <Tabs.List className="overflow-x-auto bg-white shadow *:text-sm *:data-[selected=true]:text-white">
-            {visibleTabs.map((t, idx) => (
-              <Tabs.Tab key={t.key} id={t.key} className="w-max">
-                {idx > 0 && <Tabs.Separator />}
-                <span className="w-max">{getTabLabel(t.key, t.label, labels, isMoaAoaExcluded)}</span>
-                <Tabs.Indicator className="bg-primary" />
-              </Tabs.Tab>
-            ))}
+            {visibleTabs.map((t, idx) => {
+              const isTrackingTab = t.key === "tracking-status";
+              const isAddonTab = t.key === "addon-services";
+              const isHiddenTab = isTrackingTab || isAddonTab;
+              const tabDomId = isTrackingTab
+                ? "tracking-status-tab"
+                : isAddonTab
+                  ? "addon-services-tab"
+                  : undefined;
+              return (
+                <Tabs.Tab
+                  key={t.key}
+                  id={t.key}
+                  className={isHiddenTab ? "hidden" : "w-max"}
+                >
+                  {idx > 0 && <Tabs.Separator />}
+                  <span
+                    id={tabDomId}
+                    className="w-max"
+                    onClick={
+                      isHiddenTab
+                        ? () => handleTabChange(t.key)
+                        : undefined
+                    }
+                  >
+                    {getTabLabel(t.key, t.label, labels, isMoaAoaExcluded)}
+                  </span>
+                  <Tabs.Indicator className="bg-primary" />
+                </Tabs.Tab>
+              );
+            })}
           </Tabs.List>
         </Tabs.ListContainer>
 

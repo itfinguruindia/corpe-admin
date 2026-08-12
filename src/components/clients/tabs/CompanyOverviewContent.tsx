@@ -156,26 +156,39 @@ export default function CompanyOverviewContent({
     <div className="min-h-screen bg-gray-50 p-6 space-y-6">
       <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-sm p-8">
         {/* Header */}
-        <div className="flex items-start justify-between mb-6 border-b pb-6">
+        <div className="flex items-center justify-between mb-6 border-b pb-6 gap-4">
           <div>
             <h2 className="text-lg text-secondary font-medium">
               Company Overview
             </h2>
           </div>
 
-          {/* KYC Verified Toggle */}
-          <Switch
-            isSelected={allDocsVerify}
-            onChange={handleDocsToggle}
-            isDisabled={!canEdit}
-          >
-            <Switch.Control>
-              <Switch.Thumb />
-            </Switch.Control>
-            <Switch.Content className="text-lg font-medium text-gray-700">
-              All Docs Verified
-            </Switch.Content>
-          </Switch>
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              className="rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-white"
+              onClick={() => {
+                document.getElementById("addon-services-tab")?.click();
+              }}
+            >
+              Add-on Services
+            </button>
+
+            {/* KYC Verified Toggle */}
+            <Switch
+              isSelected={allDocsVerify}
+              onChange={handleDocsToggle}
+              isDisabled={!canEdit}
+              className="inline-flex flex-row items-center gap-2"
+            >
+              <Switch.Control>
+                <Switch.Thumb />
+              </Switch.Control>
+              <Switch.Content className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                All Docs Verified
+              </Switch.Content>
+            </Switch>
+          </div>
         </div>
 
         {/* Company Details */}
