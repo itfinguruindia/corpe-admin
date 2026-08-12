@@ -129,12 +129,11 @@ export function getShareholderRegularDocumentFields(params: {
   return fields;
 }
 
-/** INC-9 shareholder template flow exists only for standard company types on the client. */
+/** INC-9 shareholder template flow exists for non-LLP types, including director-shareholders. */
 export function shouldShowShareholderInc9(params: {
   isLlp: boolean;
   isDirectorShareholder?: boolean;
 }): boolean {
   if (params.isLlp) return false;
-  if (params.isDirectorShareholder) return false;
   return true;
 }

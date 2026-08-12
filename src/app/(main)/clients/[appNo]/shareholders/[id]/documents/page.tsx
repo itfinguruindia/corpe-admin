@@ -502,7 +502,9 @@ export default function ShareholderDocumentsPage() {
                   <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                     This person is the same as a designated partner/director.
                     Identity documents are managed on the director documents
-                    page - no separate shareholder uploads apply here.
+                    page - no separate shareholder identity uploads apply here.
+                    Use the INC-9 Shareholder panel to upload the declaration
+                    template.
                   </div>
                 ) : (
                   documents.map((document) => (
