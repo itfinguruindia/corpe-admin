@@ -32,6 +32,19 @@ function remainingLabel(until?: string | Date | null): string {
   return `${minutes} min left`;
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  registration: "Register",
+  form: "Forms",
+  otp: "OTP",
+};
+
+function formatSources(sources?: string[]): string {
+  if (!sources?.length) return "—";
+  return sources
+    .map((source) => SOURCE_LABELS[source] || source)
+    .join(", ");
+}
+
 export default function OtpSessionsPanel() {
   const swal = useSwal();
   const [loading, setLoading] = useState(true);
@@ -137,11 +150,29 @@ export default function OtpSessionsPanel() {
         ),
       },
       {
+        id: "totalSmsSent",
+        label: "Total SMS sent",
+        render: (row) => (
+          <span className="font-semibold tabular-nums text-slate-900">
+            {row.totalSmsSent ?? 0}
+          </span>
+        ),
+      },
+      {
         id: "attempts",
-        label: "Attempts",
+        label: "Recent attempts",
         render: (row) => (
           <span className="tabular-nums text-slate-700">
             {row.sentCount} sent / {row.attemptCount}
+          </span>
+        ),
+      },
+      {
+        id: "sources",
+        label: "Used on",
+        render: (row) => (
+          <span className="text-slate-700">
+            {formatSources(row.sources)}
           </span>
         ),
       },
@@ -249,8 +280,8 @@ export default function OtpSessionsPanel() {
             OTP numbers & blocks
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Stored registration OTP requests. Clear a session to unblock that
-            number or IP immediately.
+            Every Twilio OTP SMS (register, forms, change director). Total SMS
+            sent is kept even after you clear a session.
           </p>
         </div>
         <Button
@@ -289,7 +320,7 @@ export default function OtpSessionsPanel() {
         data={filteredSessions}
         keyField="phone"
         loading={loading}
-        emptyMessage="No OTP numbers stored yet. They appear here when someone requests a registration OTP."
+        emptyMessage="No OTP SMS stored yet. They appear here when Twilio sends an OTP from any page."
         columnVisibilityStorageKey="accounting-otp-sessions"
         tableMinHeight="min-h-[240px]"
       />

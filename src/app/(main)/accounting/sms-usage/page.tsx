@@ -192,35 +192,43 @@ export default function SmsUsageAccountingPage() {
 
   return (
     <div className="w-full min-w-0 space-y-6 p-1">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#2B4C7E] flex items-center gap-2">
-            <MessageSquare className="h-6 w-6" />
-            SMS Usage
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Manage stored OTP numbers, unblock sessions, and pull live Twilio
-            usage.
-          </p>
-        </div>
-        <Button
-          type="button"
-          onPress={loadReport}
-          isDisabled={loading || !range?.start || !range?.end}
-          className="bg-[#2B4C7E] text-white"
-        >
-          {loading ? (
-            <Spinner size="sm" color="current" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          <span className="ml-2">{loading ? "Loading…" : "Load report"}</span>
-        </Button>
+      <div>
+        <h1 className="text-2xl font-semibold text-[#2B4C7E] flex items-center gap-2">
+          <MessageSquare className="h-6 w-6" />
+          SMS Usage
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Manage stored OTP numbers, unblock sessions, and pull live Twilio
+          usage.
+        </p>
       </div>
 
       <OtpSessionsPanel />
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 md:p-5">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 md:p-5 space-y-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-800">
+              Live Twilio report
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Choose a date range, then load usage from Twilio.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onPress={loadReport}
+            isDisabled={loading || !range?.start || !range?.end}
+            className="bg-[#2B4C7E] text-white"
+          >
+            {loading ? (
+              <Spinner size="sm" color="current" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            <span className="ml-2">{loading ? "Loading…" : "Load report"}</span>
+          </Button>
+        </div>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <DateRangePicker
             className="w-full max-w-md"

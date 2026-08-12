@@ -78,6 +78,8 @@ export type OtpSessionRow = {
   ips: string[];
   attemptCount: number;
   sentCount: number;
+  totalSmsSent: number;
+  sources: string[];
   lastAttemptAt: string;
   blocked: boolean;
   blockedUntil: string | null;
