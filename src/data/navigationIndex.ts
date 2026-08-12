@@ -71,7 +71,7 @@ export const navigationIndex: SearchItem[] = [
       "accounting",
       "cost",
     ],
-    description: "Live Twilio SMS usage by date and destination number.",
+    description: "Twilio SMS usage, stored OTP numbers, and session unblock.",
   },
   {
     id: "templates",

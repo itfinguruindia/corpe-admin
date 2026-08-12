@@ -33,6 +33,7 @@ import {
 } from "@/lib/api/accounting";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
+import OtpSessionsPanel from "./OtpSessionsPanel";
 
 type DateRange = {
   start: DateValue;
@@ -198,7 +199,8 @@ export default function SmsUsageAccountingPage() {
             SMS Usage
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Live Twilio message report (fetched on demand — not stored).
+            Manage stored OTP numbers, unblock sessions, and pull live Twilio
+            usage.
           </p>
         </div>
         <Button
@@ -215,6 +217,8 @@ export default function SmsUsageAccountingPage() {
           <span className="ml-2">{loading ? "Loading…" : "Load report"}</span>
         </Button>
       </div>
+
+      <OtpSessionsPanel />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 md:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
