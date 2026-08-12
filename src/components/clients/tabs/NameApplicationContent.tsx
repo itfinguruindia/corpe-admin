@@ -899,7 +899,9 @@ export default function NameApplicationContent({
                 <div title="Refresh status">
                   <RefreshCw
                     size={18}
-                    onClick={refreshObjectClauseStatus}
+                    onClick={() => {
+                      void refreshObjectClauseStatus();
+                    }}
                     className={`cursor-pointer text-secondary hover:text-primary ${isRefreshing ? "animate-spin" : ""}`}
                   />
                 </div>
