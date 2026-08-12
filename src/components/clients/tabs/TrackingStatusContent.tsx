@@ -166,6 +166,7 @@ export default function TrackingStatusContent({
   const [noteText, setNoteText] = useState<string>("");
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isRequestingRestart, setIsRequestingRestart] = useState(false);
+  const [isSystemAutoNotesOpen, setIsSystemAutoNotesOpen] = useState(false);
 
   // Extension status from API
   const [extensionStatus, setExtensionStatus] = useState<any>(null);
@@ -2975,43 +2976,57 @@ export default function TrackingStatusContent({
 
               {/* System auto notes */}
               <div className="border-t border-slate-200">
-                <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => setIsSystemAutoNotesOpen((open) => !open)}
+                  className="w-full p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center gap-2 text-left hover:bg-slate-100/70 transition-colors"
+                  aria-expanded={isSystemAutoNotesOpen}
+                >
                   <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">
                     System Auto Notes
                   </h4>
-                  <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-2 py-0.5 rounded-full font-mono">
-                    {systemAutoNotes.length}
-                  </span>
-                </div>
-                <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
-                  {systemAutoNotes.map((note, nIdx) => (
-                    <div
-                      key={nIdx}
-                      className="p-3 text-[11px] leading-relaxed bg-slate-50/40"
-                    >
-                      <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono mb-1">
-                        <span className="font-semibold text-slate-500">
-                          System
-                        </span>
-                        <span>
-                          {new Date(note.createdAt).toLocaleString()}
-                        </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-2 py-0.5 rounded-full font-mono">
+                      {systemAutoNotes.length}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 transition-transform ${
+                        isSystemAutoNotesOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </div>
+                </button>
+                {isSystemAutoNotesOpen && (
+                  <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
+                    {systemAutoNotes.map((note, nIdx) => (
+                      <div
+                        key={nIdx}
+                        className="p-3 text-[11px] leading-relaxed bg-slate-50/40"
+                      >
+                        <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono mb-1">
+                          <span className="font-semibold text-slate-500">
+                            System
+                          </span>
+                          <span>
+                            {new Date(note.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-500 bg-white border border-slate-100 px-1.5 py-0.5 rounded inline-block mb-1.5 font-mono max-w-full truncate">
+                          Step: {note.stepTitle}
+                        </div>
+                        <p className="text-slate-600 whitespace-pre-wrap">
+                          {note.text}
+                        </p>
                       </div>
-                      <div className="text-[10px] font-bold text-slate-500 bg-white border border-slate-100 px-1.5 py-0.5 rounded inline-block mb-1.5 font-mono max-w-full truncate">
-                        Step: {note.stepTitle}
-                      </div>
-                      <p className="text-slate-600 whitespace-pre-wrap">
-                        {note.text}
-                      </p>
-                    </div>
-                  ))}
+                    ))}
 
-                  {systemAutoNotes.length === 0 && (
-                    <div className="p-4 text-center text-slate-400 text-xs">
-                      No system auto notes yet.
-                    </div>
-                  )}
-                </div>
+                    {systemAutoNotes.length === 0 && (
+                      <div className="p-4 text-center text-slate-400 text-xs">
+                        No system auto notes yet.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </Card>
           </div>
