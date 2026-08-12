@@ -235,7 +235,7 @@ export default function GSTAddonTrackerView({ appNo, orgId, isPaid = true }: Adm
   const getOwnerTag = (owner: string) => {
     if (owner === "client") return <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Client</span>;
     if (owner === "admin") return <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Admin</span>;
-    return <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Govt / Auto</span>;
+    return null;
   };
 
   return (

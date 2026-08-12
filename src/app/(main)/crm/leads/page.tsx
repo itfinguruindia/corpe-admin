@@ -3,7 +3,8 @@
 import { Trash2, Search, RefreshCw, Info } from "lucide-react";
 import * as XLSX from "xlsx";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { marketingApi, Lead } from "@/lib/api/marketing";
 import useSwal from "@/utils/useSwal";
 import { useDebouncedCallback } from "@/utils/helpers";
@@ -15,8 +16,10 @@ import ExportDropdown from "@/components/ui/ExportDropdown";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
 import LeadExtraDetailsModal from "@/components/marketing/LeadExtraDetailsModal";
+import { useAdminListRealtimeSync } from "@/hooks/useAdminListRealtimeSync";
 
 export default function LeadsPage() {
+  const searchParams = useSearchParams();
   const { hasPermission } = usePermissions();
   const canDeleteLeads = hasPermission(PERMISSIONS.MARKETING_DELETE);
   const canExportLeads = hasPermission(PERMISSIONS.MARKETING_EXPORT);
@@ -26,7 +29,9 @@ export default function LeadsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(
+    () => searchParams.get("search")?.trim() || "",
+  );
   const [country, setCountry] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [detailsLead, setDetailsLead] = useState<Lead | null>(null);
@@ -49,9 +54,9 @@ export default function LeadsPage() {
     fetchLeads(page);
   }, 300);
 
-  const fetchLeads = async (page: number) => {
+  const fetchLeads = async (page: number, opts?: { silent?: boolean }) => {
     try {
-      setLoading(true);
+      if (!opts?.silent) setLoading(true);
       setError(null);
       const data = await marketingApi.getAllLeads(
         page,
@@ -71,6 +76,25 @@ export default function LeadsPage() {
       setLoading(false);
     }
   };
+
+  const softRefreshLeads = useCallback(() => {
+    void fetchLeads(currentPage, { silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, search, country]);
+
+  useAdminListRealtimeSync({
+    resource: "crm-leads",
+    onRefresh: softRefreshLeads,
+  });
+
+  // Keep search in sync when landing from email deep links (?search=...)
+  useEffect(() => {
+    const fromQuery = searchParams.get("search")?.trim() || "";
+    if (fromQuery && fromQuery !== search) {
+      setSearch(fromQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Initial fetch
   useEffect(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, Archive } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { buildFiltersFromParams, useDebouncedCallback } from "@/utils/helpers";
@@ -20,8 +20,10 @@ import ClientsTable, {
   Client,
   ITEMS_PER_PAGE,
 } from "@/components/clients/ClientsTable";
+import DiscontinueModal from "@/components/clients/DiscontinueModal";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
+import { useAdminListRealtimeSync } from "@/hooks/useAdminListRealtimeSync";
 
 export default function ClientsPage() {
   const searchParams = useSearchParams();
@@ -29,6 +31,18 @@ export default function ClientsPage() {
   const { admin, isSuperAdmin, hasPermission } = usePermissions();
   const canExportClients = hasPermission(PERMISSIONS.CLIENT_EXPORT);
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+
+  const [discontinueModalState, setDiscontinueModalState] = useState<{
+    isOpen: boolean;
+    mode: "discontinue" | "restore" | "history";
+    client: Client | null;
+  }>({
+    isOpen: false,
+    mode: "discontinue",
+    client: null,
+  });
+  const [historyData, setHistoryData] = useState<any>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Debounced search handler - fires API call with current filters
   const handleSearch = useDebouncedCallback((currentFilters: Filters) => {
@@ -61,9 +75,13 @@ export default function ClientsPage() {
     buildFiltersFromParams(searchParams),
   );
 
-  const fetchClients = async (page: number, filtersOverride?: Filters) => {
+  const fetchClients = async (
+    page: number,
+    filtersOverride?: Filters,
+    opts?: { silent?: boolean },
+  ) => {
     try {
-      setLoading(true);
+      if (!opts?.silent) setLoading(true);
       setError(null);
       const activeFilters = filtersOverride ?? filters;
       const data = await clientsApi.getAllClients(page, ITEMS_PER_PAGE, {
@@ -86,6 +104,51 @@ export default function ClientsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenDiscontinue = (client: Client) => {
+    setDiscontinueModalState({ isOpen: true, mode: "discontinue", client });
+  };
+
+  const handleOpenRestore = (client: Client) => {
+    setDiscontinueModalState({ isOpen: true, mode: "restore", client });
+  };
+
+  const handleOpenHistory = async (client: Client) => {
+    setDiscontinueModalState({ isOpen: true, mode: "history", client });
+    setLoadingHistory(true);
+    try {
+      const res = await clientsApi.getDiscontinueHistory(client.appNo);
+      setHistoryData(res);
+    } catch (err) {
+      console.error("Failed to load history:", err);
+      setHistoryData(null);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleConfirmDiscontinueRestore = async (reason: string) => {
+    const client = discontinueModalState.client;
+    if (!client) return;
+    if (discontinueModalState.mode === "discontinue") {
+      await clientsApi.discontinueClient(client.appNo, reason);
+      await swal({
+        title: "Application Discontinued",
+        text: `Application ${client.appNo} has been discontinued.`,
+        icon: "success",
+        confirmButtonColor: "#3D63A4",
+      });
+    } else if (discontinueModalState.mode === "restore") {
+      await clientsApi.restoreClient(client.appNo, reason);
+      await swal({
+        title: "Application Restored",
+        text: `Application ${client.appNo} has been restored.`,
+        icon: "success",
+        confirmButtonColor: "#3D63A4",
+      });
+    }
+    fetchClients(currentPage);
   };
 
   useEffect(() => {
@@ -114,6 +177,16 @@ export default function ClientsPage() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const softRefreshClients = useCallback(() => {
+    void fetchClients(currentPage, filters, { silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, filters, sortDescriptor]);
+
+  useAdminListRealtimeSync({
+    resource: "clients",
+    onRefresh: softRefreshClients,
+  });
 
   // Update search in filters when input changes - debounced refetch
   const handleSearchInputChange = (value: string) => {
@@ -386,6 +459,23 @@ export default function ClientsPage() {
                 <Archive className="size-4 text-gray-500" />
                 Archived
               </button>
+
+              <label className="h-11 px-3 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer transition select-none">
+                <input
+                  type="checkbox"
+                  checked={Boolean(filters.showDiscontinuedOnly)}
+                  onChange={(e) => {
+                    const newFilters = {
+                      ...filters,
+                      showDiscontinuedOnly: e.target.checked,
+                    };
+                    setFilters(newFilters);
+                    fetchClients(1, newFilters);
+                  }}
+                  className="w-4 h-4 text-rose-600 rounded focus:ring-rose-500 border-slate-300"
+                />
+                <span>Show Discontinued</span>
+              </label>
             </div>
           </div>
 
@@ -414,6 +504,20 @@ export default function ClientsPage() {
         isSuperAdmin={isSuperAdmin}
         canAssignClients={hasPermission(PERMISSIONS.CLIENT_ASSIGN)}
         canDeleteClients={hasPermission(PERMISSIONS.CLIENT_DELETE)}
+        isDiscontinuedView={Boolean(filters.showDiscontinuedOnly)}
+        onDiscontinue={handleOpenDiscontinue}
+        onRestore={handleOpenRestore}
+        onViewHistory={handleOpenHistory}
+      />
+
+      <DiscontinueModal
+        isOpen={discontinueModalState.isOpen}
+        onClose={() => setDiscontinueModalState((prev) => ({ ...prev, isOpen: false }))}
+        client={discontinueModalState.client}
+        mode={discontinueModalState.mode}
+        onConfirm={handleConfirmDiscontinueRestore}
+        historyData={historyData}
+        loadingHistory={loadingHistory}
       />
     </div>
   );

@@ -22,7 +22,6 @@ export default function DirectorDetailPage() {
   const [kycVerified, setKycVerified] = useState(false);
   const [dscApplication, setDscApplication] = useState(false);
   const [dinStatus, setDinStatus] = useState<string>("Pending");
-  const [isStage2Enabled, setIsStage2Enabled] = useState(false);
   const [isAlsoShareholder, setIsAlsoShareholder] = useState(false);
   const [linkedShareholderNumber, setLinkedShareholderNumber] = useState<
     number | null
@@ -121,26 +120,6 @@ export default function DirectorDetailPage() {
         } else {
           setDirector(null);
         }
-
-        try {
-          const trackerRes = await clientsApi.getTrackingStatus(
-            appNo as string,
-          );
-          if (trackerRes) {
-            const activeStage =
-              trackerRes.stages &&
-              typeof trackerRes.currentStageIndex === "number"
-                ? trackerRes.stages[trackerRes.currentStageIndex]
-                : null;
-            const isStage2 = activeStage?.stageId === "stage_2_documents_kyc";
-            setIsStage2Enabled(isStage2);
-          } else {
-            setIsStage2Enabled(false);
-          }
-        } catch (trackerErr) {
-          console.error("Error fetching tracker status:", trackerErr);
-          setIsStage2Enabled(false);
-        }
       } catch (error) {
         console.error("Error fetching director:", error);
         setDirector(null);
@@ -181,7 +160,6 @@ export default function DirectorDetailPage() {
   };
 
   const handleDinStatusChange = async (newValue: string) => {
-    if (!isStage2Enabled || !director?.isCommitted) return;
     if (!requireEdit()) return;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
@@ -272,9 +250,7 @@ export default function DirectorDetailPage() {
                   { id: "Inactive", label: "Inactive" },
                   { id: "In Progress", label: "In Progress" },
                 ]}
-                isDisabled={
-                  !isStage2Enabled || !director.isCommitted || !canEdit
-                }
+                isDisabled={!canEdit}
               />
             </div>
           )}

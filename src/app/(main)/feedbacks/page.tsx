@@ -14,6 +14,7 @@ import ExportDropdown from "@/components/ui/ExportDropdown";
 import RefreshButton from "@/components/ui/RefreshButton";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
+import { useAdminListRealtimeSync } from "@/hooks/useAdminListRealtimeSync";
 
 const RatingFilterOptions = [
   { label: "All", value: "" },
@@ -55,8 +56,8 @@ export default function FeedbacksPage() {
   const onOpen = () => setIsOpen(true);
   const onClose = () => setIsOpen(false);
 
-  const fetchFeedbacks = useCallback(async () => {
-    setIsLoading(true);
+  const fetchFeedbacks = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setIsLoading(true);
     try {
       const limit = 10;
       const data = await feedbackService.getAllFeedbacks({
@@ -84,6 +85,13 @@ export default function FeedbacksPage() {
     }, 500);
     return () => clearTimeout(handler);
   }, [fetchFeedbacks]);
+
+  useAdminListRealtimeSync({
+    resource: "feedbacks",
+    onRefresh: () => {
+      void fetchFeedbacks({ silent: true });
+    },
+  });
 
   useEffect(() => {
     setPage(1);

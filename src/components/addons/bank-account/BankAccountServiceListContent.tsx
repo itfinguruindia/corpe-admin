@@ -58,11 +58,18 @@ export default function BankAccountServiceListContent({ addonId }: { addonId: st
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [showDiscontinuedOnly, setShowDiscontinuedOnly] = useState(false);
 
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const data = await clientsApi.getAddonServiceClients(addonId, page, 10, search);
+      const data = await clientsApi.getAddonServiceClients(
+        addonId,
+        page,
+        10,
+        search,
+        showDiscontinuedOnly,
+      );
       setClients(data.clients || []);
       setTotal(data.total || 0);
       setTotalPages(data.totalPages || 1);
@@ -75,7 +82,7 @@ export default function BankAccountServiceListContent({ addonId }: { addonId: st
 
   useEffect(() => {
     fetchClients();
-  }, [addonId, page, search]);
+  }, [addonId, page, search, showDiscontinuedOnly]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,34 +90,27 @@ export default function BankAccountServiceListContent({ addonId }: { addonId: st
     setSearch(searchInput.trim());
   };
 
-  const paidCount = clients.filter((c) => c.isPaid).length;
-  const pendingPaymentCount = clients.filter((c) => !c.isPaid).length;
-
   return (
     <div className="space-y-6">
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase text-slate-500">Total Enrolled</p>
           <p className="text-2xl font-bold text-slate-800 dark:text-slate-100 mt-1">{total}</p>
         </div>
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase text-slate-500">Payment Completed</p>
-          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{paidCount}</p>
-        </div>
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase text-slate-500">Payment Pending</p>
-          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{pendingPaymentCount}</p>
+          <p className="text-xs font-semibold uppercase text-slate-500">Full Incorporation Users</p>
+          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">{total}</p>
         </div>
       </div>
 
       {/* Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="flex gap-2 max-w-md">
-        <div className="relative flex-1">
+      <form onSubmit={handleSearchSubmit} className="flex flex-wrap gap-2 max-w-xl items-center">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by app #, client name, email..."
+            placeholder="Search by app #, client name, email, or branch..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
@@ -125,10 +125,22 @@ export default function BankAccountServiceListContent({ addonId }: { addonId: st
         <button
           type="button"
           onClick={() => fetchClients()}
-          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/40 transition"
+          className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:hover:bg-blue-900/40 transition"
         >
           <RefreshCw className="w-3.5 h-3.5" /> Refresh
         </button>
+        <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={showDiscontinuedOnly}
+            onChange={(e) => {
+              setShowDiscontinuedOnly(e.target.checked);
+              setPage(1);
+            }}
+            className="w-3.5 h-3.5 text-rose-600 rounded focus:ring-rose-500 border-slate-300"
+          />
+          Show Discontinued
+        </label>
       </form>
 
       {/* Table */}

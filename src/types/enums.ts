@@ -6,6 +6,7 @@ export enum RegistrationType {
 export enum AddonServiceId {
   GST_REGISTRATION = "gst-registration",
   BANK_ACCOUNT_SETUP = "bank-account-setup",
+  TRADEMARK_REGISTRATION = "trademark-registration",
 }
 
 export enum AddonStatus {
