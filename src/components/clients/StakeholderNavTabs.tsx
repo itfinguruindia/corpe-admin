@@ -215,7 +215,7 @@ export default function StakeholderNavTabs({
         </div>
       </div>
 
-      {/* Person switcher — only one row */}
+      {/* Person switcher - only one row */}
       <div
         className="flex gap-1 overflow-x-auto px-2 sm:px-3"
         role="tablist"

@@ -260,7 +260,6 @@ export default function TaxationAdminTrackerView({
                     : "bg-white text-gray-600 border-gray-200 hover:border-[#fcd34d] hover:text-[#92400e]"
                 }`}
               >
-                <span>{meta?.icon}</span>
                 {meta?.name}
               </button>
             );
@@ -321,7 +320,7 @@ export default function TaxationAdminTrackerView({
                 {activeStageStatus === "Completed" ? "✓" : activeStageIdx + 1}
               </div>
               <h4 className="text-sm font-bold text-gray-800">
-                {svcMeta?.icon} {activeStage.label || activeStage.title || `Stage ${activeStageIdx + 1}`}
+                {activeStage.label || activeStage.title || `Stage ${activeStageIdx + 1}`}
               </h4>
             </div>
             {stagePill(activeStageStatus)}

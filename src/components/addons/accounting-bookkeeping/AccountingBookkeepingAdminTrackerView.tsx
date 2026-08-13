@@ -219,12 +219,12 @@ export default function AccountingBookkeepingAdminTrackerView({
         <div className="flex-1 min-w-0">
           <div className="text-sm font-bold text-gray-800">
             {bankSyncConnected
-              ? `Bank Sync — ${bankSyncInfo.accounts.length} account${bankSyncInfo.accounts.length > 1 ? "s" : ""} connected`
-              : "Bank Sync — Not Connected"}
+              ? `Bank Sync - ${bankSyncInfo.accounts.length} account${bankSyncInfo.accounts.length > 1 ? "s" : ""} connected`
+              : "Bank Sync - Not Connected"}
           </div>
           <div className="text-[11.5px] text-gray-400 mt-0.5">
             {bankSyncConnected
-              ? `Statements pulled automatically every ${cycleLabel} cycle — no manual upload needed going forward.`
+              ? `Statements pulled automatically every ${cycleLabel} cycle - no manual upload needed going forward.`
               : `We're using your manually uploaded statements. Connect your bank for automatic ${cycleLabel} syncing.`}
           </div>
         </div>
