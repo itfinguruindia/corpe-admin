@@ -1432,4 +1432,12 @@ export const clientsApi = {
     );
     return response.data?.data ?? response.data;
   },
+
+  advanceAddonCycle: async (orgId: string, addonId: string, svcId: string) => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/advance-cycle`, {
+      addonId,
+      svcId,
+    });
+    return response.data?.data ?? response.data;
+  },
 };

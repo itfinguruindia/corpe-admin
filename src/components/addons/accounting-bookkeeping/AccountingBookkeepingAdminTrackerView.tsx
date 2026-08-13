@@ -51,6 +51,7 @@ export default function AccountingBookkeepingAdminTrackerView({
   const [loading, setLoading] = useState(true);
   const [activeStageId, setActiveStageId] = useState("s1");
   const [updatingStep, setUpdatingStep] = useState<string | null>(null);
+  const [selectedCycle, setSelectedCycle] = useState<number | "active">("active");
 
   const loadTracker = useCallback(async (isInitial = false) => {
     try {
@@ -273,8 +274,71 @@ export default function AccountingBookkeepingAdminTrackerView({
         </div>
       )}
 
-      {/* Stage Navigation Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 pb-px overflow-x-auto">
+      {/* Cycle History Selector */}
+      {Boolean(tracker?.cycles?.accounting?.history?.length) && (
+        <div className="flex items-center gap-3 bg-white border border-[#E3E6EB] rounded-xl px-4 py-3 shadow-xs">
+          <span className="text-xs font-bold text-gray-700">Filing Cycle:</span>
+          <select
+            value={selectedCycle}
+            onChange={(e) => setSelectedCycle(e.target.value === "active" ? "active" : Number(e.target.value))}
+            className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-800 rounded-lg px-3 py-1.5 focus:outline-none cursor-pointer"
+          >
+            <option value="active">
+              Cycle {tracker?.cycles?.accounting?.cycleNumber || 1} (Active Cycle)
+            </option>
+            {tracker.cycles.accounting.history.map((h: any) => (
+              <option key={h.cycleNumber} value={h.cycleNumber}>
+                Cycle {h.cycleNumber} ({h.periodLabel?.replace("SECTION: ", "") || "Completed"})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Stage cards / Past cycle history view */}
+      {selectedCycle !== "active" && tracker?.cycles?.accounting?.history ? (
+        (() => {
+          const pastHist = tracker.cycles.accounting.history.find((h: any) => h.cycleNumber === selectedCycle);
+          if (!pastHist) return null;
+          return (
+            <div className="bg-white border border-[#E3E6EB] rounded-2xl shadow-sm overflow-hidden p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h4 className="text-sm font-bold text-gray-800">
+                  Cycle {pastHist.cycleNumber} History - {pastHist.periodLabel || "Close Statements"}
+                </h4>
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#E1F5EE] text-[#0F6E56]">
+                  Completed on {new Date(pastHist.completedAt).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {(pastHist.stage3Steps || []).map((sec: any, sIdx: number) => (
+                  <div key={sIdx} className="py-3">
+                    <div className="text-[10px] font-extrabold tracking-wider text-gray-400 uppercase mb-2">
+                      {sec.label}
+                    </div>
+                    <div className="space-y-2">
+                      {(sec.steps || []).map((t: any, tIdx: number) => (
+                        <div key={tIdx} className="flex items-center justify-between bg-slate-50 rounded-lg p-3">
+                          <div>
+                            <span className="text-xs font-bold text-gray-800">{t.title}</span>
+                            {t.description && <p className="text-[11px] text-gray-500 mt-0.5">{t.description}</p>}
+                          </div>
+                          <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 uppercase">
+                            Done
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()
+      ) : (
+        <>
+          {/* Stage Navigation Tabs */}
+          <div className="flex gap-2 border-b border-gray-200 pb-px overflow-x-auto">
         {stages.map((stage: any, idx: number) => {
           const sid = stage.stageId || stage.id || `stage-${idx}`;
           const isActive = sid === activeStageId;
@@ -404,6 +468,8 @@ export default function AccountingBookkeepingAdminTrackerView({
           ))}
         </div>
       )}
-    </div>
+    </>
+  )}
+</div>
   );
 }

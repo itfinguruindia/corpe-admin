@@ -371,7 +371,7 @@ export default function TaxationServiceContent({
           )}
           {taxData.isPaid && (
             <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase">
-              Active
+              Paid
             </span>
           )}
         </div>
@@ -393,12 +393,6 @@ export default function TaxationServiceContent({
           ))}
         </div>
       </div>
-
-      {taxData.isFormSubmitted && (
-        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-xs text-emerald-800 flex items-center gap-2">
-          <span className="font-bold">Form Submitted</span>
-        </div>
-      )}
 
       {activeTab === "details" && (
       <div className="grid grid-cols-[1fr_300px] gap-6">
@@ -977,12 +971,8 @@ export default function TaxationServiceContent({
           {/* Deliverables to Upload */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs space-y-4">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-              Deliverables to Upload
+              Documents provided by CorpE
             </h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              These are the documents promised under "Documents provided by CorpE" for the selected filings.
-              Upload each one here - the client will see it with a Download button on their portal.
-            </p>
 
             {selectedSvcs.length > 0 ? (
               <div className="space-y-4">

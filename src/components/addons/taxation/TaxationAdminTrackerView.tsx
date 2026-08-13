@@ -74,6 +74,7 @@ export default function TaxationAdminTrackerView({
   const [activeSvc, setActiveSvc] = useState<string | null>(null);
   const [activeStageId, setActiveStageId] = useState<string | null>(null);
   const [updatingStep, setUpdatingStep] = useState<string | null>(null);
+  const [selectedCycle, setSelectedCycle] = useState<number | "active">("active");
 
   const loadTracker = useCallback(async (isInitial = false) => {
     try {
@@ -167,6 +168,20 @@ export default function TaxationAdminTrackerView({
     }
   };
 
+  const handleAdvanceCycle = async () => {
+    if (!currentSvc) return;
+    try {
+      setLoading(true);
+      await clientsApi.advanceAddonCycle(orgId, ADDON_ID, currentSvc);
+      toast.success("Filing cycle advanced successfully!");
+      await loadTracker(false);
+    } catch (error) {
+      notifyApiError(error, { fallback: "Failed to advance cycle." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-16">
@@ -243,6 +258,8 @@ export default function TaxationAdminTrackerView({
         </div>
       )}
 
+
+
       {/* Per-filing Tabs */}
       {svcIds.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -253,7 +270,10 @@ export default function TaxationAdminTrackerView({
               <button
                 key={id}
                 type="button"
-                onClick={() => setActiveSvc(id)}
+                onClick={() => {
+                  setActiveSvc(id);
+                  setSelectedCycle("active");
+                }}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border transition-all whitespace-nowrap cursor-pointer ${
                   isActive
                     ? "bg-[#fcd34d] text-[#92400e] border-[#fcd34d] shadow-sm"
@@ -264,6 +284,27 @@ export default function TaxationAdminTrackerView({
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Cycle History Selector */}
+      {Boolean(tracker?.cycles?.[currentSvc]?.history?.length) && (
+        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-xs">
+          <span className="text-xs font-bold text-gray-700">Filing Cycle:</span>
+          <select
+            value={selectedCycle}
+            onChange={(e) => setSelectedCycle(e.target.value === "active" ? "active" : Number(e.target.value))}
+            className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-800 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+          >
+            <option value="active">
+              Cycle {tracker?.cycles?.[currentSvc]?.cycleNumber || 1} (Active Cycle)
+            </option>
+            {tracker.cycles[currentSvc].history.map((h: any) => (
+              <option key={h.cycleNumber} value={h.cycleNumber}>
+                Cycle {h.cycleNumber} ({h.periodLabel?.replace("SECTION: ", "") || "Completed"})
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -303,8 +344,45 @@ export default function TaxationAdminTrackerView({
         </div>
       )}
 
-      {/* Active Stage Card */}
-      {currentSvc && activeStage && (
+      {/* Active Stage Card or Historical Cycle View */}
+      {selectedCycle !== "active" && tracker?.cycles?.[currentSvc]?.history ? (
+        (() => {
+          const pastHist = tracker.cycles[currentSvc].history.find((h: any) => h.cycleNumber === selectedCycle);
+          if (!pastHist) return null;
+          const pastSections = [...(pastHist.stage2Steps || []), ...(pastHist.stage3Steps || [])];
+          return (
+            <div className="bg-white border border-[#E3E6EB] rounded-2xl shadow-sm overflow-hidden p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h4 className="text-sm font-bold text-gray-800">
+                  Cycle {pastHist.cycleNumber} History - {pastHist.periodLabel}
+                </h4>
+                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#E1F5EE] text-[#0F6E56]">
+                  Completed on {new Date(pastHist.completedAt).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {pastSections.map((sec: any, sIdx: number) => (
+                  <div key={sIdx} className="py-3">
+                    <div className="text-[10px] font-extrabold tracking-wider text-gray-400 uppercase mb-2">
+                      {sec.label}
+                    </div>
+                    <div className="space-y-2">
+                      {(sec.steps || []).map((t: any, tIdx: number) => (
+                        <div key={tIdx} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl px-3.5 py-2.5">
+                          <span className="text-xs font-bold text-gray-700">{t.title}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E1F5EE] text-[#0F6E56]">
+                            Done
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()
+      ) : currentSvc && activeStage && (
         <div className="bg-white border border-[#E3E6EB] rounded-2xl shadow-sm overflow-hidden">
           <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-3">
