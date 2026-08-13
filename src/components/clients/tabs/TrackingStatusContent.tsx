@@ -790,7 +790,8 @@ export default function TrackingStatusContent({
         </Card>
 
         {/* Installment Payment Warning Banners — only after the payment link is sent */}
-        {tracker.installmentInfo?.paymentLinkStage4Sent &&
+        {tracker.installmentInfo?.firstInstallmentDue &&
+          tracker.installmentInfo?.paymentLinkStage4Sent &&
           !tracker.installmentInfo?.firstInstallmentPaid && (
           <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 shadow-sm">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -821,6 +822,7 @@ export default function TrackingStatusContent({
         )}
 
         {tracker.installmentInfo?.firstInstallmentPaid &&
+          tracker.installmentInfo?.secondInstallmentDue &&
           tracker.installmentInfo?.paymentLinkStage6Sent &&
           !tracker.installmentInfo?.secondInstallmentPaid && (
           <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 shadow-sm">
