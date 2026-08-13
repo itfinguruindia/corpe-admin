@@ -786,8 +786,9 @@ export default function TrackingStatusContent({
           </div>
         </Card>
 
-        {/* Installment Payment Warning Banners */}
-        {tracker.installmentInfo?.firstInstallmentDue && (
+        {/* Installment Payment Warning Banners — only after the payment link is sent */}
+        {tracker.installmentInfo?.paymentLinkStage4Sent &&
+          !tracker.installmentInfo?.firstInstallmentPaid && (
           <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 shadow-sm">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -795,9 +796,8 @@ export default function TrackingStatusContent({
                 1st Installment Payment Required
               </p>
               <p className="text-xs text-amber-700 mt-0.5">
-                The Digital Signature Certificate (DSC) section in Stage 2 and
-                all of Stages 3 &amp; 4 are locked until the client pays the 1st
-                Installment.
+                Payment link has been sent. Stages 3 &amp; 4 stay locked until
+                the client pays the 1st Installment.
               </p>
               <div className="flex items-center gap-3 mt-2">
                 <button
@@ -808,22 +808,18 @@ export default function TrackingStatusContent({
                 >
                   Go to Pricing &amp; Payment
                 </button>
-                <span
-                  className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage4Sent ? "text-green-700" : "text-amber-600"}`}
-                >
-                  <span
-                    className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage4Sent ? "bg-green-500" : "bg-amber-400"}`}
-                  />
-                  {tracker.installmentInfo.paymentLinkStage4Sent
-                    ? "Payment link sent to client"
-                    : "Payment link not generated yet"}
+                <span className="text-xs font-medium flex items-center gap-1.5 text-green-700">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                  Payment link sent to client
                 </span>
               </div>
             </div>
           </div>
         )}
 
-        {tracker.installmentInfo?.secondInstallmentDue && (
+        {tracker.installmentInfo?.firstInstallmentPaid &&
+          tracker.installmentInfo?.paymentLinkStage6Sent &&
+          !tracker.installmentInfo?.secondInstallmentPaid && (
           <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 shadow-sm">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -831,8 +827,8 @@ export default function TrackingStatusContent({
                 2nd Installment Payment Required
               </p>
               <p className="text-xs text-amber-700 mt-0.5">
-                Stages 3 &amp; 4 are locked until the client pays the 2nd
-                Installment.
+                Payment link has been sent. Stages 3 &amp; 4 stay locked until
+                the client pays the 2nd Installment.
               </p>
               <div className="flex items-center gap-3 mt-2">
                 <button
@@ -843,15 +839,9 @@ export default function TrackingStatusContent({
                 >
                   Go to Pricing &amp; Payment
                 </button>
-                <span
-                  className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage6Sent ? "text-green-700" : "text-amber-600"}`}
-                >
-                  <span
-                    className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage6Sent ? "bg-green-500" : "bg-amber-400"}`}
-                  />
-                  {tracker.installmentInfo.paymentLinkStage6Sent
-                    ? "Payment link sent to client"
-                    : "Payment link not generated yet"}
+                <span className="text-xs font-medium flex items-center gap-1.5 text-green-700">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                  Payment link sent to client
                 </span>
               </div>
             </div>
@@ -1217,34 +1207,6 @@ export default function TrackingStatusContent({
                                   tracker.companyType,
                                 )}
                               </span>
-                              {(section.label ===
-                                "Digital Signature Certificate (DSC)" ||
-                                section.label ===
-                                "Digital Signature Certificate (DSC) procedure" ||
-                                section.label === "DSC procedure") &&
-                                tracker.installmentInfo
-                                  ?.firstInstallmentDue && (
-                                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
-                                    <svg
-                                      className="w-3 h-3"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2.5"
-                                    >
-                                      <rect
-                                        x="3"
-                                        y="11"
-                                        width="18"
-                                        height="11"
-                                        rx="2"
-                                        ry="2"
-                                      />
-                                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                    </svg>
-                                    Locked - 1st Installment Due
-                                  </span>
-                                )}
                             </div>
                           </div>
 
