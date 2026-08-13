@@ -167,6 +167,9 @@ export default function TrackingStatusContent({
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isRequestingRestart, setIsRequestingRestart] = useState(false);
   const [isSystemAutoNotesOpen, setIsSystemAutoNotesOpen] = useState(false);
+  const [expandedStepNotes, setExpandedStepNotes] = useState<
+    Record<string, boolean>
+  >({});
 
   // Extension status from API
   const [extensionStatus, setExtensionStatus] = useState<any>(null);
@@ -1420,16 +1423,33 @@ export default function TrackingStatusContent({
                                           )}
                                           {step.notes &&
                                             step.notes.length > 0 && (
-                                              <span className="flex items-center gap-1 text-blue-600 font-semibold">
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  setExpandedStepNotes(
+                                                    (prev) => ({
+                                                      ...prev,
+                                                      [step._id]: !prev[step._id],
+                                                    }),
+                                                  )
+                                                }
+                                                aria-expanded={
+                                                  expandedStepNotes[step._id] ===
+                                                  true
+                                                }
+                                                className="flex items-center gap-1 text-blue-600 font-semibold border-none bg-transparent p-0 cursor-pointer hover:text-blue-800"
+                                              >
                                                 <FileText className="w-3 h-3" />
                                                 {step.notes.length} note(s)
-                                              </span>
+                                              </button>
                                             )}
                                         </div>
 
-                                        {/* Inline Notes Display */}
+                                        {/* Inline Notes Display — accordion, closed by default */}
                                         {step.notes &&
-                                          step.notes.length > 0 && (
+                                          step.notes.length > 0 &&
+                                          expandedStepNotes[step._id] ===
+                                            true && (
                                             <div className="mt-2 pl-3 border-l-2 border-slate-200 space-y-1.5">
                                               {step.notes.map((note, nIdx) => {
                                                 const isSystem =
