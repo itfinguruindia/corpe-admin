@@ -1509,7 +1509,7 @@ export default function TrackingStatusContent({
                                                   <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-4 max-w-xl text-left">
                                                     <div className="flex items-center justify-between">
                                                       <h4 className="text-sm font-bold text-red-900">
-                                                        Record ROC Rejection
+                                                        Record MCA Rejection
                                                       </h4>
                                                       <button
                                                         onClick={() =>
@@ -1571,7 +1571,7 @@ export default function TrackingStatusContent({
 
                                                     <div className="space-y-1">
                                                       <label className="block text-xs font-semibold text-slate-600">
-                                                        Reason from ROC (shown to
+                                                        Reason from MCA (shown to
                                                         client)
                                                       </label>
                                                       <textarea
@@ -1582,7 +1582,7 @@ export default function TrackingStatusContent({
                                                           )
                                                         }
                                                         className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-red-400"
-                                                        placeholder="e.g. ROC has rejected the application due to discrepancies in the registered office address..."
+                                                        placeholder="e.g. MCA has rejected the application due to discrepancies in the registered office address..."
                                                       />
                                                     </div>
 
@@ -2002,11 +2002,11 @@ export default function TrackingStatusContent({
                                                   step._id) && (
                                                   <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-xl space-y-4 max-w-xl text-left">
                                                     <h4 className="text-sm font-bold text-amber-900">
-                                                      Raise a query from ROC
+                                                      Raise a query from MCA
                                                     </h4>
                                                     <div className="space-y-1">
                                                       <label className="block text-xs font-semibold text-slate-600">
-                                                        What is ROC asking for?
+                                                        What is MCA asking for?
                                                         (shown to client)
                                                       </label>
                                                       <textarea
@@ -2017,7 +2017,7 @@ export default function TrackingStatusContent({
                                                           )
                                                         }
                                                         className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-amber-400"
-                                                        placeholder="e.g. ROC has flagged a discrepancy between the registered office address on the application and the utility bill provided..."
+                                                        placeholder="e.g. MCA has flagged a discrepancy between the registered office address on the application and the utility bill provided..."
                                                       />
                                                     </div>
                                                     <div className="flex items-center gap-4 text-xs font-medium text-slate-700">
@@ -2175,7 +2175,7 @@ export default function TrackingStatusContent({
                                                     <h4 className="text-sm font-bold text-blue-900">
                                                       Client response received -
                                                       review before resubmitting
-                                                      to ROC
+                                                      to MCA
                                                     </h4>
 
                                                     <div className="p-3 bg-white border border-blue-100 rounded-lg space-y-1">
@@ -2347,7 +2347,7 @@ export default function TrackingStatusContent({
                                                           />
                                                         )}
                                                         ✓ Sufficient - resubmit to
-                                                        ROC
+                                                        MCA
                                                       </button>
                                                       <button
                                                         disabled={
@@ -2421,7 +2421,7 @@ export default function TrackingStatusContent({
                                                   .activityLog.length > 0 && (
                                                   <div className="mt-4 pt-3 border-t border-slate-100 space-y-2 max-w-xl text-left">
                                                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                      ROC Query History & Log
+                                                      MCA Query History & Log
                                                     </div>
                                                     <div className="pl-3 border-l border-slate-200 space-y-3">
                                                       {step.rocQueryMetadata.activityLog.map(
@@ -2511,7 +2511,7 @@ export default function TrackingStatusContent({
                                                 loadData();
                                               }
                                             }}
-                                            ariaLabel="ROC Query Status"
+                                            ariaLabel="MCA Query Status"
                                             options={[
                                               {
                                                 id: "pending",
@@ -2532,7 +2532,7 @@ export default function TrackingStatusContent({
                                               },
                                               {
                                                 id: "resubmitted",
-                                                label: "Resubmitted to ROC",
+                                                label: "Resubmitted to MCA",
                                               },
                                               {
                                                 id: "resolved",
@@ -2550,7 +2550,7 @@ export default function TrackingStatusContent({
                                                 client_submitted:
                                                   "Submitted - Under Review",
                                                 resubmitted:
-                                                  "Resubmitted to ROC",
+                                                  "Resubmitted to MCA",
                                                 rejected: "Rejected",
                                                 resolved: "Resolved",
                                                 lapsed: "Lapsed",

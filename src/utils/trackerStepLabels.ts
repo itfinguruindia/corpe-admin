@@ -5,8 +5,10 @@ export const RUN_LLP_NAME_RESERVATION_TITLE =
 export const RUN_LLP_NAME_RESERVATION_DESCRIPTION = "Run LLP - Name Reservation";
 export const ROC_NAME_APPLICATION_REVIEW_TITLE =
   "ROC reviewed the name application";
+export const MCA_NAME_APPLICATION_REVIEW_TITLE =
+  "MCA reviewed the name application";
 export const LLP_NAME_APPLICATION_REVIEW_TITLE =
-  "ROC/MCA reviewed the name application";
+  "MCA reviewed the name application";
 export const SPICE_FORM_FILING_SECTION_LABEL = "SPICe+ Form Filing";
 export const FILLIP_FORM_FILING_SECTION_LABEL = "FiLLiP Form Filing";
 export const ROC_APPROVAL_SECTION_LABEL = "ROC Approval";
@@ -93,6 +95,32 @@ export const isMoaAoaExcludedCompanyType = (
 export const isAllDocumentsDeliveredStepTitle = (title: string): boolean =>
   title.trim() === ALL_DOCUMENTS_DELIVERED_TITLE;
 
+export const rewriteTrackerRocToMca = (text: string): string => {
+  if (!text) return text;
+  return text
+    .replace(/\bMCA\/ROC\b/g, "MCA")
+    .replace(/\bROC\/MCA\b/g, "MCA")
+    .replace(/\bROC\b/g, "MCA");
+};
+
+export const isMcaApprovalSectionLabel = (
+  label: string | null | undefined,
+): boolean => {
+  const normalized = String(label || "").trim().toLowerCase();
+  return normalized === "roc approval" || normalized === "mca approval";
+};
+
+export const isMcaNameApplicationReviewTitle = (
+  title: string | null | undefined,
+): boolean => {
+  const normalized = String(title || "").trim();
+  return (
+    normalized === ROC_NAME_APPLICATION_REVIEW_TITLE ||
+    normalized === MCA_NAME_APPLICATION_REVIEW_TITLE ||
+    normalized === "ROC/MCA reviewed the name application"
+  );
+};
+
 export const isRunFilingStepTitle = (title: string): boolean => {
   const normalized = title.trim();
   return (
@@ -146,16 +174,21 @@ export const getTrackerSectionDisplayLabel = (
   label: string,
   companyType?: string | null,
 ): string => {
-  if (!isLlpCompanyType(companyType)) return label;
+  if (!isLlpCompanyType(companyType)) {
+    return rewriteTrackerRocToMca(label);
+  }
 
   const normalizedLabel = label.trim().toLowerCase();
   if (normalizedLabel === SPICE_FORM_FILING_SECTION_LABEL.toLowerCase()) {
     return FILLIP_FORM_FILING_SECTION_LABEL;
   }
-  if (normalizedLabel === ROC_APPROVAL_SECTION_LABEL.toLowerCase()) {
+  if (
+    normalizedLabel === ROC_APPROVAL_SECTION_LABEL.toLowerCase() ||
+    normalizedLabel === MCA_APPROVAL_SECTION_LABEL.toLowerCase()
+  ) {
     return MCA_APPROVAL_SECTION_LABEL;
   }
-  return label;
+  return rewriteTrackerRocToMca(label);
 };
 
 export const getTrackerStepOwnerLabel = (
@@ -196,7 +229,7 @@ export const getTrackerStepDisplayTitle = (
   if (isLlpCompanyType(companyType) && isIncFormsStepTitle(title)) {
     return SUBSCRIBER_SHEET_TITLE;
   }
-  return title;
+  return rewriteTrackerRocToMca(title);
 };
 
 export const getTrackerStepDisplayDescription = (
@@ -249,7 +282,7 @@ export const getTrackerStepDisplayDescription = (
   ) {
     return ALL_DOCUMENTS_DELIVERED_OPC_DESCRIPTION;
   }
-  return description;
+  return rewriteTrackerRocToMca(description);
 };
 
 export const resolveTrackerStepLabels = (
