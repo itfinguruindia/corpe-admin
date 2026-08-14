@@ -1131,7 +1131,7 @@ export default function PricingAndPaymentContent({
                             {addon.planKey === "accounting_bookkeeping" && (
                               <>
                                 <div className="flex justify-between gap-12">
-                                  <span className="text-gray-500">Base Plan — {addon.breakdown.tierName || addon.breakdown.pricingDetails?.tierName || "Base Plan"}:</span>
+                                  <span className="text-gray-500">Base Plan - {addon.breakdown.tierName || addon.breakdown.pricingDetails?.tierName || "Base Plan"}:</span>
                                   <span className="font-semibold">{formatCurrency(addon.breakdown.tierPrice || addon.breakdown.pricingDetails?.tierPrice || addon.breakdown.baseFee, pricingData.currency)}/mo</span>
                                 </div>
 
@@ -1168,6 +1168,31 @@ export default function PricingAndPaymentContent({
                                 <div className="flex justify-between text-gray-500 text-xs">
                                   <span>Taxes (18% GST):</span>
                                   <span>{formatCurrency(addon.breakdown.gstAmount || addon.breakdown.gstFee || addon.breakdown.pricingDetails?.gstAmount, pricingData.currency)}</span>
+                                </div>
+                              </>
+                            )}
+                            {addon.planKey === "taxation" && (
+                              <>
+                                {Array.isArray(addon.breakdown.items || addon.breakdown.pricingDetails?.items) &&
+                                  (addon.breakdown.items || addon.breakdown.pricingDetails?.items).map((item: any, idx: number) => {
+                                    const label = item.label || item.name || "Item";
+                                    const mult = item.multiplier && item.multiplier > 1 ? ` (×${item.multiplier})` : "";
+                                    const pr = item.price != null ? item.price : 0;
+                                    return (
+                                      <div key={idx} className="flex justify-between gap-10 text-gray-600">
+                                        <span>{label}{mult}:</span>
+                                        <span className="font-semibold text-gray-900">{formatCurrency(pr, pricingData.currency)}</span>
+                                      </div>
+                                    );
+                                  })
+                                }
+                                <div className="flex justify-between border-t border-gray-100 pt-1.5 font-medium text-gray-900">
+                                  <span>Subtotal:</span>
+                                  <span>{formatCurrency(addon.breakdown.subtotal || addon.breakdown.baseFee || addon.breakdown.pricingDetails?.subtotal, pricingData.currency)}</span>
+                                </div>
+                                <div className="flex justify-between text-gray-500 text-xs">
+                                  <span>Taxes (18% GST):</span>
+                                  <span>{formatCurrency(addon.breakdown.gstFee || addon.breakdown.pricingDetails?.gst, pricingData.currency)}</span>
                                 </div>
                               </>
                             )}
