@@ -63,6 +63,9 @@ export default function DirectorDetailPage() {
                 dateOfBirth: d.dateOfBirth || "-",
                 nationality: d.nationality || "-",
                 passportNo: d.passportNumber || "-",
+                isForeignResident: Boolean(
+                  d.isForeignResident || d.isForeignEntity,
+                ),
                 occupationType: d.occupationType || "-",
                 placeOfBirth: d.placeOfBirth?.city || "-",
                 educationQualification: d.educationQualification || "-",
@@ -210,6 +213,9 @@ export default function DirectorDetailPage() {
           {director.isBankSigningAuthority && (
             <Chip label="Bank Signing Authority" variant="blue" />
           )}
+          {director.isForeignResident && (
+            <Chip label="NRI / Foreign Resident" variant="blue" />
+          )}
         </div>
       </div>
 
@@ -271,10 +277,13 @@ export default function DirectorDetailPage() {
             value={formatDate(director.dateOfBirth)}
           />
           <InfoField label="Nationality" value={director.nationality} />
-          {director.passportNo && (
+          {(director.isForeignResident ||
+            (director.passportNo && director.passportNo !== "-")) && (
             <InfoField label="Passport No" value={director.passportNo} />
           )}
-          <InfoField label="PAN" value={director.pan} />
+          {!director.isForeignResident && (
+            <InfoField label="PAN" value={director.pan} />
+          )}
           <InfoField
             label="Occupation Type"
             value={director.occupationType}

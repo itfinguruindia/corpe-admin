@@ -27,6 +27,9 @@ export interface Shareholder {
   isAlsoDirector?: boolean;
   linkedDirectorId?: string | null;
   linkedDirectorNumber?: number | null;
+  isForeignResident?: boolean;
+  isForeignEntity?: boolean;
+  isDirectorShareholder?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

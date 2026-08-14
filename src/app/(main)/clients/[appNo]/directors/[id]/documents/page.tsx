@@ -70,6 +70,7 @@ export default function DirectorDocumentsPage() {
   const {
     labels,
     isLlp,
+    isOpc,
     isLoading: isCompanyTypeLoading,
   } = useClientCompanyLabels();
 
@@ -126,8 +127,12 @@ export default function DirectorDocumentsPage() {
   });
 
   const isForeignResident = useMemo(
-    () => resolveIsForeignResident(director as Record<string, unknown> | null),
-    [director],
+    () =>
+      resolveIsForeignResident(
+        director as Record<string, unknown> | null,
+        rawDocumentsData,
+      ),
+    [director, rawDocumentsData],
   );
 
   const dualSourceDocumentFields = useMemo(
@@ -171,6 +176,7 @@ export default function DirectorDocumentsPage() {
     const documentTypes = getDirectorRegularDocumentFields({
       isForeignResident,
       isLlp,
+      isOpc,
       labels,
       rawDocumentsData,
     });
@@ -188,7 +194,7 @@ export default function DirectorDocumentsPage() {
         uploadedAt: doc?.uploadedAt || "",
       };
     });
-  }, [rawDocumentsData, labels, isLlp, isForeignResident, id]);
+  }, [rawDocumentsData, labels, isLlp, isOpc, isForeignResident, id]);
 
   /* =======================
      HELPER FUNCTIONS
@@ -208,6 +214,7 @@ export default function DirectorDocumentsPage() {
     const fromRegular = getDirectorRegularDocumentFields({
       isForeignResident,
       isLlp,
+      isOpc,
       labels,
       rawDocumentsData,
     }).find((field) => field.label === documentType);
@@ -349,6 +356,11 @@ export default function DirectorDocumentsPage() {
             (source as any)?.directorName ||
             (source as any)?.name ||
             labels.director,
+          isForeignResident: Boolean(
+            (source as any)?.isForeignResident ||
+              (source as any)?.isForeignEntity ||
+              (documentsData as any)?.isForeignResident,
+          ),
         } as Director);
         setRawDocumentsData(documentsData || {});
 
@@ -836,6 +848,11 @@ export default function DirectorDocumentsPage() {
             <div className="bg-white rounded-lg shadow-sm p-8">
               <h2 className="text-xl font-semibold text-secondary mb-6">
                 {director.name} - Documents
+                {isForeignResident && (
+                  <span className="ml-3 align-middle text-xs font-semibold uppercase tracking-wide text-[#3D63A4] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                    NRI / Foreign Resident
+                  </span>
+                )}
               </h2>
 
               <div>
