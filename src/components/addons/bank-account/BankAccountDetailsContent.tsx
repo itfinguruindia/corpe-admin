@@ -5,6 +5,7 @@ import { Download, Eye, Loader2, Upload } from "lucide-react";
 
 import { FileUploadComponent } from "@/components/upload";
 import { Switch } from "@/components/ui";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 
 const BANK_LABELS: Record<string, string> = {
   icici: "ICICI Bank",
@@ -52,6 +53,7 @@ interface BankAccountData {
   accountDetails?: {
     accountType?: string;
     branch?: string;
+    locality?: string;
     existingCustomer?: string;
     funding?: string;
     notes?: string;
@@ -227,7 +229,7 @@ export default function BankAccountDetailsContent({
           <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
             <InfoRow label="Selected Bank" value={BANK_LABELS[bankData.bankId] || bankData.bankId || ""} />
             <InfoRow label="Account Type" value={details?.accountType} />
-            <InfoRow label="Branch" value={details?.branch} />
+            <InfoRow label="Locality" value={details?.locality || details?.branch} />
             <InfoRow label="City" value={details?.city} />
             <InfoRow label="Existing Customer" value={details?.existingCustomer || "No"} />
             <InfoRow label="Initial Funding" value={details?.funding} />
@@ -266,26 +268,40 @@ export default function BankAccountDetailsContent({
                     </span>
                   </div>
 
-                  {hasFile && (
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => downloadBankDoc(field.key, "preview", undefined, field.label)}
-                        className="text-blue-600 hover:text-blue-700 p-1"
-                        title="Preview"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => downloadBankDoc(field.key, "download", undefined, field.label)}
-                        className="text-blue-600 hover:text-blue-700 p-1"
-                        title="Download"
-                      >
-                        <Download size={14} />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {hasFile && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => downloadBankDoc(field.key, "preview", undefined, field.label)}
+                          className="text-blue-600 hover:text-blue-700 p-1"
+                          title="Preview"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => downloadBankDoc(field.key, "download", undefined, field.label)}
+                          className="text-blue-600 hover:text-blue-700 p-1"
+                          title="Download"
+                        >
+                          <Download size={14} />
+                        </button>
+                      </>
+                    )}
+                    <DocumentIssueButton
+                      applicationNo={appNo}
+                      target={{
+                        entityType: "bankAccount",
+                        entityId: "bankAccount",
+                        entityLabel: "Bank Account Setup",
+                        fieldKey: field.key,
+                        documentLabel: field.label,
+                        clientRoute: "add-ons/bank-account-setup",
+                      }}
+                      className="inline-flex items-center text-primary hover:text-secondary p-1"
+                    />
+                  </div>
                 </div>
               );
             })}
@@ -344,6 +360,18 @@ export default function BankAccountDetailsContent({
                         </button>
                       </div>
                     )}
+                    <DocumentIssueButton
+                      applicationNo={appNo}
+                      target={{
+                        entityType: "bankAccount",
+                        entityId: "misc",
+                        entityLabel: "Bank Account Miscellaneous Document",
+                        fieldKey: `misc-${idx}`,
+                        documentLabel: doc.docType || doc.name || `Miscellaneous Document ${idx + 1}`,
+                        clientRoute: "add-ons/bank-account-setup",
+                      }}
+                      className="inline-flex items-center text-primary hover:text-secondary p-1"
+                    />
                   </div>
                 </div>
               ))}

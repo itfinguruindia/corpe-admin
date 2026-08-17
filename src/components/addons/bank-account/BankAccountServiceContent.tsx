@@ -7,6 +7,9 @@ import { Loader2 } from "lucide-react";
 import { clientsApi } from "@/lib/api/clients";
 import { notifyApiError } from "@/utils/apiErrors";
 import axiosInstance from "@/lib/axios";
+import Modal from "@/components/ui/Modal";
+import DocumentPreviewBody from "@/components/ui/DocumentPreviewBody";
+import { createPreviewObjectUrlFromBlob } from "@/utils/documentPreview";
 
 import BankAccountDetailsContent from "./BankAccountDetailsContent";
 import BankAccountTrackerView from "./BankAccountTrackerView";
@@ -39,6 +42,7 @@ interface BankAccountData {
   accountDetails?: {
     accountType?: string;
     branch?: string;
+    locality?: string;
     existingCustomer?: string;
     funding?: string;
     notes?: string;
@@ -73,6 +77,30 @@ export default function BankAccountServiceContent({ appNo }: BankAccountServiceC
   const [kycVerified, setKycVerified] = useState(false);
   const [kycLoading, setKycLoading] = useState(false);
   const [uploadingAdminDoc, setUploadingAdminDoc] = useState(false);
+
+  const [previewState, setPreviewState] = useState<{
+    isOpen: boolean;
+    url: string | null;
+    fileName: string;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    url: null,
+    fileName: "",
+    loading: false,
+  });
+
+  const closePreview = () => {
+    if (previewState.url) {
+      URL.revokeObjectURL(previewState.url);
+    }
+    setPreviewState({
+      isOpen: false,
+      url: null,
+      fileName: "",
+      loading: false,
+    });
+  };
 
   const loadBankData = useCallback(async () => {
     setLoading(true);
@@ -198,84 +226,82 @@ export default function BankAccountServiceContent({ appNo }: BankAccountServiceC
     docName?: string,
   ) => {
     try {
+      const filename = docName || docType || "document";
+      if (mode === "preview") {
+        setPreviewState({
+          isOpen: true,
+          url: null,
+          fileName: filename,
+          loading: true,
+        });
+      }
       const url = clientsApi.getBankAccountDocDownloadUrl(appNo, docType, adminDocId);
       const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = response.data;
-      const objectUrl = URL.createObjectURL(blob);
 
       if (mode === "preview") {
-        window.open(objectUrl, "_blank");
+        const preview = createPreviewObjectUrlFromBlob(blob, filename);
+        setPreviewState({
+          isOpen: true,
+          url: preview.url,
+          fileName: preview.fileName,
+          loading: false,
+        });
       } else {
-        const contentDisposition = response.headers["content-disposition"];
-        let filename = docName || docType || "document";
-        if (contentDisposition) {
-          const matches = /filename\*?=(?:UTF-8'')?([^;]+)/.exec(contentDisposition);
-          if (matches && matches[1]) {
-            filename = decodeURIComponent(matches[1].replace(/['"]/g, ""));
-          } else {
-            const legacyMatches = /filename="?([^";]+)"?/.exec(contentDisposition);
-            if (legacyMatches && legacyMatches[1]) {
-              filename = legacyMatches[1];
-            }
-          }
-        } else {
-          const extensionMap: Record<string, string> = {
-            "application/pdf": ".pdf",
-            "image/png": ".png",
-            "image/jpeg": ".jpg",
-          };
-          const ext = extensionMap[blob.type] || "";
-          if (!filename.includes(".")) {
-            filename = `${filename}${ext}`;
-          }
-        }
-
+        const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = objectUrl;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
       }
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch {
+      if (mode === "preview") {
+        setPreviewState((prev) => ({ ...prev, loading: false }));
+      }
       toast.danger("Failed to download document");
     }
   };
 
   const downloadBankMiscDoc = async (index: number, mode: "preview" | "download" = "download") => {
     try {
+      const filename = (bankData as any)?.miscDocs?.[index]?.name || `misc-doc-${index + 1}`;
+      if (mode === "preview") {
+        setPreviewState({
+          isOpen: true,
+          url: null,
+          fileName: filename,
+          loading: true,
+        });
+      }
       const url = clientsApi.getBankMiscDocDownloadUrl(appNo, index);
       const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = response.data;
-      const objectUrl = URL.createObjectURL(blob);
 
       if (mode === "preview") {
-        window.open(objectUrl, "_blank");
+        const preview = createPreviewObjectUrlFromBlob(blob, filename);
+        setPreviewState({
+          isOpen: true,
+          url: preview.url,
+          fileName: preview.fileName,
+          loading: false,
+        });
       } else {
-        const contentDisposition = response.headers["content-disposition"];
-        let filename = (bankData as any)?.miscDocs?.[index]?.name || `misc-doc-${index + 1}`;
-        if (contentDisposition) {
-          const matches = /filename\*?=(?:UTF-8'')?([^;]+)/.exec(contentDisposition);
-          if (matches && matches[1]) {
-            filename = decodeURIComponent(matches[1].replace(/['"]/g, ""));
-          } else {
-            const legacyMatches = /filename="?([^";]+)"?/.exec(contentDisposition);
-            if (legacyMatches && legacyMatches[1]) {
-              filename = legacyMatches[1];
-            }
-          }
-        }
-
+        const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = objectUrl;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
       }
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch {
+      if (mode === "preview") {
+        setPreviewState((prev) => ({ ...prev, loading: false }));
+      }
       toast.danger("Failed to download document");
     }
   };
@@ -358,6 +384,19 @@ export default function BankAccountServiceContent({ appNo }: BankAccountServiceC
           onOpenedAccountInfoSave={handleOpenedAccountInfoSave}
         />
       )}
+
+      <Modal
+        isOpen={previewState.isOpen}
+        onClose={closePreview}
+        title={previewState.fileName ? `Document Preview: ${previewState.fileName}` : "Document Preview"}
+        maxWidth="md:max-w-[90vw]"
+      >
+        <DocumentPreviewBody
+          url={previewState.url}
+          fileName={previewState.fileName}
+          loading={previewState.loading}
+        />
+      </Modal>
     </div>
   );
 }

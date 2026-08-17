@@ -39,9 +39,20 @@ export function formatCurrency(amount: number, currency: string = "INR"): string
   return `\u20B9 ${new Intl.NumberFormat("en-IN").format(amount)}`;
 }
 
-export const getFileType = (url: string) => {
+export const getFileType = (url?: string | null, mimeType?: string | null): "image" | "pdf" | "other" => {
+  if (mimeType) {
+    if (mimeType === "application/pdf" || mimeType.includes("pdf")) return "pdf";
+    if (mimeType.startsWith("image/")) return "image";
+  }
+
+  const raw = url || "";
+  if (!raw) return "other";
+
+  if (raw.startsWith("data:image/")) return "image";
+  if (raw.startsWith("data:application/pdf")) return "pdf";
+
   // Strip query params before checking extension
-  const cleanUrl = (url || "").split("?")[0];
+  const cleanUrl = raw.split("?")[0].split("#")[0];
   let decoded = cleanUrl;
   try {
     decoded = decodeURIComponent(cleanUrl);
@@ -49,8 +60,16 @@ export const getFileType = (url: string) => {
     decoded = cleanUrl;
   }
 
-  if (decoded.match(/\.(jpeg|jpg|png|gif|webp|svg|bmp)$/i)) return "image";
-  if (decoded.match(/\.pdf$/i)) return "pdf";
+  if (decoded.match(/\.(jpeg|jpg|png|gif|webp|svg|bmp|jfif|pjpeg|pjp|avif|ico)$/i)) {
+    return "image";
+  }
+  if (decoded.match(/\.pdf$/i)) {
+    return "pdf";
+  }
+
+  if (decoded.includes("image/")) return "image";
+  if (decoded.includes("application/pdf")) return "pdf";
+
   return "other";
 };
 

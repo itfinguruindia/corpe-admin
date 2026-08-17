@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { Upload, Download, Eye, Loader2 } from "lucide-react";
+
 import { Switch } from "@/components/ui";
 import { FileUploadComponent } from "@/components/upload";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 
 interface GstDocEntry {
   id: string;
@@ -188,6 +190,50 @@ export default function GstDetailsContent({
                     <span>Email: {dir.email || "-"}</span>
                     <span>Phone: {dir.phone || "-"}</span>
                   </div>
+                  {dir.docs && Object.keys(dir.docs).length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                      <p className="text-[11px] font-semibold text-gray-500 uppercase">Promoter Documents</p>
+                      {Object.entries(dir.docs).map(([docId, docObj]: [string, any]) => (
+                        <div key={docId} className="flex items-center justify-between text-xs py-1 bg-white px-2.5 py-1.5 rounded border border-gray-100">
+                          <span className="text-gray-700 font-medium truncate max-w-[160px]">{docObj?.name || docId}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {docObj?.path && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => downloadBusinessDoc(docId, "preview")}
+                                  className="text-blue-600 hover:text-blue-700 p-1"
+                                  title="Preview"
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => downloadBusinessDoc(docId, "download")}
+                                  className="text-blue-600 hover:text-blue-700 p-1"
+                                  title="Download"
+                                >
+                                  <Download size={14} />
+                                </button>
+                              </>
+                            )}
+                            <DocumentIssueButton
+                              applicationNo={appNo}
+                              target={{
+                                entityType: "gst",
+                                entityId: `director-${idx}`,
+                                entityLabel: `${dir.name || `Director ${idx + 1}`} (GST Promoter)`,
+                                fieldKey: docId,
+                                documentLabel: docObj?.name || docId,
+                                clientRoute: "add-ons/gst-registration",
+                              }}
+                              className="inline-flex items-center text-primary hover:text-secondary p-1"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -220,26 +266,40 @@ export default function GstDetailsContent({
                       {doc.status === "clientUpload" ? "Uploaded" : "Pending"}
                     </span>
                   </div>
-                  {doc.path && (
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => downloadBusinessDoc(docId, "preview")}
-                        className="text-blue-600 hover:text-blue-700 p-1"
-                        title="Preview"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => downloadBusinessDoc(docId, "download")}
-                        className="text-blue-600 hover:text-blue-700 p-1"
-                        title="Download"
-                      >
-                        <Download size={14} />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {doc.path && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => downloadBusinessDoc(docId, "preview")}
+                          className="text-blue-600 hover:text-blue-700 p-1"
+                          title="Preview"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => downloadBusinessDoc(docId, "download")}
+                          className="text-blue-600 hover:text-blue-700 p-1"
+                          title="Download"
+                        >
+                          <Download size={14} />
+                        </button>
+                      </>
+                    )}
+                    <DocumentIssueButton
+                      applicationNo={appNo}
+                      target={{
+                        entityType: "gst",
+                        entityId: "business",
+                        entityLabel: "GST Business Document",
+                        fieldKey: docId,
+                        documentLabel: doc.name || docId,
+                        clientRoute: "add-ons/gst-registration",
+                      }}
+                      className="inline-flex items-center text-primary hover:text-secondary p-1"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -299,6 +359,18 @@ export default function GstDetailsContent({
                         </button>
                       </div>
                     )}
+                    <DocumentIssueButton
+                      applicationNo={appNo}
+                      target={{
+                        entityType: "gst",
+                        entityId: "misc",
+                        entityLabel: "GST Miscellaneous Document",
+                        fieldKey: `misc-${idx}`,
+                        documentLabel: doc.docType || doc.name || `Miscellaneous Document ${idx + 1}`,
+                        clientRoute: "add-ons/gst-registration",
+                      }}
+                      className="inline-flex items-center text-primary hover:text-secondary p-1"
+                    />
                   </div>
                 </div>
               ))}
