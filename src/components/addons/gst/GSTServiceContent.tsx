@@ -61,6 +61,8 @@ interface GstRegistrationView {
 const ADMIN_DOC_SLOTS = [
   { id: "gst-certificate", label: "GST Certificate" },
   { id: "arn-acknowledgement", label: "ARN Acknowledgement" },
+  { id: "board-resolution", label: "Board Resolution" },
+  { id: "auth-signatory-letter", label: "Authorised Signatory Letter (Template)" },
 ];
 
 export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
@@ -175,7 +177,11 @@ export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
     }
   };
 
-  const downloadBusinessDoc = async (docId: string, mode: "preview" | "download" = "download") => {
+  const downloadBusinessDoc = async (
+    docId: string,
+    mode: "preview" | "download" = "download",
+    directorIndex?: number,
+  ) => {
     try {
       let filename = docId;
       if (mode === "preview") {
@@ -186,7 +192,7 @@ export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
           loading: true,
         });
       }
-      const url = clientsApi.getGstBusinessDocDownloadUrl(appNo, docId);
+      const url = clientsApi.getGstBusinessDocDownloadUrl(appNo, docId, directorIndex);
       const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = response.data;
       const contentDisposition = response.headers["content-disposition"];

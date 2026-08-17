@@ -1328,8 +1328,13 @@ export const clientsApi = {
     return response.data?.data ?? response.data;
   },
 
-  getGstBusinessDocDownloadUrl: (applicationNo: string, docId: string) =>
-    `/admin/clients/${applicationNo}/gst-registration/business-doc/download?docId=${encodeURIComponent(docId)}`,
+  getGstBusinessDocDownloadUrl: (applicationNo: string, docId: string, directorIndex?: number) => {
+    let url = `/admin/clients/${applicationNo}/gst-registration/business-doc/download?docId=${encodeURIComponent(docId)}`;
+    if (typeof directorIndex === "number") {
+      url += `&directorIndex=${directorIndex}`;
+    }
+    return url;
+  },
 
   getGstMiscDocDownloadUrl: (applicationNo: string, index: number) =>
     `/admin/clients/${applicationNo}/gst-registration/misc-doc/download?index=${index}`,
