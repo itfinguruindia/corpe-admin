@@ -209,7 +209,7 @@ export default function ShareholderDetailPage() {
           <InfoField label="Nationality" value={shareholder.nationality} />
           {(shareholder.isForeignResident ||
             (shareholder.passportNo && shareholder.passportNo !== "-")) && (
-            <InfoField label="Passport No" value={shareholder.passportNo} />
+            <InfoField label="Passport No" value={shareholder.passportNo || "-"} />
           )}
           {!shareholder.isForeignResident && (
             <InfoField label="PAN" value={shareholder.pan} />

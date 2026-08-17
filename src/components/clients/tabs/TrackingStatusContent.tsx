@@ -1006,7 +1006,7 @@ export default function TrackingStatusContent({
                         }`}
                     >
                       {extensionStatus.overallStatus === "monitoring" &&
-                        "Monitoring 20-day window. Name extension will activate at 5 days remaining."}
+                        "Monitoring 20-day window. Name extension will activate at 10 days remaining."}
                       {extensionStatus.overallStatus === "countdown" &&
                         (() => {
                           const attempt = extensionStatus.attempts?.find(
