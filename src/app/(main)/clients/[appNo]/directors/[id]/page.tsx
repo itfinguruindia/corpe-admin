@@ -279,7 +279,7 @@ export default function DirectorDetailPage() {
           <InfoField label="Nationality" value={director.nationality} />
           {(director.isForeignResident ||
             (director.passportNo && director.passportNo !== "-")) && (
-            <InfoField label="Passport No" value={director.passportNo} />
+            <InfoField label="Passport No" value={director.passportNo || "-"} />
           )}
           {!director.isForeignResident && (
             <InfoField label="PAN" value={director.pan} />
