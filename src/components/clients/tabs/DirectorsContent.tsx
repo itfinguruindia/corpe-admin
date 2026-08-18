@@ -446,35 +446,6 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                         )}
                       </p>
                     </div>
-
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-2 shrink-0 bg-slate-50 p-2 rounded-lg border border-slate-200"
-                    >
-                      <span className="text-xs font-semibold text-slate-600">
-                        DIN Status:
-                      </span>
-                      <select
-                        value={(director as any).dinStatus || "Pending"}
-                        onChange={(e) =>
-                          handleQuickDinStatusChange(e, director.id, e.target.value)
-                        }
-                        className={`text-xs font-bold rounded-md border px-2.5 py-1 outline-none transition-all cursor-pointer ${
-                          (director as any).dinStatus === "Inactive"
-                            ? "bg-rose-100 border-rose-300 text-rose-800"
-                            : (director as any).dinStatus === "Active"
-                            ? "bg-emerald-100 border-emerald-300 text-emerald-800"
-                            : (director as any).dinStatus === "In Progress"
-                            ? "bg-amber-100 border-amber-300 text-amber-800"
-                            : "bg-white border-slate-300 text-slate-700"
-                        }`}
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                        <option value="In Progress">In Progress</option>
-                      </select>
-                    </div>
                   </div>
                 </Card>
               );
