@@ -348,10 +348,13 @@ export default function DirectorDetailPage() {
             value={director.durationOfStayAtPresentAddress}
           />
           {director.previousResidenceAddress && (
-            <InfoField
-              label="If Duration of stay at present address- is less than a one year then address of previous residence"
-              value={director.previousResidenceAddress}
-            />
+            <div className="col-span-full w-full">
+              <InfoField
+                fullWidth
+                label="If Duration of stay at present address- is less than a one year then address of previous residence"
+                value={director.previousResidenceAddress}
+              />
+            </div>
           )}
         </div>
 
