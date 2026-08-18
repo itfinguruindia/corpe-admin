@@ -67,6 +67,9 @@ export default function ShareholdersContent({
                 dateOfBirth: s.dateOfBirth || "-",
                 nationality: s.nationality || "-",
                 passportNo: s.passportNumber || "-",
+                isForeignResident: Boolean(
+                  s.isForeignResident || s.isForeignEntity,
+                ),
                 occupationType: s.occupationType || "-",
                 placeOfBirth: s.placeOfBirth?.city || "-",
                 educationQualification: s.educationQualification || "-",
@@ -164,6 +167,11 @@ export default function ShareholdersContent({
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
                       {shareholder.email} • {shareholder.phoneNo}
+                      {shareholder.isForeignResident && (
+                        <span className="ml-2 text-xs font-medium text-[#3D63A4]">
+                          • NRI / Foreign Resident
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="text-right">

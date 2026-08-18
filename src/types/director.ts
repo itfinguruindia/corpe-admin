@@ -37,6 +37,8 @@ export interface Director {
   dinStatus?: string;
   isDinActivationFeePaid?: boolean;
   isCommitted?: boolean;
+  isForeignResident?: boolean;
+  isForeignEntity?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

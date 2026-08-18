@@ -24,6 +24,11 @@ const AccountingBookkeepingServiceListContent = dynamic(
   { loading: () => <div className="flex items-center justify-center p-12 text-slate-500 text-sm">Loading...</div> }
 );
 
+const TaxationServiceListContent = dynamic(
+  () => import("@/components/addons/taxation/TaxationServiceListContent"),
+  { loading: () => <div className="flex items-center justify-center p-12 text-slate-500 text-sm">Loading...</div> }
+);
+
 const ADDON_MAP: Record<string, {
   title: string;
   desc: string;
@@ -48,6 +53,11 @@ const ADDON_MAP: Record<string, {
     title: "Accounting & Bookkeeping",
     desc: "View and manage all clients enrolled in the monthly Accounting & Bookkeeping engagement.",
     Component: AccountingBookkeepingServiceListContent,
+  },
+  "taxation": {
+    title: "Taxation",
+    desc: "View and manage all clients enrolled in Taxation — GST filing, ITR, TDS and advance tax.",
+    Component: TaxationServiceListContent,
   },
 };
 

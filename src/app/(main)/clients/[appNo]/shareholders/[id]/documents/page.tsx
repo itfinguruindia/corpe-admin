@@ -95,17 +95,21 @@ export default function ShareholderDocumentsPage() {
 
   const isForeignResident = useMemo(
     () =>
-      resolveIsForeignResident(shareholder as Record<string, unknown> | null),
-    [shareholder],
+      resolveIsForeignResident(
+        shareholder as Record<string, unknown> | null,
+        rawDocumentsData,
+      ),
+    [shareholder, rawDocumentsData],
   );
 
   const isDirectorShareholder = useMemo(
     () =>
       Boolean(
         (shareholder as { isDirectorShareholder?: boolean } | null)
-          ?.isDirectorShareholder,
+          ?.isDirectorShareholder ||
+          rawDocumentsData?.isDirectorShareholder,
       ),
-    [shareholder],
+    [shareholder, rawDocumentsData],
   );
 
   const showInc9Shareholder = useMemo(
@@ -206,6 +210,15 @@ export default function ShareholderDocumentsPage() {
             (source as any)?.shareholderName ||
             (source as any)?.name ||
             labels.shareholder,
+          isForeignResident: Boolean(
+            (source as any)?.isForeignResident ||
+              (source as any)?.isForeignEntity ||
+              (documentsData as any)?.isForeignResident,
+          ),
+          isDirectorShareholder: Boolean(
+            (source as any)?.isDirectorShareholder ||
+              (documentsData as any)?.isDirectorShareholder,
+          ),
         } as Shareholder);
         setRawDocumentsData(documentsData || {});
         if (trackerResponse && trackerResponse.installmentInfo) {
@@ -495,6 +508,11 @@ export default function ShareholderDocumentsPage() {
             <div className="bg-white rounded-lg shadow-sm p-8">
               <h2 className="text-xl font-semibold text-secondary mb-6">
                 {shareholder.name} - Documents
+                {isForeignResident && (
+                  <span className="ml-3 align-middle text-xs font-semibold uppercase tracking-wide text-[#3D63A4] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
+                    NRI / Foreign Resident
+                  </span>
+                )}
               </h2>
 
               <div>

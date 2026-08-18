@@ -5,15 +5,41 @@ export type StakeholderDocumentField = {
   label: string;
 };
 
+const FOREIGN_DOCUMENT_KEYS = [
+  "passportForeign",
+  "otherIDForeign",
+  "addressProofForeign",
+  "noPanDeclaration",
+] as const;
+
+const hasUploadedFile = (value: unknown): boolean => {
+  if (!value) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value !== "object") return false;
+  const file = value as Record<string, unknown>;
+  return Boolean(file.path || file.url || file.name);
+};
+
 export function resolveIsForeignResident(
   person: Record<string, unknown> | null | undefined,
+  rawDocumentsData?: Record<string, unknown> | null,
 ): boolean {
-  if (!person) return false;
-  return Boolean(
-    person.isForeignResident ??
-      person.foreignResident ??
-      person.isForeign ??
-      person.isNri,
+  if (person) {
+    const flagged = Boolean(
+      person.isForeignResident ??
+        person.foreignResident ??
+        person.isForeign ??
+        person.isNri ??
+        person.isForeignEntity,
+    );
+    if (flagged) return true;
+  }
+
+  if (!rawDocumentsData) return false;
+  if (rawDocumentsData.isForeignResident === true) return true;
+  if (rawDocumentsData.isForeignEntity === true) return true;
+  return FOREIGN_DOCUMENT_KEYS.some((key) =>
+    hasUploadedFile(rawDocumentsData[key]),
   );
 }
 
@@ -24,17 +50,21 @@ export function resolveIsForeignResident(
 export function getDirectorRegularDocumentFields(params: {
   isForeignResident: boolean;
   isLlp: boolean;
+  isOpc?: boolean;
   labels: StakeholderLabels;
   rawDocumentsData?: Record<string, unknown> | null;
 }): StakeholderDocumentField[] {
-  const { isForeignResident, isLlp, labels, rawDocumentsData } = params;
+  const { isForeignResident, isLlp, isOpc, labels, rawDocumentsData } = params;
   const fields: StakeholderDocumentField[] = [];
 
   if (!isForeignResident) {
     fields.push(
       { key: "adhar", label: "Aadhaar Card" },
       { key: "panCard", label: "PAN Card" },
-      { key: "otherGovtDocs", label: "Other Government Documents" },
+      {
+        key: "otherGovtDocs",
+        label: "Driving Licence or Passport or Voter ID",
+      },
       { key: "addressProofIndia", label: "Address Proof (India)" },
     );
     if (rawDocumentsData?.passportOrDrivingOrVoter) {
@@ -48,8 +78,8 @@ export function getDirectorRegularDocumentFields(params: {
     }
   } else {
     fields.push(
-      { key: "passportForeign", label: "Passport (Foreign)" },
-      { key: "otherIDForeign", label: "Other ID (Foreign)" },
+      { key: "passportForeign", label: "Passport" },
+      { key: "otherIDForeign", label: "Other Government ID" },
       { key: "addressProofForeign", label: "Address Proof (Foreign)" },
     );
   }
@@ -60,7 +90,14 @@ export function getDirectorRegularDocumentFields(params: {
     { key: "signature", label: "Signature" },
   );
 
-  if (!isLlp && rawDocumentsData?.consentToAct) {
+  if (isLlp && isForeignResident) {
+    fields.push({
+      key: "inc9Shareholder",
+      label: "COI and Any other related documents to Incorporation",
+    });
+  }
+
+  if (isOpc || (!isLlp && rawDocumentsData?.consentToAct)) {
     fields.push({ key: "consentToAct", label: labels.consentToAct });
   }
 
@@ -73,7 +110,7 @@ export function getDirectorDualSourceDocumentFields(params: {
   isLlp: boolean;
   labels: StakeholderLabels;
 }): StakeholderDocumentField[] {
-  const { isForeignResident, isLlp, labels } = params;
+  const { isForeignResident, labels } = params;
   const fields: StakeholderDocumentField[] = [
     { key: "dir2", label: labels.dir2 },
     { key: "inc9Director", label: labels.inc9Director },
@@ -110,7 +147,7 @@ export function getShareholderRegularDocumentFields(params: {
     fields.push(
       { key: "adhar", label: "Aadhaar Card" },
       { key: "panCard", label: "PAN Card" },
-      { key: "addressProofIndia", label: "Present Address Proof (India)" },
+      { key: "addressProofIndia", label: "Address Proof (India)" },
     );
     if (rawDocumentsData?.passportOrDrivingOrVoter) {
       fields.push({
@@ -120,9 +157,9 @@ export function getShareholderRegularDocumentFields(params: {
     }
   } else {
     fields.push(
-      { key: "passportForeign", label: "Passport (Foreign)" },
-      { key: "otherIDForeign", label: "Other ID (Foreign)" },
-      { key: "addressProofForeign", label: "Present Address Proof (Foreign)" },
+      { key: "passportForeign", label: "Passport" },
+      { key: "otherIDForeign", label: "Other Government ID" },
+      { key: "addressProofForeign", label: "Address Proof (Foreign)" },
     );
   }
 
