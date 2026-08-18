@@ -112,6 +112,26 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
     router.push(`/clients/${appNo}/directors/${director.id}`);
   };
 
+  const handleQuickDinStatusChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>,
+    directorId: string,
+    newStatus: string,
+  ) => {
+    e.stopPropagation();
+    try {
+      await clientsApi.updateDirectorStatus(appNo, directorId, {
+        dinStatus: newStatus,
+      });
+      toast.success(`DIN status updated to ${newStatus}`);
+      await loadDirectors();
+    } catch (error: any) {
+      toast(
+        error?.response?.data?.message || "Failed to update DIN status",
+        { variant: "danger" },
+      );
+    }
+  };
+
   const handleReview = async (
     requestId: string,
     action: "approve" | "reject",
@@ -387,7 +407,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                       </p>
                     </div>
                   )}
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-gray-900">
@@ -413,10 +433,10 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm font-semibold text-slate-800 mt-1">
                         {director.directorName}
                       </p>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-gray-500 mt-0.5">
                         {director.email} • {director.phoneNo}
                         {(director as { isForeignResident?: boolean })
                           .isForeignResident && (
@@ -425,6 +445,35 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                           </span>
                         )}
                       </p>
+                    </div>
+
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-2 shrink-0 bg-slate-50 p-2 rounded-lg border border-slate-200"
+                    >
+                      <span className="text-xs font-semibold text-slate-600">
+                        DIN Status:
+                      </span>
+                      <select
+                        value={(director as any).dinStatus || "Pending"}
+                        onChange={(e) =>
+                          handleQuickDinStatusChange(e, director.id, e.target.value)
+                        }
+                        className={`text-xs font-bold rounded-md border px-2.5 py-1 outline-none transition-all cursor-pointer ${
+                          (director as any).dinStatus === "Inactive"
+                            ? "bg-rose-100 border-rose-300 text-rose-800"
+                            : (director as any).dinStatus === "Active"
+                            ? "bg-emerald-100 border-emerald-300 text-emerald-800"
+                            : (director as any).dinStatus === "In Progress"
+                            ? "bg-amber-100 border-amber-300 text-amber-800"
+                            : "bg-white border-slate-300 text-slate-700"
+                        }`}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="In Progress">In Progress</option>
+                      </select>
                     </div>
                   </div>
                 </Card>

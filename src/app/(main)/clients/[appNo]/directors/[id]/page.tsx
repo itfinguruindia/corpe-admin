@@ -241,25 +241,23 @@ export default function DirectorDetailPage() {
               </span>
             )}
           </div>
-          {hasDIN && (
-            <div className="flex min-w-[150px] flex-col gap-1">
-              <span className="text-[12px] font-semibold text-gray-500">
-                {labels.dinStatus}
-              </span>
-              <CustomSelect
-                ariaLabel={labels.dinStatus}
-                value={dinStatus}
-                onChange={handleDinStatusChange}
-                options={[
-                  { id: "Pending", label: "Pending" },
-                  { id: "Active", label: "Active" },
-                  { id: "Inactive", label: "Inactive" },
-                  { id: "In Progress", label: "In Progress" },
-                ]}
-                isDisabled={!canEdit}
-              />
-            </div>
-          )}
+          <div className="flex min-w-[150px] flex-col gap-1">
+            <span className="text-[12px] font-semibold text-gray-500">
+              {labels.dinStatus}
+            </span>
+            <CustomSelect
+              ariaLabel={labels.dinStatus}
+              value={dinStatus}
+              onChange={handleDinStatusChange}
+              options={[
+                { id: "Pending", label: "Pending" },
+                { id: "Active", label: "Active" },
+                { id: "Inactive", label: "Inactive" },
+                { id: "In Progress", label: "In Progress" },
+              ]}
+              isDisabled={!canEdit}
+            />
+          </div>
         </div>
 
         {/* Director Information */}
