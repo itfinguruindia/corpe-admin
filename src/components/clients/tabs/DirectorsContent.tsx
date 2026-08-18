@@ -413,11 +413,6 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                         <h3 className="font-semibold text-gray-900">
                           {labels.directorWithNumber(director.directorNumber)}
                         </h3>
-                        {(director.din || (director as any).dinNumber) && (
-                          <span className="inline-flex items-center text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-300 shadow-2xs">
-                            DIN: {director.din || (director as any).dinNumber}
-                          </span>
-                        )}
                         {isReplacement && (
                           <Chip
                             label="Replacement"
