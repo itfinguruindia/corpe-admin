@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
+<<<<<<< Updated upstream
 import { Upload, Download, Eye, Loader2 } from "lucide-react";
 
+=======
+import { Upload, Download, Eye, EyeOff, Loader2, KeyRound, Copy, Check } from "lucide-react";
+>>>>>>> Stashed changes
 import { Switch } from "@/components/ui";
 import { FileUploadComponent } from "@/components/upload";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
@@ -59,6 +63,11 @@ interface GstRegistrationView {
   status?: string;
   arn?: string;
   adminDocs?: GstDocEntry[];
+  credentials?: {
+    loginId?: string;
+    password?: string;
+    updatedAt?: string;
+  };
 }
 
 interface GstDetailsContentProps {
@@ -99,9 +108,19 @@ export default function GstDetailsContent({
   kycLoading,
 }: GstDetailsContentProps) {
   const [miscTitle, setMiscTitle] = useState("");
+  const [showDetailsPassword, setShowDetailsPassword] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCopy = (field: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(field);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   const details = gstData?.gstDetails;
   const directors = gstData?.directors ?? [];
   const businessDocs = gstData?.businessDocs ?? {};
+  const credentials = gstData?.credentials;
 
   const findDoc = (slotId: string) => adminDocs.find((d) => d.id === slotId);
 
@@ -109,6 +128,77 @@ export default function GstDetailsContent({
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
       {/* Left: GST Info & Client Uploads */}
       <div className="space-y-6">
+        {/* GST Portal Credentials (if available) */}
+        {credentials && (credentials.loginId || credentials.password) && (
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-primary" />
+              GST Portal Login Credentials
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Login ID / Username
+                  </span>
+                  <span className="text-sm font-mono font-bold text-gray-800">
+                    {credentials.loginId || "-"}
+                  </span>
+                </div>
+                {credentials.loginId && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy("loginId", credentials.loginId || "")}
+                    className="p-1.5 text-gray-400 hover:text-gray-700 rounded-md hover:bg-white cursor-pointer transition-colors"
+                    title="Copy Login ID"
+                  >
+                    {copiedKey === "loginId" ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+                )}
+              </div>
+
+              <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Password
+                  </span>
+                  <span className="text-sm font-mono font-bold text-gray-800">
+                    {showDetailsPassword ? credentials.password : "••••••••••••"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowDetailsPassword((prev) => !prev)}
+                    className="p-1.5 text-gray-400 hover:text-gray-700 rounded-md hover:bg-white cursor-pointer transition-colors"
+                    title={showDetailsPassword ? "Hide password" : "Show password"}
+                  >
+                    {showDetailsPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                  {credentials.password && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy("password", credentials.password || "")}
+                      className="p-1.5 text-gray-400 hover:text-gray-700 rounded-md hover:bg-white cursor-pointer transition-colors"
+                      title="Copy Password"
+                    >
+                      {copiedKey === "password" ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* KYC Verified Toggle */}
         {onKycVerifiedChange !== undefined && (
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">

@@ -14,6 +14,12 @@ import {
   RotateCcw,
   ExternalLink,
   Clock,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Copy,
+  Check,
+  Edit2,
 } from "lucide-react";
 
 import { clientsApi } from "@/lib/api/clients";
@@ -52,6 +58,51 @@ export default function GSTAddonTrackerView({ appNo, orgId, isPaid = true }: Adm
   const [isApproving, setIsApproving] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+
+  // GST Portal Credentials States
+  const [credentialsLoginId, setCredentialsLoginId] = useState("");
+  const [credentialsPassword, setCredentialsPassword] = useState("");
+  const [showCredentialsPassword, setShowCredentialsPassword] = useState(false);
+  const [showInputPassword, setShowInputPassword] = useState(false);
+  const [showCredentialsForm, setShowCredentialsForm] = useState(false);
+  const [isSubmittingCredentials, setIsSubmittingCredentials] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleCopyCredentials = (field: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast.success(`${field} copied to clipboard!`);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleSaveCredentials = async () => {
+    if (!credentialsLoginId.trim()) {
+      toast.danger("Please enter the GST Portal Login ID");
+      return;
+    }
+    if (!credentialsPassword.trim()) {
+      toast.danger("Please enter the GST Portal Password");
+      return;
+    }
+    try {
+      setIsSubmittingCredentials(true);
+      await clientsApi.updateGstCredentials(appNo, {
+        loginId: credentialsLoginId.trim(),
+        password: credentialsPassword.trim(),
+        markStepDone: true,
+      });
+      toast.success("GST login credentials saved and shared successfully!");
+      setShowCredentialsForm(false);
+      setCredentialsLoginId("");
+      setCredentialsPassword("");
+      const updated = await clientsApi.getAddonTrackingStatus(appNo, "gst-registration");
+      setTracker(updated);
+    } catch (error) {
+      notifyApiError(error, { fallback: "Failed to save GST credentials." });
+    } finally {
+      setIsSubmittingCredentials(false);
+    }
+  };
 
   const loadTracker = useCallback(async () => {
     try {
@@ -306,6 +357,12 @@ export default function GSTAddonTrackerView({ appNo, orgId, isPaid = true }: Adm
               {section.steps.filter((s: any) => !s.isHidden).map((step: any) => {
                 const isMinistryQueryStep = step.title === "Respond to Ministry queries (if any)";
                 const queryMeta = step.addonQueryMetadata;
+                const isCredentialsStep =
+                  step.title === "Login credentials created and shared" ||
+                  step.title === "Login crediantial created and shared" ||
+                  step.title === "Login credential created and shared" ||
+                  step.title.toLowerCase().includes("login cred");
+                const credsMeta = step.credentialsMetadata;
 
                 return (
                   <div
@@ -662,6 +719,176 @@ export default function GSTAddonTrackerView({ appNo, orgId, isPaid = true }: Adm
                                 ? "The query raised by the Ministry has been marked as resolved."
                                 : "The client's clarification has been verified and resubmitted to the Ministry of GST."}
                             </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* ───────────────────────────────────────────────────────────── */}
+                    {/* INLINE PANELS FOR GST PORTAL CREDENTIALS      */}
+                    {/* ───────────────────────────────────────────────────────────── */}
+                    {isCredentialsStep && (
+                      <div className="pt-2">
+                        {credsMeta && (credsMeta.loginId || credsMeta.password) && !showCredentialsForm ? (
+                          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 max-w-xl text-left shadow-sm">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wide">
+                                <KeyRound className="w-4 h-4 text-primary shrink-0" />
+                                GST Portal Login Credentials
+                              </h4>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCredentialsLoginId(credsMeta.loginId || "");
+                                  setCredentialsPassword(credsMeta.password || "");
+                                  setShowCredentialsForm(true);
+                                }}
+                                className="text-xs font-semibold text-primary hover:text-orange-600 flex items-center gap-1 cursor-pointer bg-transparent border-none"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                                Edit Credentials
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {/* Login ID Row */}
+                              <div className="p-3 bg-white border border-slate-200 rounded-lg flex items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                    Login ID / Username
+                                  </span>
+                                  <p className="text-xs font-mono font-bold text-slate-800 truncate mt-0.5">
+                                    {credsMeta.loginId || "-"}
+                                  </p>
+                                </div>
+                                {credsMeta.loginId && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyCredentials("Login ID", credsMeta.loginId)}
+                                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 cursor-pointer transition-colors shrink-0"
+                                    title="Copy Login ID"
+                                  >
+                                    {copiedField === "Login ID" ? (
+                                      <Check className="w-4 h-4 text-green-600" />
+                                    ) : (
+                                      <Copy className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Password Row */}
+                              <div className="p-3 bg-white border border-slate-200 rounded-lg flex items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                    Password
+                                  </span>
+                                  <p className="text-xs font-mono font-bold text-slate-800 truncate mt-0.5">
+                                    {showCredentialsPassword ? credsMeta.password : "••••••••••••"}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowCredentialsPassword((prev) => !prev)}
+                                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 cursor-pointer transition-colors"
+                                    title={showCredentialsPassword ? "Hide password" : "Show password"}
+                                  >
+                                    {showCredentialsPassword ? (
+                                      <EyeOff className="w-4 h-4" />
+                                    ) : (
+                                      <Eye className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                  {credsMeta.password && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopyCredentials("Password", credsMeta.password)}
+                                      className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-100 cursor-pointer transition-colors"
+                                      title="Copy Password"
+                                    >
+                                      {copiedField === "Password" ? (
+                                        <Check className="w-4 h-4 text-green-600" />
+                                      ) : (
+                                        <Copy className="w-4 h-4" />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-orange-50/50 border border-orange-200 rounded-xl space-y-4 max-w-xl text-left shadow-sm">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase tracking-wide">
+                                <KeyRound className="w-4 h-4 text-primary shrink-0" />
+                                {credsMeta?.loginId ? "Edit GST Portal Credentials" : "Enter GST Portal Login Credentials"}
+                              </h4>
+                              {showCredentialsForm && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowCredentialsForm(false);
+                                    setCredentialsLoginId("");
+                                    setCredentialsPassword("");
+                                  }}
+                                  className="text-xs text-slate-500 hover:text-slate-700 cursor-pointer bg-transparent border-none"
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <label className="block text-xs font-semibold text-slate-700">
+                                  Login ID / Username <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  value={credentialsLoginId}
+                                  onChange={(e) => setCredentialsLoginId(e.target.value)}
+                                  placeholder="e.g. GSTIN or Username"
+                                  className="w-full p-2.5 border border-slate-200 rounded-lg text-xs bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary font-mono"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="block text-xs font-semibold text-slate-700">
+                                  Password <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative">
+                                  <input
+                                    type={showInputPassword ? "text" : "password"}
+                                    value={credentialsPassword}
+                                    onChange={(e) => setCredentialsPassword(e.target.value)}
+                                    placeholder="Enter login password"
+                                    className="w-full p-2.5 pr-9 border border-slate-200 rounded-lg text-xs bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary font-mono"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowInputPassword((prev) => !prev)}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer"
+                                    title={showInputPassword ? "Hide password" : "Show password"}
+                                  >
+                                    {showInputPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 pt-1">
+                              <button
+                                type="button"
+                                disabled={isSubmittingCredentials || !credentialsLoginId.trim() || !credentialsPassword.trim()}
+                                onClick={handleSaveCredentials}
+                                className="px-4 py-2 text-xs font-bold text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                              >
+                                {isSubmittingCredentials && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                Save & Share with Client
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>

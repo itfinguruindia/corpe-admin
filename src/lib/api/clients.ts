@@ -1438,6 +1438,17 @@ export const clientsApi = {
     return response.data?.data ?? response.data;
   },
 
+  updateGstCredentials: async (
+    applicationNo: string,
+    credentials: { loginId: string; password: string; markStepDone?: boolean }
+  ) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/gst-registration/credentials`,
+      credentials
+    );
+    return response.data?.data ?? response.data;
+  },
+
   advanceAddonCycle: async (orgId: string, addonId: string, svcId: string) => {
     const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/advance-cycle`, {
       addonId,
