@@ -8,6 +8,11 @@ import { notifyApiError } from "@/utils/apiErrors";
 import axiosInstance from "@/lib/axios";
 import { clientsApi } from "@/lib/api/clients";
 import { FileUploadComponent } from "@/components/upload";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import Modal from "@/components/ui/Modal";
+import DocumentPreviewBody from "@/components/ui/DocumentPreviewBody";
+import { createPreviewObjectUrlFromBlob } from "@/utils/documentPreview";
+
 import TrademarkAddonTrackerView from "./TrademarkAddonTrackerView";
 
 interface TrademarkServiceContentProps {
@@ -34,6 +39,30 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
   const [activeTab, setActiveTab] = useState<"details" | "tracker">("details");
   const [miscTitleInput, setMiscTitleInput] = useState("");
 
+  const [previewState, setPreviewState] = useState<{
+    isOpen: boolean;
+    url: string | null;
+    fileName: string;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    url: null,
+    fileName: "",
+    loading: false,
+  });
+
+  const closePreview = () => {
+    if (previewState.url) {
+      URL.revokeObjectURL(previewState.url);
+    }
+    setPreviewState({
+      isOpen: false,
+      url: null,
+      fileName: "",
+      loading: false,
+    });
+  };
+
   const fetchTrademarkDetails = useCallback(async () => {
     try {
       setLoading(true);
@@ -56,16 +85,8 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
 
   const handleUploadAdminDoc = async (slotId: string, file: File, title?: string) => {
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const titleParam = title ? `&title=${encodeURIComponent(title)}` : "";
-      await axiosInstance.post(
-        `/admin/clients/${appNo}/trademark-registration/upload-admin-doc?docType=${encodeURIComponent(slotId)}${titleParam}`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+      await clientsApi.uploadTrademarkAdminDoc(appNo, slotId, file, title);
       toast.success("Document uploaded successfully!");
-      setMiscTitleInput("");
       fetchTrademarkDetails();
     } catch (error) {
       notifyApiError(error, { fallback: "Failed to upload admin document." });
@@ -79,23 +100,38 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
     filename?: string,
   ) => {
     try {
+      const name = filename || docId;
+      if (mode === "preview") {
+        setPreviewState({
+          isOpen: true,
+          url: null,
+          fileName: name,
+          loading: true,
+        });
+      }
       const url = clientsApi.getTrademarkDocDownloadUrl(appNo, docId, adminDocId);
       const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = response.data;
-      const objectUrl = URL.createObjectURL(blob);
       if (mode === "preview") {
-        window.open(objectUrl, "_blank");
+        const preview = createPreviewObjectUrlFromBlob(blob, name);
+        setPreviewState({
+          isOpen: true,
+          url: preview.url,
+          fileName: preview.fileName,
+          loading: false,
+        });
       } else {
-        const name = filename || docId;
         const a = document.createElement("a");
-        a.href = objectUrl;
+        a.href = URL.createObjectURL(blob);
         a.download = name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
       }
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch {
+      if (mode === "preview") {
+        setPreviewState((prev) => ({ ...prev, loading: false }));
+      }
       toast.danger("Failed to download document");
     }
   };
@@ -292,26 +328,40 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
                           {doc.name || "Uploaded"}
                         </span>
                       </div>
-                      {doc.path && (
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => downloadDocFile(docId, "preview")}
-                            className="text-blue-600 hover:text-blue-700 p-1"
-                            title="Preview"
-                          >
-                            <Eye size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => downloadDocFile(docId, "download", undefined, doc.name)}
-                            className="text-blue-600 hover:text-blue-700 p-1"
-                            title="Download"
-                          >
-                            <Download size={14} />
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {doc.path && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => downloadDocFile(docId, "preview")}
+                              className="text-blue-600 hover:text-blue-700 p-1"
+                              title="Preview"
+                            >
+                              <Eye size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => downloadDocFile(docId, "download", undefined, doc.name)}
+                              className="text-blue-600 hover:text-blue-700 p-1"
+                              title="Download"
+                            >
+                              <Download size={14} />
+                            </button>
+                          </>
+                        )}
+                        <DocumentIssueButton
+                          applicationNo={appNo}
+                          target={{
+                            entityType: "trademark",
+                            entityId: "trademark",
+                            entityLabel: "Trademark Registration",
+                            fieldKey: docId,
+                            documentLabel: label,
+                            clientRoute: "add-ons/trademark-registration",
+                          }}
+                          className="inline-flex items-center text-primary hover:text-secondary p-1"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -319,6 +369,66 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
                 <p className="text-xs text-gray-400 italic">No document files uploaded by client yet.</p>
               )}
             </div>
+
+            {/* Miscellaneous Client Documents */}
+            {Array.isArray(tmData.miscDocs) && tmData.miscDocs.length > 0 && (
+              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                  Miscellaneous Client Documents
+                </h3>
+                <div className="space-y-2">
+                  {tmData.miscDocs.map((doc: any, idx: number) =>
+                    doc?.path ? (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 p-3"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs font-semibold text-gray-800">
+                            {doc?.docType || `Document ${idx + 1}`}
+                          </span>
+                          {doc?.name && (
+                            <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700 truncate max-w-[180px]">
+                              {doc.name}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => downloadDocFile(`misc-${idx}`, "preview", `misc-${idx}`)}
+                            className="text-blue-600 hover:text-blue-700 p-1"
+                            title="Preview"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadDocFile(`misc-${idx}`, "download", `misc-${idx}`, doc.name)}
+                            className="text-blue-600 hover:text-blue-700 p-1"
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                          <DocumentIssueButton
+                            applicationNo={appNo}
+                            target={{
+                              entityType: "trademark",
+                              entityId: "misc",
+                              entityLabel: "Trademark Miscellaneous Document",
+                              fieldKey: `misc-${idx}`,
+                              documentLabel: doc?.docType || doc?.name || `Miscellaneous Document ${idx + 1}`,
+                              clientRoute: "add-ons/trademark-registration",
+                            }}
+                            className="inline-flex items-center text-primary hover:text-secondary p-1"
+                          />
+                        </div>
+                      </div>
+                    ) : null
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right Column */}
@@ -473,6 +583,19 @@ export default function TrademarkServiceContent({ appNo }: TrademarkServiceConte
       {activeTab === "tracker" && (
         <TrademarkAddonTrackerView appNo={appNo} orgId={tmData.org || ""} isPaid={tmData.isPaid ?? false} />
       )}
+
+      <Modal
+        isOpen={previewState.isOpen}
+        onClose={closePreview}
+        title={previewState.fileName ? `Document Preview: ${previewState.fileName}` : "Document Preview"}
+        maxWidth="md:max-w-[90vw]"
+      >
+        <DocumentPreviewBody
+          url={previewState.url}
+          fileName={previewState.fileName}
+          loading={previewState.loading}
+        />
+      </Modal>
     </div>
   );
 }

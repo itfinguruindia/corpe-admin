@@ -6,6 +6,10 @@ import { toast } from "@heroui/react";
 import { clientsApi } from "@/lib/api/clients";
 import { notifyApiError } from "@/utils/apiErrors";
 import axiosInstance from "@/lib/axios";
+import Modal from "@/components/ui/Modal";
+import DocumentPreviewBody from "@/components/ui/DocumentPreviewBody";
+import { createPreviewObjectUrlFromBlob } from "@/utils/documentPreview";
+
 import GstDetailsContent from "./GstDetailsContent";
 import GSTAddonTrackerView from "./GSTAddonTrackerView";
 
@@ -57,6 +61,8 @@ interface GstRegistrationView {
 const ADMIN_DOC_SLOTS = [
   { id: "gst-certificate", label: "GST Certificate" },
   { id: "arn-acknowledgement", label: "ARN Acknowledgement" },
+  { id: "board-resolution", label: "Board Resolution" },
+  { id: "auth-signatory-letter", label: "Authorised Signatory Letter (Template)" },
 ];
 
 export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
@@ -71,6 +77,30 @@ export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
   const [arnInput, setArnInput] = useState("");
   const [arnError, setArnError] = useState("");
   const [savingArn, setSavingArn] = useState(false);
+
+  const [previewState, setPreviewState] = useState<{
+    isOpen: boolean;
+    url: string | null;
+    fileName: string;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    url: null,
+    fileName: "",
+    loading: false,
+  });
+
+  const closePreview = () => {
+    if (previewState.url) {
+      URL.revokeObjectURL(previewState.url);
+    }
+    setPreviewState({
+      isOpen: false,
+      url: null,
+      fileName: "",
+      loading: false,
+    });
+  };
 
   const loadGst = useCallback(async () => {
     setLoading(true);
@@ -88,11 +118,17 @@ export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
     }
   }, [appNo]);
 
-  const loadKycState = useCallback(async () => {
-    if (!gstData?.org) return;
-    try {
-      const tracker = await clientsApi.getAddonTrackingStatus(appNo, "gst-registration");
-      if (tracker?.stages) {
+  useEffect(() => {
+    loadGst();
+  }, [loadGst]);
+
+  useEffect(() => {
+    if (gstData?.org) {
+      clientsApi.getAddonTrackingStatus(appNo, "gst-registration").then((tracker) => {
+        if (!tracker?.stages) {
+          setKycVerified(false);
+          return;
+        }
         for (const stage of tracker.stages) {
           for (const section of stage.sections) {
             for (const step of section.steps) {
@@ -103,38 +139,18 @@ export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
             }
           }
         }
-      }
-      setKycVerified(false);
-    } catch {
-      setKycVerified(false);
+        setKycVerified(false);
+      }).catch(() => setKycVerified(false));
     }
   }, [appNo, gstData?.org]);
 
-  useEffect(() => {
-    if (subTab === "details" && gstData?.org) {
-      loadKycState();
-    }
-  }, [subTab, gstData?.org, loadKycState]);
-
-  useEffect(() => {
-    if (gstData?.org) {
-      loadKycState();
-    }
-  }, [gstData?.org, loadKycState]);
-
-  useEffect(() => {
-    loadGst();
-  }, [loadGst]);
-
   const handleSaveArn = async () => {
-    if (!arnInput) {
+    if (!arnInput.trim()) {
       setArnError("ARN is required");
       return;
     }
-
-    const isValid = /^[a-zA-Z]{2}[0-9]{12}[a-zA-Z0-9]$/.test(arnInput);
-    if (!isValid) {
-      setArnError("Invalid ARN format. E.g. AA060826000001Z (15 characters alphanumeric).");
+    if (!/^[A-Za-z0-9]{15}$/.test(arnInput.trim())) {
+      setArnError("ARN must be exactly 15 alphanumeric characters");
       return;
     }
 
@@ -161,46 +177,52 @@ export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
     }
   };
 
-  const downloadBusinessDoc = async (docId: string, mode: "preview" | "download" = "download") => {
+  const downloadBusinessDoc = async (
+    docId: string,
+    mode: "preview" | "download" = "download",
+    directorIndex?: number,
+  ) => {
     try {
-      const url = clientsApi.getGstBusinessDocDownloadUrl(appNo, docId);
+      let filename = docId;
+      if (mode === "preview") {
+        setPreviewState({
+          isOpen: true,
+          url: null,
+          fileName: filename,
+          loading: true,
+        });
+      }
+      const url = clientsApi.getGstBusinessDocDownloadUrl(appNo, docId, directorIndex);
       const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = response.data;
-      const objectUrl = URL.createObjectURL(blob);
-      if (mode === "preview") {
-        window.open(objectUrl, "_blank");
-      } else {
-        const contentDisposition = response.headers["content-disposition"];
-        let filename = docId;
-        if (contentDisposition) {
-          const matches = /filename\*?=(?:UTF-8'')?([^;]+)/.exec(contentDisposition);
-          if (matches && matches[1]) {
-            filename = decodeURIComponent(matches[1].replace(/['"]/g, ""));
-          } else {
-            const legacyMatches = /filename="?([^";]+)"?/.exec(contentDisposition);
-            if (legacyMatches && legacyMatches[1]) {
-              filename = legacyMatches[1];
-            }
-          }
-        } else {
-          const extensionMap: Record<string, string> = {
-            "application/pdf": ".pdf",
-            "image/png": ".png",
-            "image/jpeg": ".jpg",
-          };
-          const ext = extensionMap[blob.type] || "";
-          filename = `${docId}${ext}`;
+      const contentDisposition = response.headers["content-disposition"];
+      if (contentDisposition) {
+        const matches = /filename\*?=(?:UTF-8'')?([^;]+)/.exec(contentDisposition);
+        if (matches && matches[1]) {
+          filename = decodeURIComponent(matches[1].replace(/['"]/g, ""));
         }
+      }
 
+      if (mode === "preview") {
+        const preview = createPreviewObjectUrlFromBlob(blob, filename);
+        setPreviewState({
+          isOpen: true,
+          url: preview.url,
+          fileName: preview.fileName,
+          loading: false,
+        });
+      } else {
         const a = document.createElement("a");
-        a.href = objectUrl;
+        a.href = URL.createObjectURL(blob);
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
       }
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch {
+      if (mode === "preview") {
+        setPreviewState((prev) => ({ ...prev, loading: false }));
+      }
       toast.danger("Failed to download document");
     }
   };
@@ -243,21 +265,36 @@ export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
 
   const downloadGstDocBlob = async (url: string, filename: string, mode: "preview" | "download") => {
     try {
+      if (mode === "preview") {
+        setPreviewState({
+          isOpen: true,
+          url: null,
+          fileName: filename,
+          loading: true,
+        });
+      }
       const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = response.data;
-      const objectUrl = URL.createObjectURL(blob);
       if (mode === "preview") {
-        window.open(objectUrl, "_blank");
+        const preview = createPreviewObjectUrlFromBlob(blob, filename);
+        setPreviewState({
+          isOpen: true,
+          url: preview.url,
+          fileName: preview.fileName,
+          loading: false,
+        });
       } else {
         const a = document.createElement("a");
-        a.href = objectUrl;
+        a.href = URL.createObjectURL(blob);
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
       }
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch {
+      if (mode === "preview") {
+        setPreviewState((prev) => ({ ...prev, loading: false }));
+      }
       toast.danger("Failed to download document");
     }
   };
@@ -348,6 +385,19 @@ export default function GSTServiceContent({ appNo }: GSTServiceContentProps) {
           kycLoading={kycLoading}
         />
       )}
+
+      <Modal
+        isOpen={previewState.isOpen}
+        onClose={closePreview}
+        title={previewState.fileName ? `Document Preview: ${previewState.fileName}` : "Document Preview"}
+        maxWidth="md:max-w-[90vw]"
+      >
+        <DocumentPreviewBody
+          url={previewState.url}
+          fileName={previewState.fileName}
+          loading={previewState.loading}
+        />
+      </Modal>
     </div>
   );
 }

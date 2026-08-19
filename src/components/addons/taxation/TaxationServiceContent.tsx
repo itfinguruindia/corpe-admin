@@ -8,6 +8,11 @@ import axiosInstance from "@/lib/axios";
 import { clientsApi } from "@/lib/api/clients";
 import { notifyApiError } from "@/utils/apiErrors";
 import { FileUploadComponent } from "@/components/upload";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+import Modal from "@/components/ui/Modal";
+import DocumentPreviewBody from "@/components/ui/DocumentPreviewBody";
+import { createPreviewObjectUrlFromBlob } from "@/utils/documentPreview";
+
 import TaxationAdminTrackerView from "./TaxationAdminTrackerView";
 
 interface TaxationServiceContentProps {
@@ -157,6 +162,30 @@ export default function TaxationServiceContent({
   const [quoteAltAmount, setQuoteAltAmount] = useState<string>("");
   const [savingQuote, setSavingQuote] = useState(false);
 
+  const [previewState, setPreviewState] = useState<{
+    isOpen: boolean;
+    url: string | null;
+    fileName: string;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    url: null,
+    fileName: "",
+    loading: false,
+  });
+
+  const closePreview = () => {
+    if (previewState.url) {
+      URL.revokeObjectURL(previewState.url);
+    }
+    setPreviewState({
+      isOpen: false,
+      url: null,
+      fileName: "",
+      loading: false,
+    });
+  };
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -208,22 +237,38 @@ export default function TaxationServiceContent({
     filename?: string
   ) => {
     try {
+      const name = filename || String(docId);
+      if (mode === "preview") {
+        setPreviewState({
+          isOpen: true,
+          url: null,
+          fileName: name,
+          loading: true,
+        });
+      }
       const url = `/admin/clients/${appNo}/taxation/doc/download?docId=${encodeURIComponent(docId)}`;
       const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = response.data;
-      const objectUrl = URL.createObjectURL(blob);
       if (mode === "preview") {
-        window.open(objectUrl, "_blank");
+        const preview = createPreviewObjectUrlFromBlob(blob, name);
+        setPreviewState({
+          isOpen: true,
+          url: preview.url,
+          fileName: preview.fileName,
+          loading: false,
+        });
       } else {
         const a = document.createElement("a");
-        a.href = objectUrl;
-        a.download = filename || docId;
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
       }
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch {
+      if (mode === "preview") {
+        setPreviewState((prev) => ({ ...prev, loading: false }));
+      }
       toast.danger("Failed to download document");
     }
   };
@@ -233,24 +278,38 @@ export default function TaxationServiceContent({
     mode: "preview" | "download" = "download"
   ) => {
     try {
+      const name = doc.name || doc.id || "deliverable";
+      if (mode === "preview") {
+        setPreviewState({
+          isOpen: true,
+          url: null,
+          fileName: name,
+          loading: true,
+        });
+      }
       const url = `/admin/clients/${appNo}/taxation/doc/download?adminDocId=${encodeURIComponent(doc.id || doc.name || "")}`;
       const response = await axiosInstance.get(url, { responseType: "blob" });
-      const rawBlob = response.data;
-      const contentType = rawBlob?.type || response.headers?.["content-type"] || (doc?.name?.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/png");
-      const blob = rawBlob instanceof Blob && rawBlob.type ? rawBlob : new Blob([rawBlob], { type: contentType });
-      const objectUrl = URL.createObjectURL(blob);
+      const blob = response.data;
       if (mode === "preview") {
-        window.open(objectUrl, "_blank");
+        const preview = createPreviewObjectUrlFromBlob(blob, name);
+        setPreviewState({
+          isOpen: true,
+          url: preview.url,
+          fileName: preview.fileName,
+          loading: false,
+        });
       } else {
         const a = document.createElement("a");
-        a.href = objectUrl;
-        a.download = doc.name || doc.id || "deliverable";
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
       }
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch {
+      if (mode === "preview") {
+        setPreviewState((prev) => ({ ...prev, loading: false }));
+      }
       toast.danger("Failed to download document");
     }
   };
@@ -261,22 +320,38 @@ export default function TaxationServiceContent({
     filename?: string
   ) => {
     try {
+      const name = filename || `misc-document-${index}`;
+      if (mode === "preview") {
+        setPreviewState({
+          isOpen: true,
+          url: null,
+          fileName: name,
+          loading: true,
+        });
+      }
       const url = `/admin/clients/${appNo}/taxation/misc-doc/download?index=${index}`;
       const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = response.data;
-      const objectUrl = URL.createObjectURL(blob);
       if (mode === "preview") {
-        window.open(objectUrl, "_blank");
+        const preview = createPreviewObjectUrlFromBlob(blob, name);
+        setPreviewState({
+          isOpen: true,
+          url: preview.url,
+          fileName: preview.fileName,
+          loading: false,
+        });
       } else {
         const a = document.createElement("a");
-        a.href = objectUrl;
-        a.download = filename || `misc-document-${index}`;
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
       }
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch {
+      if (mode === "preview") {
+        setPreviewState((prev) => ({ ...prev, loading: false }));
+      }
       toast.danger("Failed to download document");
     }
   };
@@ -803,26 +878,40 @@ export default function TaxationServiceContent({
                                   </span>
                                 )}
                               </div>
-                              {doc?.path && (
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={() => downloadDoc(key, "preview")}
-                                    className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
-                                    title="Preview"
-                                  >
-                                    <Eye size={14} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => downloadDoc(key, "download", doc.name)}
-                                    className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
-                                    title="Download"
-                                  >
-                                    <Download size={14} />
-                                  </button>
-                                </div>
-                              )}
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {doc?.path && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadDoc(key, "preview")}
+                                      className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
+                                      title="Preview"
+                                    >
+                                      <Eye size={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => downloadDoc(key, "download", doc.name)}
+                                      className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
+                                      title="Download"
+                                    >
+                                      <Download size={14} />
+                                    </button>
+                                  </>
+                                )}
+                                <DocumentIssueButton
+                                  applicationNo={appNo}
+                                  target={{
+                                    entityType: "taxation",
+                                    entityId: "taxation",
+                                    entityLabel: "Taxation Service",
+                                    fieldKey: key,
+                                    documentLabel: DOC_LABELS[key] || key,
+                                    clientRoute: "add-ons/taxation",
+                                  }}
+                                  className="inline-flex items-center text-primary hover:text-secondary p-1"
+                                />
+                              </div>
                             </div>
                           );
                         })}
@@ -957,6 +1046,18 @@ export default function TaxationServiceContent({
                         >
                           <Download size={14} />
                         </button>
+                        <DocumentIssueButton
+                          applicationNo={appNo}
+                          target={{
+                            entityType: "taxation",
+                            entityId: "misc",
+                            entityLabel: "Taxation Miscellaneous Document",
+                            fieldKey: `misc-${idx}`,
+                            documentLabel: doc?.docType || doc?.name || `Miscellaneous Document ${idx + 1}`,
+                            clientRoute: "add-ons/taxation",
+                          }}
+                          className="inline-flex items-center text-primary hover:text-secondary p-1"
+                        />
                       </div>
                     </div>
                   ) : null
@@ -1130,7 +1231,7 @@ export default function TaxationServiceContent({
                           className="text-blue-600 hover:text-blue-700 p-1"
                           title="Preview"
                         >
-                          <Download size={14} />
+                          <Eye size={14} />
                         </button>
                         <button
                           type="button"
@@ -1158,6 +1259,19 @@ export default function TaxationServiceContent({
           isPaid={taxData.isPaid ?? false}
         />
       )}
+
+      <Modal
+        isOpen={previewState.isOpen}
+        onClose={closePreview}
+        title={previewState.fileName ? `Document Preview: ${previewState.fileName}` : "Document Preview"}
+        maxWidth="md:max-w-[90vw]"
+      >
+        <DocumentPreviewBody
+          url={previewState.url}
+          fileName={previewState.fileName}
+          loading={previewState.loading}
+        />
+      </Modal>
     </div>
   );
 }

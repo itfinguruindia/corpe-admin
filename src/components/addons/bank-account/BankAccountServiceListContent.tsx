@@ -31,6 +31,7 @@ interface BankAccountClientItem {
   accountDetails?: {
     accountType?: string;
     branch?: string;
+    locality?: string;
     existingCustomer?: string;
     funding?: string;
     notes?: string;
@@ -110,7 +111,7 @@ export default function BankAccountServiceListContent({ addonId }: { addonId: st
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by app #, client name, email, or branch..."
+            placeholder="Search by app #, client name, email, or locality..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg pl-9 pr-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
@@ -161,7 +162,7 @@ export default function BankAccountServiceListContent({ addonId }: { addonId: st
                   <th className="p-4">App # / Client</th>
                   <th className="p-4">Bank Selected</th>
                   <th className="p-4">Payment Status</th>
-                  <th className="p-4">Account Type / Branch</th>
+                  <th className="p-4">Account Type / Locality</th>
                   <th className="p-4">Tracker Progress</th>
                   <th className="p-4 text-right">Action</th>
                 </tr>
@@ -210,7 +211,7 @@ export default function BankAccountServiceListContent({ addonId }: { addonId: st
                         <div className="font-medium text-slate-700 dark:text-slate-200">
                           {item.accountDetails?.accountType || ""}
                         </div>
-                        <div className="text-xs text-slate-400">{item.accountDetails?.branch || ""}</div>
+                        <div className="text-xs text-slate-400">{item.accountDetails?.locality || item.accountDetails?.branch || ""}</div>
                       </td>
 
                       <td className="p-4 w-44">

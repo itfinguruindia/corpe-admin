@@ -4,12 +4,23 @@ export type DocumentIssueEntityType =
   | "company"
   | "registeredOffice"
   | "partner"
-  | "registration";
+  | "registration"
+  | "addon"
+  | "gst"
+  | "bankAccount"
+  | "trademark"
+  | "taxation"
+  | "accounting";
 
 export type DocumentIssueClientRoute =
   | "document-upload"
   | "corporate-structure"
-  | "registration-documents";
+  | "registration-documents"
+  | "add-ons/gst-registration"
+  | "add-ons/bank-account-setup"
+  | "add-ons/trademark-registration"
+  | "add-ons/accounting-bookkeeping"
+  | "add-ons/taxation";
 
 export const DOCUMENT_ISSUE_SUGGESTIONS = [
   "The uploaded document is blurry. Please re-upload a clearer copy.",

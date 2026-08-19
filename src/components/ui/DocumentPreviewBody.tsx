@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { FileText, Loader2 } from "lucide-react";
-import { resolvePreviewKind } from "@/utils/documentPreview";
+
+import { resolvePreviewKind, sniffBlobType } from "@/utils/documentPreview";
 
 interface DocumentPreviewBodyProps {
   url: string | null;
@@ -20,6 +22,36 @@ export default function DocumentPreviewBody({
   loading = false,
   className = "",
 }: DocumentPreviewBodyProps) {
+  const [kind, setKind] = useState<"image" | "pdf" | "other">(
+    resolvePreviewKind(fileName || url || ""),
+  );
+
+  useEffect(() => {
+    const initial = resolvePreviewKind(fileName || url || "");
+    if (initial !== "other") {
+      setKind(initial);
+      return;
+    }
+
+    if (url && url.startsWith("blob:")) {
+      let isMounted = true;
+      fetch(url)
+        .then((r) => r.blob())
+        .then(async (b) => {
+          if (!isMounted) return;
+          const detected = await sniffBlobType(b);
+          if (detected !== "other") {
+            setKind(detected);
+          }
+        })
+        .catch(() => {});
+
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [url, fileName]);
+
   if (loading) {
     return (
       <div
@@ -41,8 +73,6 @@ export default function DocumentPreviewBody({
       </div>
     );
   }
-
-  const kind = resolvePreviewKind(fileName, undefined);
 
   if (kind === "image") {
     return (

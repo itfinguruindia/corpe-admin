@@ -1328,8 +1328,13 @@ export const clientsApi = {
     return response.data?.data ?? response.data;
   },
 
-  getGstBusinessDocDownloadUrl: (applicationNo: string, docId: string) =>
-    `/admin/clients/${applicationNo}/gst-registration/business-doc/download?docId=${encodeURIComponent(docId)}`,
+  getGstBusinessDocDownloadUrl: (applicationNo: string, docId: string, directorIndex?: number) => {
+    let url = `/admin/clients/${applicationNo}/gst-registration/business-doc/download?docId=${encodeURIComponent(docId)}`;
+    if (typeof directorIndex === "number") {
+      url += `&directorIndex=${directorIndex}`;
+    }
+    return url;
+  },
 
   getGstMiscDocDownloadUrl: (applicationNo: string, index: number) =>
     `/admin/clients/${applicationNo}/gst-registration/misc-doc/download?index=${index}`,
@@ -1429,6 +1434,17 @@ export const clientsApi = {
     const response = await axiosInstance.post(
       `/admin/clients/${applicationNo}/gst-registration/arn`,
       { arn }
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  updateGstCredentials: async (
+    applicationNo: string,
+    credentials: { loginId: string; password: string; markStepDone?: boolean }
+  ) => {
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/gst-registration/credentials`,
+      credentials
     );
     return response.data?.data ?? response.data;
   },

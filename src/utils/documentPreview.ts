@@ -55,8 +55,31 @@ export function resolvePreviewKind(
   return "other";
 }
 
+export async function sniffBlobType(blob: Blob): Promise<"image" | "pdf" | "other"> {
+  if (blob.type === "application/pdf" || blob.type.includes("pdf")) return "pdf";
+  if (blob.type.startsWith("image/")) return "image";
+  try {
+    const buf = await blob.slice(0, 16).arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) {
+      return "pdf";
+    }
+    if (
+      (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) ||
+      (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) ||
+      (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) ||
+      (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46)
+    ) {
+      return "image";
+    }
+  } catch {
+    // ignore
+  }
+  return "other";
+}
+
 /** Ensure blob has a usable MIME type for iframe/img preview. */
-export function ensureBlobMimeType(blob: Blob, fileNameOrUrl?: string): Blob {
+export async function ensureBlobMimeType(blob: Blob, fileNameOrUrl?: string): Promise<Blob> {
   const inferred = fileNameOrUrl ? mimeTypeFromFileName(fileNameOrUrl) : null;
   if (
     inferred &&
@@ -66,6 +89,21 @@ export function ensureBlobMimeType(blob: Blob, fileNameOrUrl?: string): Blob {
   ) {
     return new Blob([blob], { type: inferred });
   }
+
+  if (
+    !blob.type ||
+    blob.type === "application/octet-stream" ||
+    blob.type === "binary/octet-stream"
+  ) {
+    const kind = await sniffBlobType(blob);
+    if (kind === "pdf") {
+      return new Blob([blob], { type: "application/pdf" });
+    }
+    if (kind === "image") {
+      return new Blob([blob], { type: "image/png" });
+    }
+  }
+
   return blob;
 }
 
@@ -78,8 +116,8 @@ export async function createPreviewObjectUrl(
   sourceUrl: string,
   fileNameHint?: string,
 ): Promise<{ url: string; kind: "image" | "pdf" | "other"; fileName: string }> {
-  const fileName = fileNameHint || sourceUrl;
-  const kind = resolvePreviewKind(fileName);
+  let fileName = fileNameHint || sourceUrl;
+  let kind = resolvePreviewKind(fileName);
 
   // Same-origin only — S3 / CDN signed URLs cannot be fetched from the browser.
   if (isCrossOriginUrl(sourceUrl)) {
@@ -91,10 +129,21 @@ export async function createPreviewObjectUrl(
     throw new Error(`Failed to load file (${response.status})`);
   }
   const raw = await response.blob();
-  const typed = ensureBlobMimeType(raw, fileName);
+  const typed = await ensureBlobMimeType(raw, fileName);
+  kind = resolvePreviewKind(fileName, typed.type);
+  if (kind === "other") {
+    kind = await sniffBlobType(typed);
+  }
+
+  if (kind === "pdf" && !fileName.toLowerCase().endsWith(".pdf")) {
+    fileName = `${fileName}.pdf`;
+  } else if (kind === "image" && !IMAGE_EXT.test(fileName)) {
+    fileName = `${fileName}.png`;
+  }
+
   return {
     url: URL.createObjectURL(typed),
-    kind: resolvePreviewKind(fileName, typed.type),
+    kind,
     fileName,
   };
 }
@@ -113,11 +162,19 @@ export function createPreviewObjectUrlFromBlob(
   blob: Blob,
   fileNameHint?: string,
 ): { url: string; kind: "image" | "pdf" | "other"; fileName: string } {
-  const fileName = fileNameHint || "document";
-  const typed = ensureBlobMimeType(blob, fileName);
+  let fileName = fileNameHint || "document";
+  const inferred = fileNameHint ? mimeTypeFromFileName(fileNameHint) : null;
+  const typed =
+    inferred && (!blob.type || blob.type === "application/octet-stream")
+      ? new Blob([blob], { type: inferred })
+      : blob;
+
+  let kind = resolvePreviewKind(fileName, typed.type);
+
   return {
     url: URL.createObjectURL(typed),
-    kind: resolvePreviewKind(fileName, typed.type),
+    kind,
     fileName,
   };
 }
+

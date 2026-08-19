@@ -8,6 +8,11 @@ import { clientsApi } from "@/lib/api/clients";
 import { notifyApiError } from "@/utils/apiErrors";
 import axiosInstance from "@/lib/axios";
 import { FileUploadComponent } from "@/components/upload";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
+
+import Modal from "@/components/ui/Modal";
+import DocumentPreviewBody from "@/components/ui/DocumentPreviewBody";
+import { createPreviewObjectUrlFromBlob } from "@/utils/documentPreview";
 
 import AccountingBookkeepingAdminTrackerView from "./AccountingBookkeepingAdminTrackerView";
 
@@ -42,8 +47,31 @@ export default function AccountingBookkeepingServiceContent({
   const [loading, setLoading] = useState(true);
   const [abData, setAbData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<"details" | "tracker">("details");
-
   const [miscTitleInput, setMiscTitleInput] = useState("");
+
+  const [previewState, setPreviewState] = useState<{
+    isOpen: boolean;
+    url: string | null;
+    fileName: string;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    url: null,
+    fileName: "",
+    loading: false,
+  });
+
+  const closePreview = () => {
+    if (previewState.url) {
+      URL.revokeObjectURL(previewState.url);
+    }
+    setPreviewState({
+      isOpen: false,
+      url: null,
+      fileName: "",
+      loading: false,
+    });
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -53,8 +81,7 @@ export default function AccountingBookkeepingServiceContent({
       );
       setAbData(res.data?.data || res.data);
     } catch (error) {
-      console.error("Failed to fetch Accounting & Bookkeeping data:", error);
-      setAbData(null);
+      notifyApiError(error, { fallback: "Failed to load Accounting & Bookkeeping data." });
     } finally {
       setLoading(false);
     }
@@ -86,22 +113,40 @@ export default function AccountingBookkeepingServiceContent({
     filename?: string
   ) => {
     try {
+      const name = filename || String(docId);
+      if (mode === "preview") {
+        setPreviewState({
+          isOpen: true,
+          url: null,
+          fileName: name,
+          loading: true,
+        });
+      }
       const url = `/admin/clients/${appNo}/accounting-bookkeeping/doc/download?docId=${encodeURIComponent(docId)}`;
       const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = response.data;
-      const objectUrl = URL.createObjectURL(blob);
       if (mode === "preview") {
-        window.open(objectUrl, "_blank");
+        const preview = createPreviewObjectUrlFromBlob(blob, name);
+        setPreviewState({
+          isOpen: true,
+          url: preview.url,
+          fileName: preview.fileName,
+          loading: false,
+        });
       } else {
+        const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = objectUrl;
-        a.download = filename || docId;
+        a.download = name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
       }
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch {
+      if (mode === "preview") {
+        setPreviewState((prev) => ({ ...prev, loading: false }));
+      }
       toast.danger("Failed to download document");
     }
   };
@@ -112,22 +157,38 @@ export default function AccountingBookkeepingServiceContent({
     filename?: string
   ) => {
     try {
+      const name = filename || `misc-document-${index}`;
+      if (mode === "preview") {
+        setPreviewState({
+          isOpen: true,
+          url: null,
+          fileName: name,
+          loading: true,
+        });
+      }
       const url = `/admin/clients/${appNo}/accounting-bookkeeping/misc-doc/download?index=${index}`;
       const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = response.data;
-      const objectUrl = URL.createObjectURL(blob);
       if (mode === "preview") {
-        window.open(objectUrl, "_blank");
+        const preview = createPreviewObjectUrlFromBlob(blob, name);
+        setPreviewState({
+          isOpen: true,
+          url: preview.url,
+          fileName: preview.fileName,
+          loading: false,
+        });
       } else {
         const a = document.createElement("a");
-        a.href = objectUrl;
-        a.download = filename || `misc-document-${index}`;
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
       }
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch {
+      if (mode === "preview") {
+        setPreviewState((prev) => ({ ...prev, loading: false }));
+      }
       toast.danger("Failed to download document");
     }
   };
@@ -282,26 +343,40 @@ export default function AccountingBookkeepingServiceContent({
                             </span>
                           )}
                         </div>
-                        {doc?.path && (
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => downloadDoc(id, "preview")}
-                              className="text-blue-600 hover:text-blue-700 p-1"
-                              title="Preview"
-                            >
-                              <Eye size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => downloadDoc(id, "download", doc.name)}
-                              className="text-blue-600 hover:text-blue-700 p-1"
-                              title="Download"
-                            >
-                              <Download size={14} />
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {doc?.path && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => downloadDoc(id, "preview")}
+                                className="text-blue-600 hover:text-blue-700 p-1"
+                                title="Preview"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => downloadDoc(id, "download", doc.name)}
+                                className="text-blue-600 hover:text-blue-700 p-1"
+                                title="Download"
+                              >
+                                <Download size={14} />
+                              </button>
+                            </>
+                          )}
+                          <DocumentIssueButton
+                            applicationNo={appNo}
+                            target={{
+                              entityType: "accounting",
+                              entityId: "accounting",
+                              entityLabel: "Accounting & Bookkeeping",
+                              fieldKey: id,
+                              documentLabel: label,
+                              clientRoute: "add-ons/accounting-bookkeeping",
+                            }}
+                            className="inline-flex items-center text-primary hover:text-secondary p-1"
+                          />
+                        </div>
                       </div>
                     );
                   })}
@@ -351,6 +426,18 @@ export default function AccountingBookkeepingServiceContent({
                           >
                             <Download size={14} />
                           </button>
+                          <DocumentIssueButton
+                            applicationNo={appNo}
+                            target={{
+                              entityType: "accounting",
+                              entityId: "misc",
+                              entityLabel: "Accounting Miscellaneous Document",
+                              fieldKey: `misc-${idx}`,
+                              documentLabel: doc?.docType || doc?.name || `Miscellaneous Document ${idx + 1}`,
+                              clientRoute: "add-ons/accounting-bookkeeping",
+                            }}
+                            className="inline-flex items-center text-primary hover:text-secondary p-1"
+                          />
                         </div>
                       </div>
                     ) : null
@@ -449,6 +536,19 @@ export default function AccountingBookkeepingServiceContent({
           isPaid={abData.isPaid ?? false}
         />
       )}
+
+      <Modal
+        isOpen={previewState.isOpen}
+        onClose={closePreview}
+        title={previewState.fileName ? `Document Preview: ${previewState.fileName}` : "Document Preview"}
+        maxWidth="md:max-w-[90vw]"
+      >
+        <DocumentPreviewBody
+          url={previewState.url}
+          fileName={previewState.fileName}
+          loading={previewState.loading}
+        />
+      </Modal>
     </div>
   );
 }

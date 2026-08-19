@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, Download, Eye, Loader2 } from "lucide-react";
+import { Upload, Download, Eye, EyeOff, Loader2, KeyRound, Copy, Check } from "lucide-react";
 import { Switch } from "@/components/ui";
 import { FileUploadComponent } from "@/components/upload";
+import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
 
 interface GstDocEntry {
   id: string;
@@ -24,6 +25,8 @@ interface GstDirectorView {
   name: string;
   email: string;
   phone: string;
+  din?: string;
+  dinNumber?: string;
   authorized: boolean;
   docs: Record<string, any>;
 }
@@ -35,6 +38,7 @@ interface GstRegistrationView {
     legalName?: string;
     tradeName?: string;
     natureOfBusiness?: string;
+    natureOfBusinessOther?: string;
     reason?: string;
     dateLiable?: string;
     hsnSac?: string;
@@ -54,6 +58,11 @@ interface GstRegistrationView {
   status?: string;
   arn?: string;
   adminDocs?: GstDocEntry[];
+  credentials?: {
+    loginId?: string;
+    password?: string;
+    updatedAt?: string;
+  };
 }
 
 interface GstDetailsContentProps {
@@ -67,7 +76,7 @@ interface GstDetailsContentProps {
   setArnError: (val: string) => void;
   handleSaveArn: () => Promise<void>;
   handleUpload: (slotId: string, file: File, title?: string) => Promise<void>;
-  downloadBusinessDoc: (docId: string, mode: "preview" | "download") => Promise<void>;
+  downloadBusinessDoc: (docId: string, mode: "preview" | "download", directorIndex?: number) => Promise<void>;
   downloadMiscDoc: (index: number, mode: "preview" | "download") => Promise<void>;
   ADMIN_DOC_SLOTS: { id: string; label: string }[];
   kycVerified?: boolean;
@@ -94,19 +103,100 @@ export default function GstDetailsContent({
   kycLoading,
 }: GstDetailsContentProps) {
   const [miscTitle, setMiscTitle] = useState("");
+  const [showDetailsPassword, setShowDetailsPassword] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCopy = (field: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(field);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   const details = gstData?.gstDetails;
   const directors = gstData?.directors ?? [];
   const businessDocs = gstData?.businessDocs ?? {};
+  const credentials = gstData?.credentials;
 
   const findDoc = (slotId: string) => adminDocs.find((d) => d.id === slotId);
 
   return (
-    <div className="grid grid-cols-[1fr_280px] gap-6">
-      {/* Left: GST Info */}
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+      {/* Left: GST Info & Client Uploads */}
       <div className="space-y-6">
+        {/* GST Portal Credentials (if available) */}
+        {credentials && (credentials.loginId || credentials.password) && (
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-primary" />
+              GST Portal Login Credentials
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Login ID / Username
+                  </span>
+                  <span className="text-sm font-mono font-bold text-gray-800">
+                    {credentials.loginId || "-"}
+                  </span>
+                </div>
+                {credentials.loginId && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy("loginId", credentials.loginId || "")}
+                    className="p-1.5 text-gray-400 hover:text-gray-700 rounded-md hover:bg-white cursor-pointer transition-colors"
+                    title="Copy Login ID"
+                  >
+                    {copiedKey === "loginId" ? (
+                      <Check className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </button>
+                )}
+              </div>
+
+              <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Password
+                  </span>
+                  <span className="text-sm font-mono font-bold text-gray-800">
+                    {showDetailsPassword ? credentials.password : "••••••••••••"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowDetailsPassword((prev) => !prev)}
+                    className="p-1.5 text-gray-400 hover:text-gray-700 rounded-md hover:bg-white cursor-pointer transition-colors"
+                    title={showDetailsPassword ? "Hide password" : "Show password"}
+                  >
+                    {showDetailsPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                  {credentials.password && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy("password", credentials.password || "")}
+                      className="p-1.5 text-gray-400 hover:text-gray-700 rounded-md hover:bg-white cursor-pointer transition-colors"
+                      title="Copy Password"
+                    >
+                      {copiedKey === "password" ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* KYC Verified Toggle */}
         {onKycVerifiedChange !== undefined && (
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-gray-800">KYC Verification</h3>
@@ -136,14 +226,21 @@ export default function GstDetailsContent({
         )}
 
         {/* GST Details */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
             GST Details
           </h3>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
             <InfoRow label="Legal Name" value={details?.legalName} />
             <InfoRow label="Trade Name" value={details?.tradeName} />
-            <InfoRow label="Nature of Business" value={details?.natureOfBusiness} />
+            <InfoRow
+              label="Nature of Business"
+              value={
+                details?.natureOfBusiness === "Other" && details?.natureOfBusinessOther
+                  ? `Other (${details.natureOfBusinessOther})`
+                  : details?.natureOfBusiness
+              }
+            />
             <InfoRow label="Reason" value={details?.reason} />
             <InfoRow label="Date Liable" value={details?.dateLiable} />
             <InfoRow label="HSN / SAC" value={details?.hsnSac} />
@@ -154,9 +251,8 @@ export default function GstDetailsContent({
             <InfoRow label="Bank Account" value={details?.bankAccount} />
             <InfoRow label="IFSC" value={details?.ifsc} />
             <InfoRow label="Principal Address" value={details?.principalAddress} />
-            <InfoRow label="Delivery Method" value={details?.deliveryMethod} />
+            <InfoRow label="Delivery Method" value={details?.deliveryMethod || "Email"} />
             <InfoRow label="Delivery Email" value={details?.deliveryEmail} />
-            <InfoRow label="Delivery Address" value={details?.deliveryAddress} />
             <InfoRow
               label="Additional Places of Business"
               value={details?.additionalPlaces ? "Yes" : "No"}
@@ -169,7 +265,7 @@ export default function GstDetailsContent({
 
         {/* Directors */}
         {directors.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
               Directors / Promoters
             </h3>
@@ -184,10 +280,59 @@ export default function GstDetailsContent({
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-gray-600">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-gray-600">
                     <span>Email: {dir.email || "-"}</span>
                     <span>Phone: {dir.phone || "-"}</span>
+                    {(dir.dinNumber || dir.din) && (
+                      <span className="col-span-2 font-medium text-slate-700">
+                        DIN: <span className="font-mono text-slate-900">{dir.dinNumber || dir.din}</span>
+                      </span>
+                    )}
                   </div>
+                  {dir.docs && Object.keys(dir.docs).length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                      <p className="text-[11px] font-semibold text-gray-500 uppercase">Promoter Documents</p>
+                      {Object.entries(dir.docs).map(([docId, docObj]: [string, any]) => (
+                        <div key={docId} className="flex items-center justify-between text-xs bg-white px-2.5 py-1.5 rounded border border-gray-100">
+                          <span className="text-gray-700 font-medium truncate max-w-[160px]">{docObj?.name || docId}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {docObj?.path && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => downloadBusinessDoc(docId, "preview", idx)}
+                                  className="text-blue-600 hover:text-blue-700 p-1"
+                                  title="Preview"
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => downloadBusinessDoc(docId, "download", idx)}
+                                  className="text-blue-600 hover:text-blue-700 p-1"
+                                  title="Download"
+                                >
+                                  <Download size={14} />
+                                </button>
+                              </>
+                            )}
+                            <DocumentIssueButton
+                              applicationNo={appNo}
+                              target={{
+                                entityType: "gst",
+                                entityId: `director-${idx}`,
+                                entityLabel: `${dir.name || `Director ${idx + 1}`} (GST Promoter)`,
+                                fieldKey: docId,
+                                documentLabel: docObj?.name || docId,
+                                clientRoute: "add-ons/gst-registration",
+                              }}
+                              className="inline-flex items-center text-primary hover:text-secondary p-1"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -196,7 +341,7 @@ export default function GstDetailsContent({
 
         {/* Business Documents */}
         {Object.keys(businessDocs).length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
               Business Documents
             </h3>
@@ -220,36 +365,49 @@ export default function GstDetailsContent({
                       {doc.status === "clientUpload" ? "Uploaded" : "Pending"}
                     </span>
                   </div>
-                  {doc.path && (
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => downloadBusinessDoc(docId, "preview")}
-                        className="text-blue-600 hover:text-blue-700 p-1"
-                        title="Preview"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => downloadBusinessDoc(docId, "download")}
-                        className="text-blue-600 hover:text-blue-700 p-1"
-                        title="Download"
-                      >
-                        <Download size={14} />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {doc.path && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => downloadBusinessDoc(docId, "preview")}
+                          className="text-blue-600 hover:text-blue-700 p-1"
+                          title="Preview"
+                        >
+                          <Eye size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => downloadBusinessDoc(docId, "download")}
+                          className="text-blue-600 hover:text-blue-700 p-1"
+                          title="Download"
+                        >
+                          <Download size={14} />
+                        </button>
+                      </>
+                    )}
+                    <DocumentIssueButton
+                      applicationNo={appNo}
+                      target={{
+                        entityType: "gst",
+                        entityId: "business",
+                        entityLabel: "GST Business Document",
+                        fieldKey: docId,
+                        documentLabel: doc.name || docId,
+                        clientRoute: "add-ons/gst-registration",
+                      }}
+                      className="inline-flex items-center text-primary hover:text-secondary p-1"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         )}
-      </div>
 
-        {/* Miscellaneous Documents */}
+        {/* Miscellaneous Documents (Client Uploaded) */}
         {gstData?.miscDocs && gstData.miscDocs.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
               Miscellaneous Documents
             </h3>
@@ -299,115 +457,132 @@ export default function GstDetailsContent({
                         </button>
                       </div>
                     )}
+                    <DocumentIssueButton
+                      applicationNo={appNo}
+                      target={{
+                        entityType: "gst",
+                        entityId: "misc",
+                        entityLabel: "GST Miscellaneous Document",
+                        fieldKey: `misc-${idx}`,
+                        documentLabel: doc.docType || doc.name || `Miscellaneous Document ${idx + 1}`,
+                        clientRoute: "add-ons/gst-registration",
+                      }}
+                      className="inline-flex items-center text-primary hover:text-secondary p-1"
+                    />
                   </div>
                 </div>
               ))}
             </div>
           </div>
         )}
+      </div>
 
-      {/* Right: Admin File Uploads */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-          Uploaded Documents
-        </h3>
+      {/* Right: Admin File Uploads & Misc Admin Documents */}
+      <div className="space-y-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            Admin Documents
+          </h3>
 
-        {ADMIN_DOC_SLOTS.map((slot) => {
-          const doc = findDoc(slot.id);
-          return (
-            <div key={slot.id} className="rounded-xl border border-gray-200 bg-white p-4">
-              <p className="text-xs font-semibold text-gray-600 mb-3">{slot.label}</p>
+          <div className="space-y-4">
+            {ADMIN_DOC_SLOTS.map((slot) => {
+              const doc = findDoc(slot.id);
+              return (
+                <div key={slot.id} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">{slot.label}</p>
 
-              {doc ? (
-                <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-semibold text-orange-700">Uploaded</span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        className="text-orange-600 hover:text-orange-700"
-                        title="Preview"
-                      >
-                        <Eye size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="text-orange-600 hover:text-orange-700"
-                        title="Download"
-                      >
-                        <Download size={14} />
-                      </button>
+                  {doc ? (
+                    <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 mb-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-semibold text-orange-700">Uploaded</span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            className="text-orange-600 hover:text-orange-700"
+                            title="Preview"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="text-orange-600 hover:text-orange-700"
+                            title="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="truncate text-xs text-gray-700">{doc.name}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : ""}
+                      </p>
                     </div>
-                  </div>
-                  <p className="truncate text-xs text-gray-700">{doc.name}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">
-                    {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : ""}
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3 text-center">
-                  <p className="text-xs text-gray-400 mb-2">No file uploaded</p>
-                </div>
-              )}
-
-              <div className="mt-3">
-                <FileUploadComponent
-                  onFileSelect={(file) => handleUpload(slot.id, file)}
-                  renderTrigger={(openPicker) => (
-                    <button
-                      type="button"
-                      onClick={openPicker}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#F46A45] px-3 py-1.5 text-xs font-medium text-[#F46A45] transition-colors hover:bg-orange-50"
-                    >
-                      <Upload size={14} />
-                      Upload
-                    </button>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3 text-center mb-2">
+                      <p className="text-xs text-gray-400">No file uploaded</p>
+                    </div>
                   )}
-                />
-              </div>
 
-              {slot.id === "arn-acknowledgement" && (
-                <div className="mt-4 pt-3 border-t border-gray-100">
-                  <label className="text-[11px] font-semibold text-gray-500 block mb-1">
-                    GST Application Reference Number (ARN)
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="e.g. AA060826000001Z"
-                      className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-800 focus:border-primary focus:outline-none uppercase font-mono"
-                      maxLength={15}
-                      value={arnInput}
-                      onChange={(e) => {
-                        setArnInput(e.target.value.toUpperCase());
-                        setArnError("");
-                      }}
+                  <div className="mt-2">
+                    <FileUploadComponent
+                      onFileSelect={(file) => handleUpload(slot.id, file)}
+                      renderTrigger={(openPicker) => (
+                        <button
+                          type="button"
+                          onClick={openPicker}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#F46A45] px-3 py-1.5 text-xs font-medium text-[#F46A45] transition-colors hover:bg-orange-50 cursor-pointer"
+                        >
+                          <Upload size={14} />
+                          Upload
+                        </button>
+                      )}
                     />
-                    <button
-                      type="button"
-                      onClick={handleSaveArn}
-                      disabled={savingArn}
-                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
-                    >
-                      {savingArn ? "Saving..." : "Save"}
-                    </button>
                   </div>
-                  {arnError && (
-                    <p className="text-[10px] text-red-500 mt-1 font-medium">{arnError}</p>
-                  )}
-                  {gstData?.arn && !arnError && (
-                    <p className="text-[10px] text-green-600 mt-1 font-medium">
-                      Current ARN: <span className="font-mono">{gstData.arn}</span> (Saved)
-                    </p>
+
+                  {slot.id === "arn-acknowledgement" && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <label className="text-[11px] font-semibold text-gray-500 block mb-1">
+                        GST Application Reference Number (ARN)
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          placeholder="e.g. AA060826000001Z"
+                          className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-800 focus:border-primary focus:outline-none uppercase font-mono"
+                          maxLength={15}
+                          value={arnInput}
+                          onChange={(e) => {
+                            setArnInput(e.target.value.toUpperCase());
+                            setArnError("");
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveArn}
+                          disabled={savingArn}
+                          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50 cursor-pointer"
+                        >
+                          {savingArn ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                      {arnError && (
+                        <p className="text-[10px] text-red-500 mt-1 font-medium">{arnError}</p>
+                      )}
+                      {gstData?.arn && !arnError && (
+                        <p className="text-[10px] text-green-600 mt-1 font-medium">
+                          Current ARN: <span className="font-mono">{gstData.arn}</span> (Saved)
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        </div>
 
         {/* Miscellaneous Admin Documents */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-xs space-y-4">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
             Miscellaneous Admin Documents
           </h3>
@@ -467,7 +642,7 @@ export default function GstDetailsContent({
                       <button
                         type="button"
                         onClick={() => downloadMiscDoc(idx, "preview")}
-                        className="text-blue-600 hover:text-blue-700 p-1"
+                        className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
                         title="Preview"
                       >
                         <Eye size={14} />
@@ -475,7 +650,7 @@ export default function GstDetailsContent({
                       <button
                         type="button"
                         onClick={() => downloadMiscDoc(idx, "download")}
-                        className="text-blue-600 hover:text-blue-700 p-1"
+                        className="text-blue-600 hover:text-blue-700 p-1 cursor-pointer"
                         title="Download"
                       >
                         <Download size={14} />
@@ -502,8 +677,8 @@ function InfoRow({
 }) {
   return (
     <div className={className}>
-      <span className="text-gray-400 block">{label}</span>
-      <span className="text-gray-800 font-medium">{value ?? "-"}</span>
+      <span className="text-gray-400 block text-xs font-medium">{label}</span>
+      <span className="text-gray-800 font-semibold text-sm">{value ?? "-"}</span>
     </div>
   );
 }
