@@ -112,6 +112,26 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
     router.push(`/clients/${appNo}/directors/${director.id}`);
   };
 
+  const handleQuickDinStatusChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>,
+    directorId: string,
+    newStatus: string,
+  ) => {
+    e.stopPropagation();
+    try {
+      await clientsApi.updateDirectorStatus(appNo, directorId, {
+        dinStatus: newStatus,
+      });
+      toast.success(`DIN status updated to ${newStatus}`);
+      await loadDirectors();
+    } catch (error: any) {
+      toast(
+        error?.response?.data?.message || "Failed to update DIN status",
+        { variant: "danger" },
+      );
+    }
+  };
+
   const handleReview = async (
     requestId: string,
     action: "approve" | "reject",
@@ -387,7 +407,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                       </p>
                     </div>
                   )}
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-gray-900">
@@ -413,10 +433,10 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm font-semibold text-slate-800 mt-1">
                         {director.directorName}
                       </p>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-gray-500 mt-0.5">
                         {director.email} • {director.phoneNo}
                         {(director as { isForeignResident?: boolean })
                           .isForeignResident && (

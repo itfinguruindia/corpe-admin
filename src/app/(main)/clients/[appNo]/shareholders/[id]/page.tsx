@@ -236,10 +236,13 @@ export default function ShareholderDetailPage() {
             value={shareholder.durationOfStayAtPresentAddress}
           />
           {shareholder.previousResidenceAddress && (
-            <InfoField
-              label="If Duration of stay at present address- is less than a one year then address of previous residence"
-              value={shareholder.previousResidenceAddress}
-            />
+            <div className="col-span-full w-full">
+              <InfoField
+                fullWidth
+                label="If Duration of stay at present address- is less than a one year then address of previous residence"
+                value={shareholder.previousResidenceAddress}
+              />
+            </div>
           )}
           <InfoField
             label="% of Shareholding"

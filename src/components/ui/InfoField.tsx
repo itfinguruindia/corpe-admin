@@ -4,6 +4,8 @@ interface InfoFieldProps {
   sublabel?: string;
   sublabelColor?: string;
   border?: boolean;
+  className?: string;
+  fullWidth?: boolean;
 }
 
 export function InfoField({
@@ -12,12 +14,14 @@ export function InfoField({
   sublabel,
   sublabelColor = "text-gray-500",
   border = true,
+  className = "",
+  fullWidth = false,
 }: InfoFieldProps) {
   return (
     <div
-      className={` ${border ? "border-b border-[#F9A826]" : ""} py-4 flex items-start max-w-xl justify-between`}
+      className={`${border ? "border-b border-[#F9A826]" : ""} py-4 flex items-start justify-between ${fullWidth ? "w-full max-w-none" : "max-w-xl"} ${className}`}
     >
-      <label className="text-sm font-semibold text-gray-900">
+      <label className="text-sm font-semibold text-gray-900 pr-4">
         {label}
         {sublabel && (
           <span className={`ml-2 text-xs ${sublabelColor} font-normal italic`}>
@@ -25,7 +29,7 @@ export function InfoField({
           </span>
         )}
       </label>
-      <p className="text-base text-gray-700">{value}</p>
+      <p className="text-base text-gray-700 shrink-0">{value}</p>
     </div>
   );
 }
