@@ -227,7 +227,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
         {directorsLocked && (
           <Card className="p-4 border border-amber-200 bg-amber-50">
             <p className="text-sm text-amber-900 font-medium">
-              Objects Clause has been drafted — client director editing is
+              Objects Clause has been drafted - client director editing is
               locked. Replacement requests appear below for approval.
             </p>
           </Card>
@@ -403,7 +403,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                         Previous (replaced)
                       </p>
                       <p className="text-sm text-slate-600 line-through">
-                        {snapshot.name || "—"}
+                        {snapshot.name || "-"}
                       </p>
                     </div>
                   )}

@@ -32,6 +32,7 @@ import {
   Building2,
   Award,
   BookOpen,
+  BadgePercent,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
@@ -348,6 +349,13 @@ export default function Sidebar() {
                 href="/addon-services/accounting-bookkeeping"
                 icon={<BookOpen size={15} />}
                 active={pathname === "/addon-services/accounting-bookkeeping"}
+                collapsed={effectiveCollapsed}
+              />
+              <SubItem
+                label="Taxation"
+                href="/addon-services/taxation"
+                icon={<BadgePercent size={15} />}
+                active={pathname === "/addon-services/taxation"}
                 collapsed={effectiveCollapsed}
               />
             </SidebarSection>

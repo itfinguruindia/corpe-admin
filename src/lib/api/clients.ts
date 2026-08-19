@@ -1390,6 +1390,25 @@ export const clientsApi = {
     return response.data?.data ?? response.data;
   },
 
+  getTaxation: async (applicationNo: string) => {
+    const response = await axiosInstance.get(
+      `/admin/clients/${applicationNo}/taxation`,
+    );
+    return response.data?.data ?? response.data;
+  },
+
+  uploadTaxationAdminDoc: async (applicationNo: string, docType: string, file: File, title?: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const titleParam = title ? `&title=${encodeURIComponent(title)}` : "";
+    const response = await axiosInstance.post(
+      `/admin/clients/${applicationNo}/taxation/upload-admin-doc?docType=${encodeURIComponent(docType)}${titleParam}`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data?.data ?? response.data;
+  },
+
   updateBankAccountOpenedInfo: async (
     applicationNo: string,
     payload: {
@@ -1411,6 +1430,14 @@ export const clientsApi = {
       `/admin/clients/${applicationNo}/gst-registration/arn`,
       { arn }
     );
+    return response.data?.data ?? response.data;
+  },
+
+  advanceAddonCycle: async (orgId: string, addonId: string, svcId: string) => {
+    const response = await axiosInstance.post(`/admin/addon-tracker/${orgId}/advance-cycle`, {
+      addonId,
+      svcId,
+    });
     return response.data?.data ?? response.data;
   },
 };
