@@ -1,12 +1,7 @@
 "use client";
 
 import { useState } from "react";
-<<<<<<< Updated upstream
-import { Upload, Download, Eye, Loader2 } from "lucide-react";
-
-=======
 import { Upload, Download, Eye, EyeOff, Loader2, KeyRound, Copy, Check } from "lucide-react";
->>>>>>> Stashed changes
 import { Switch } from "@/components/ui";
 import { FileUploadComponent } from "@/components/upload";
 import { DocumentIssueButton } from "@/components/clients/DocumentIssueModal";
