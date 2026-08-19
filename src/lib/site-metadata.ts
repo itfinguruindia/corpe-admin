@@ -193,7 +193,7 @@ const ROUTE_RULES: RouteRule[] = [
     meta: {
       title: "SMS Usage",
       description:
-        "Live Twilio SMS usage report by date and destination number.",
+        "Twilio SMS usage, stored OTP numbers, and unblock OTP sessions.",
     },
   },
   {

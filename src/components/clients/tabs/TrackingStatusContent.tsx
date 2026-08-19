@@ -43,6 +43,7 @@ import {
   getTrackerStepDisplayTitle,
   resolveTrackerStepLabels,
 } from "@/utils/trackerStepLabels";
+import { useAdminTrackerRealtimeSync } from "@/hooks/useAdminTrackerRealtimeSync";
 
 // Types matching updated backend application tracker
 interface TrackerNote {
@@ -165,6 +166,10 @@ export default function TrackingStatusContent({
   const [noteText, setNoteText] = useState<string>("");
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [isRequestingRestart, setIsRequestingRestart] = useState(false);
+  const [isSystemAutoNotesOpen, setIsSystemAutoNotesOpen] = useState(false);
+  const [expandedStepNotes, setExpandedStepNotes] = useState<
+    Record<string, boolean>
+  >({});
 
   // Extension status from API
   const [extensionStatus, setExtensionStatus] = useState<any>(null);
@@ -283,6 +288,28 @@ export default function TrackingStatusContent({
       loadData();
     }
   }, [appNo]);
+
+  const refreshTrackerSoft = async () => {
+    try {
+      const trackerData = await clientsApi.getTrackingStatus(appNo);
+      if (trackerData) {
+        setTracker(trackerData);
+      }
+    } catch (err) {
+      console.error("Error soft-refreshing tracker:", err);
+    }
+  };
+
+  const realtimeOrgId =
+    tracker?.org?._id || companyOverview?._id || null;
+
+  useAdminTrackerRealtimeSync({
+    orgId: realtimeOrgId,
+    enabled: !!realtimeOrgId,
+    onRefresh: () => {
+      void refreshTrackerSoft();
+    },
+  });
 
   const loadData = async () => {
     try {
@@ -762,8 +789,10 @@ export default function TrackingStatusContent({
           </div>
         </Card>
 
-        {/* Installment Payment Warning Banners */}
-        {tracker.installmentInfo?.firstInstallmentDue && (
+        {/* Installment Payment Warning Banners — only after the payment link is sent */}
+        {tracker.installmentInfo?.firstInstallmentDue &&
+          tracker.installmentInfo?.paymentLinkStage4Sent &&
+          !tracker.installmentInfo?.firstInstallmentPaid && (
           <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 shadow-sm">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -771,9 +800,8 @@ export default function TrackingStatusContent({
                 1st Installment Payment Required
               </p>
               <p className="text-xs text-amber-700 mt-0.5">
-                The Digital Signature Certificate (DSC) section in Stage 2 and
-                all of Stages 3 &amp; 4 are locked until the client pays the 1st
-                Installment.
+                Payment link has been sent. Stages 3 &amp; 4 stay locked until
+                the client pays the 1st Installment.
               </p>
               <div className="flex items-center gap-3 mt-2">
                 <button
@@ -784,22 +812,19 @@ export default function TrackingStatusContent({
                 >
                   Go to Pricing &amp; Payment
                 </button>
-                <span
-                  className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage4Sent ? "text-green-700" : "text-amber-600"}`}
-                >
-                  <span
-                    className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage4Sent ? "bg-green-500" : "bg-amber-400"}`}
-                  />
-                  {tracker.installmentInfo.paymentLinkStage4Sent
-                    ? "Payment link sent to client"
-                    : "Payment link not generated yet"}
+                <span className="text-xs font-medium flex items-center gap-1.5 text-green-700">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                  Payment link sent to client
                 </span>
               </div>
             </div>
           </div>
         )}
 
-        {tracker.installmentInfo?.secondInstallmentDue && (
+        {tracker.installmentInfo?.firstInstallmentPaid &&
+          tracker.installmentInfo?.secondInstallmentDue &&
+          tracker.installmentInfo?.paymentLinkStage6Sent &&
+          !tracker.installmentInfo?.secondInstallmentPaid && (
           <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 shadow-sm">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -807,8 +832,8 @@ export default function TrackingStatusContent({
                 2nd Installment Payment Required
               </p>
               <p className="text-xs text-amber-700 mt-0.5">
-                Stages 3 &amp; 4 are locked until the client pays the 2nd
-                Installment.
+                Payment link has been sent. Stages 3 &amp; 4 stay locked until
+                the client pays the 2nd Installment.
               </p>
               <div className="flex items-center gap-3 mt-2">
                 <button
@@ -819,15 +844,9 @@ export default function TrackingStatusContent({
                 >
                   Go to Pricing &amp; Payment
                 </button>
-                <span
-                  className={`text-xs font-medium flex items-center gap-1.5 ${tracker.installmentInfo.paymentLinkStage6Sent ? "text-green-700" : "text-amber-600"}`}
-                >
-                  <span
-                    className={`inline-block w-2 h-2 rounded-full ${tracker.installmentInfo.paymentLinkStage6Sent ? "bg-green-500" : "bg-amber-400"}`}
-                  />
-                  {tracker.installmentInfo.paymentLinkStage6Sent
-                    ? "Payment link sent to client"
-                    : "Payment link not generated yet"}
+                <span className="text-xs font-medium flex items-center gap-1.5 text-green-700">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                  Payment link sent to client
                 </span>
               </div>
             </div>
@@ -987,7 +1006,7 @@ export default function TrackingStatusContent({
                         }`}
                     >
                       {extensionStatus.overallStatus === "monitoring" &&
-                        "Monitoring 20-day window. Name extension will activate at 5 days remaining."}
+                        "Monitoring 20-day window. Name extension will activate at 10 days remaining."}
                       {extensionStatus.overallStatus === "countdown" &&
                         (() => {
                           const attempt = extensionStatus.attempts?.find(
@@ -1193,34 +1212,6 @@ export default function TrackingStatusContent({
                                   tracker.companyType,
                                 )}
                               </span>
-                              {(section.label ===
-                                "Digital Signature Certificate (DSC)" ||
-                                section.label ===
-                                "Digital Signature Certificate (DSC) procedure" ||
-                                section.label === "DSC procedure") &&
-                                tracker.installmentInfo
-                                  ?.firstInstallmentDue && (
-                                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
-                                    <svg
-                                      className="w-3 h-3"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2.5"
-                                    >
-                                      <rect
-                                        x="3"
-                                        y="11"
-                                        width="18"
-                                        height="11"
-                                        rx="2"
-                                        ry="2"
-                                      />
-                                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                    </svg>
-                                    Locked - 1st Installment Due
-                                  </span>
-                                )}
                             </div>
                           </div>
 
@@ -1434,16 +1425,33 @@ export default function TrackingStatusContent({
                                           )}
                                           {step.notes &&
                                             step.notes.length > 0 && (
-                                              <span className="flex items-center gap-1 text-blue-600 font-semibold">
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  setExpandedStepNotes(
+                                                    (prev) => ({
+                                                      ...prev,
+                                                      [step._id]: !prev[step._id],
+                                                    }),
+                                                  )
+                                                }
+                                                aria-expanded={
+                                                  expandedStepNotes[step._id] ===
+                                                  true
+                                                }
+                                                className="flex items-center gap-1 text-blue-600 font-semibold border-none bg-transparent p-0 cursor-pointer hover:text-blue-800"
+                                              >
                                                 <FileText className="w-3 h-3" />
                                                 {step.notes.length} note(s)
-                                              </span>
+                                              </button>
                                             )}
                                         </div>
 
-                                        {/* Inline Notes Display */}
+                                        {/* Inline Notes Display — accordion, closed by default */}
                                         {step.notes &&
-                                          step.notes.length > 0 && (
+                                          step.notes.length > 0 &&
+                                          expandedStepNotes[step._id] ===
+                                            true && (
                                             <div className="mt-2 pl-3 border-l-2 border-slate-200 space-y-1.5">
                                               {step.notes.map((note, nIdx) => {
                                                 const isSystem =
@@ -1501,7 +1509,7 @@ export default function TrackingStatusContent({
                                                   <div className="p-4 bg-red-50 border border-red-200 rounded-xl space-y-4 max-w-xl text-left">
                                                     <div className="flex items-center justify-between">
                                                       <h4 className="text-sm font-bold text-red-900">
-                                                        Record ROC Rejection
+                                                        Record MCA Rejection
                                                       </h4>
                                                       <button
                                                         onClick={() =>
@@ -1563,7 +1571,7 @@ export default function TrackingStatusContent({
 
                                                     <div className="space-y-1">
                                                       <label className="block text-xs font-semibold text-slate-600">
-                                                        Reason from ROC (shown to
+                                                        Reason from MCA (shown to
                                                         client)
                                                       </label>
                                                       <textarea
@@ -1574,7 +1582,7 @@ export default function TrackingStatusContent({
                                                           )
                                                         }
                                                         className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-red-400"
-                                                        placeholder="e.g. ROC has rejected the application due to discrepancies in the registered office address..."
+                                                        placeholder="e.g. MCA has rejected the application due to discrepancies in the registered office address..."
                                                       />
                                                     </div>
 
@@ -1994,11 +2002,11 @@ export default function TrackingStatusContent({
                                                   step._id) && (
                                                   <div className="p-4 bg-amber-50/50 border border-amber-200 rounded-xl space-y-4 max-w-xl text-left">
                                                     <h4 className="text-sm font-bold text-amber-900">
-                                                      Raise a query from ROC
+                                                      Raise a query from MCA
                                                     </h4>
                                                     <div className="space-y-1">
                                                       <label className="block text-xs font-semibold text-slate-600">
-                                                        What is ROC asking for?
+                                                        What is MCA asking for?
                                                         (shown to client)
                                                       </label>
                                                       <textarea
@@ -2009,7 +2017,7 @@ export default function TrackingStatusContent({
                                                           )
                                                         }
                                                         className="w-full p-2 border border-slate-200 rounded-lg text-sm bg-white text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-amber-400"
-                                                        placeholder="e.g. ROC has flagged a discrepancy between the registered office address on the application and the utility bill provided..."
+                                                        placeholder="e.g. MCA has flagged a discrepancy between the registered office address on the application and the utility bill provided..."
                                                       />
                                                     </div>
                                                     <div className="flex items-center gap-4 text-xs font-medium text-slate-700">
@@ -2167,7 +2175,7 @@ export default function TrackingStatusContent({
                                                     <h4 className="text-sm font-bold text-blue-900">
                                                       Client response received -
                                                       review before resubmitting
-                                                      to ROC
+                                                      to MCA
                                                     </h4>
 
                                                     <div className="p-3 bg-white border border-blue-100 rounded-lg space-y-1">
@@ -2339,7 +2347,7 @@ export default function TrackingStatusContent({
                                                           />
                                                         )}
                                                         ✓ Sufficient - resubmit to
-                                                        ROC
+                                                        MCA
                                                       </button>
                                                       <button
                                                         disabled={
@@ -2413,7 +2421,7 @@ export default function TrackingStatusContent({
                                                   .activityLog.length > 0 && (
                                                   <div className="mt-4 pt-3 border-t border-slate-100 space-y-2 max-w-xl text-left">
                                                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                                      ROC Query History & Log
+                                                      MCA Query History & Log
                                                     </div>
                                                     <div className="pl-3 border-l border-slate-200 space-y-3">
                                                       {step.rocQueryMetadata.activityLog.map(
@@ -2503,7 +2511,7 @@ export default function TrackingStatusContent({
                                                 loadData();
                                               }
                                             }}
-                                            ariaLabel="ROC Query Status"
+                                            ariaLabel="MCA Query Status"
                                             options={[
                                               {
                                                 id: "pending",
@@ -2524,7 +2532,7 @@ export default function TrackingStatusContent({
                                               },
                                               {
                                                 id: "resubmitted",
-                                                label: "Resubmitted to ROC",
+                                                label: "Resubmitted to MCA",
                                               },
                                               {
                                                 id: "resolved",
@@ -2542,7 +2550,7 @@ export default function TrackingStatusContent({
                                                 client_submitted:
                                                   "Submitted - Under Review",
                                                 resubmitted:
-                                                  "Resubmitted to ROC",
+                                                  "Resubmitted to MCA",
                                                 rejected: "Rejected",
                                                 resolved: "Resolved",
                                                 lapsed: "Lapsed",
@@ -2952,43 +2960,57 @@ export default function TrackingStatusContent({
 
               {/* System auto notes */}
               <div className="border-t border-slate-200">
-                <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => setIsSystemAutoNotesOpen((open) => !open)}
+                  className="w-full p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center gap-2 text-left hover:bg-slate-100/70 transition-colors"
+                  aria-expanded={isSystemAutoNotesOpen}
+                >
                   <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">
                     System Auto Notes
                   </h4>
-                  <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-2 py-0.5 rounded-full font-mono">
-                    {systemAutoNotes.length}
-                  </span>
-                </div>
-                <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
-                  {systemAutoNotes.map((note, nIdx) => (
-                    <div
-                      key={nIdx}
-                      className="p-3 text-[11px] leading-relaxed bg-slate-50/40"
-                    >
-                      <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono mb-1">
-                        <span className="font-semibold text-slate-500">
-                          System
-                        </span>
-                        <span>
-                          {new Date(note.createdAt).toLocaleString()}
-                        </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-2 py-0.5 rounded-full font-mono">
+                      {systemAutoNotes.length}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 transition-transform ${
+                        isSystemAutoNotesOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </div>
+                </button>
+                {isSystemAutoNotesOpen && (
+                  <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
+                    {systemAutoNotes.map((note, nIdx) => (
+                      <div
+                        key={nIdx}
+                        className="p-3 text-[11px] leading-relaxed bg-slate-50/40"
+                      >
+                        <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono mb-1">
+                          <span className="font-semibold text-slate-500">
+                            System
+                          </span>
+                          <span>
+                            {new Date(note.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-500 bg-white border border-slate-100 px-1.5 py-0.5 rounded inline-block mb-1.5 font-mono max-w-full truncate">
+                          Step: {note.stepTitle}
+                        </div>
+                        <p className="text-slate-600 whitespace-pre-wrap">
+                          {note.text}
+                        </p>
                       </div>
-                      <div className="text-[10px] font-bold text-slate-500 bg-white border border-slate-100 px-1.5 py-0.5 rounded inline-block mb-1.5 font-mono max-w-full truncate">
-                        Step: {note.stepTitle}
-                      </div>
-                      <p className="text-slate-600 whitespace-pre-wrap">
-                        {note.text}
-                      </p>
-                    </div>
-                  ))}
+                    ))}
 
-                  {systemAutoNotes.length === 0 && (
-                    <div className="p-4 text-center text-slate-400 text-xs">
-                      No system auto notes yet.
-                    </div>
-                  )}
-                </div>
+                    {systemAutoNotes.length === 0 && (
+                      <div className="p-4 text-center text-slate-400 text-xs">
+                        No system auto notes yet.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </Card>
           </div>

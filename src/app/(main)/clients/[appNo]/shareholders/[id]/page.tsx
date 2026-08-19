@@ -57,6 +57,9 @@ export default function ShareholderDetailPage() {
                 dateOfBirth: s.dateOfBirth || "-",
                 nationality: s.nationality || "-",
                 passportNo: s.passportNumber || "-",
+                isForeignResident: Boolean(
+                  s.isForeignResident || s.isForeignEntity,
+                ),
                 occupationType: s.occupationType || "-",
                 placeOfBirth: s.placeOfBirth?.city || "-",
                 educationQualification: s.educationQualification || "-",
@@ -178,6 +181,11 @@ export default function ShareholderDetailPage() {
               {labels.alsoADirector}
             </span>
           )}
+          {shareholder.isForeignResident && (
+            <span className="rounded border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-600">
+              NRI / Foreign Resident
+            </span>
+          )}
         </div>
       </div>
 
@@ -199,8 +207,12 @@ export default function ShareholderDetailPage() {
             value={formatDate(shareholder.dateOfBirth)}
           />
           <InfoField label="Nationality" value={shareholder.nationality} />
-          {shareholder.passportNo && (
-            <InfoField label="Passport No" value={shareholder.passportNo} />
+          {(shareholder.isForeignResident ||
+            (shareholder.passportNo && shareholder.passportNo !== "-")) && (
+            <InfoField label="Passport No" value={shareholder.passportNo || "-"} />
+          )}
+          {!shareholder.isForeignResident && (
+            <InfoField label="PAN" value={shareholder.pan} />
           )}
           <InfoField
             label="Occupation Type"
@@ -219,16 +231,18 @@ export default function ShareholderDetailPage() {
             label="Permanent Address"
             value={shareholder.permanentAddress}
           />
-          <InfoField label="PAN" value={shareholder.pan} />
           <InfoField
             label="Duration of stay at present address"
             value={shareholder.durationOfStayAtPresentAddress}
           />
           {shareholder.previousResidenceAddress && (
-            <InfoField
-              label="If Duration of stay at present address- is less than a one year then address of previous residence"
-              value={shareholder.previousResidenceAddress}
-            />
+            <div className="col-span-full w-full">
+              <InfoField
+                fullWidth
+                label="If Duration of stay at present address- is less than a one year then address of previous residence"
+                value={shareholder.previousResidenceAddress}
+              />
+            </div>
           )}
           <InfoField
             label="% of Shareholding"

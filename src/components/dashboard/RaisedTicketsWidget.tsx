@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import { MessageSquareText, ArrowRight, Eye } from "lucide-react";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import { TicketApi } from "@/lib/api/tickets";
 import type { Ticket } from "@/types/tickets";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PERMISSIONS } from "@/utils/permissions";
+import { useAdminListRealtimeSync } from "@/hooks/useAdminListRealtimeSync";
 
 function formatTime(dateString: string) {
   if (!dateString) return "-";
@@ -80,6 +81,19 @@ export default function RaisedTicketsWidget() {
       mounted = false;
     };
   }, [canViewTickets]);
+
+  const softRefreshTickets = useCallback(() => {
+    if (!canViewTickets) return;
+    TicketApi.getAllTickets(1, 3)
+      .then((res) => setTickets(res.tickets))
+      .catch(() => setTickets([]));
+  }, [canViewTickets]);
+
+  useAdminListRealtimeSync({
+    resource: "tickets",
+    enabled: canViewTickets,
+    onRefresh: softRefreshTickets,
+  });
 
   if (loading) {
     return (

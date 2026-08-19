@@ -22,7 +22,6 @@ export default function DirectorDetailPage() {
   const [kycVerified, setKycVerified] = useState(false);
   const [dscApplication, setDscApplication] = useState(false);
   const [dinStatus, setDinStatus] = useState<string>("Pending");
-  const [isStage2Enabled, setIsStage2Enabled] = useState(false);
   const [isAlsoShareholder, setIsAlsoShareholder] = useState(false);
   const [linkedShareholderNumber, setLinkedShareholderNumber] = useState<
     number | null
@@ -64,6 +63,9 @@ export default function DirectorDetailPage() {
                 dateOfBirth: d.dateOfBirth || "-",
                 nationality: d.nationality || "-",
                 passportNo: d.passportNumber || "-",
+                isForeignResident: Boolean(
+                  d.isForeignResident || d.isForeignEntity,
+                ),
                 occupationType: d.occupationType || "-",
                 placeOfBirth: d.placeOfBirth?.city || "-",
                 educationQualification: d.educationQualification || "-",
@@ -121,26 +123,6 @@ export default function DirectorDetailPage() {
         } else {
           setDirector(null);
         }
-
-        try {
-          const trackerRes = await clientsApi.getTrackingStatus(
-            appNo as string,
-          );
-          if (trackerRes) {
-            const activeStage =
-              trackerRes.stages &&
-              typeof trackerRes.currentStageIndex === "number"
-                ? trackerRes.stages[trackerRes.currentStageIndex]
-                : null;
-            const isStage2 = activeStage?.stageId === "stage_2_documents_kyc";
-            setIsStage2Enabled(isStage2);
-          } else {
-            setIsStage2Enabled(false);
-          }
-        } catch (trackerErr) {
-          console.error("Error fetching tracker status:", trackerErr);
-          setIsStage2Enabled(false);
-        }
       } catch (error) {
         console.error("Error fetching director:", error);
         setDirector(null);
@@ -181,7 +163,6 @@ export default function DirectorDetailPage() {
   };
 
   const handleDinStatusChange = async (newValue: string) => {
-    if (!isStage2Enabled || !director?.isCommitted) return;
     if (!requireEdit()) return;
     try {
       await clientsApi.updateDirectorStatus(appNo as string, id as string, {
@@ -232,52 +213,95 @@ export default function DirectorDetailPage() {
           {director.isBankSigningAuthority && (
             <Chip label="Bank Signing Authority" variant="blue" />
           )}
+          {director.isForeignResident && (
+            <Chip label="NRI / Foreign Resident" variant="blue" />
+          )}
         </div>
       </div>
 
       <div className="px-5 py-6 sm:px-8">
-        {/* DIN — read-only from client; status is admin-managed when DIN exists */}
-        <div className="mb-6 grid w-full grid-cols-1 gap-4 border-b border-slate-100 pb-5 md:grid-cols-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-semibold text-slate-700">
-              {labels.din}
-            </span>
-            {hasDIN ? (
-              <>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
-                  Provided by client
-                </span>
-                <span className="font-mono text-sm font-semibold text-slate-900">
-                  {director.din && director.din !== "-" ? director.din : "—"}
-                </span>
-              </>
-            ) : (
-              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
-                Not provided by client
+        {/* Unified Verification Header Bar (KYC, DIN & Status, DSC in 1 line) */}
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 shadow-2xs">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            {/* 1. KYC Verification */}
+            <div className="flex flex-col gap-1.5 border-b pb-4 md:border-b-0 md:pb-0 md:border-r border-slate-200 pr-0 md:pr-4">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+                1. KYC Verification
               </span>
-            )}
-          </div>
-          {hasDIN && (
-            <div className="flex min-w-[150px] flex-col gap-1">
-              <span className="text-[12px] font-semibold text-gray-500">
-                {labels.dinStatus}
-              </span>
-              <CustomSelect
-                ariaLabel={labels.dinStatus}
-                value={dinStatus}
-                onChange={handleDinStatusChange}
-                options={[
-                  { id: "Pending", label: "Pending" },
-                  { id: "Active", label: "Active" },
-                  { id: "Inactive", label: "Inactive" },
-                  { id: "In Progress", label: "In Progress" },
-                ]}
-                isDisabled={
-                  !isStage2Enabled || !director.isCommitted || !canEdit
-                }
-              />
+              <div className="flex items-center justify-between gap-3 mt-1">
+                <span
+                  className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                    kycVerified
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-slate-100 text-slate-600 border-slate-200"
+                  }`}
+                >
+                  {kycVerified ? "KYC Verified" : "KYC Pending"}
+                </span>
+                <Switch
+                  checked={kycVerified}
+                  onChange={handleKycToggle}
+                  disabled={!canEdit}
+                />
+              </div>
             </div>
-          )}
+
+            {/* 2. DSC Application */}
+            <div className="flex flex-col gap-1.5 border-b pb-4 md:border-b-0 md:pb-0 md:border-r border-slate-200 pr-0 md:pr-4">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+                2. DSC Application
+              </span>
+              <div className="flex items-center justify-between gap-3 mt-1">
+                <span
+                  className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                    dscApplication
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      : "bg-slate-100 text-slate-600 border-slate-200"
+                  }`}
+                >
+                  {dscApplication ? "DSC Applied" : "DSC Pending"}
+                </span>
+                <Switch
+                  checked={dscApplication}
+                  onChange={handleDscToggle}
+                  disabled={!canEdit}
+                />
+              </div>
+            </div>
+
+            {/* 3. DIN & DIN Status */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
+                3. {labels.din} & Status
+              </span>
+              <div className="flex items-center justify-between gap-2 flex-wrap mt-0.5">
+                <div className="flex items-center gap-2">
+                  {hasDIN ? (
+                    <span className="font-mono text-xs font-bold text-slate-900 bg-white px-2 py-1 rounded-md border border-slate-200 shadow-2xs">
+                      {director.din && director.din !== "-" ? director.din : "—"}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-medium text-slate-500">No DIN</span>
+                  )}
+                </div>
+
+                <div className="w-[145px] shrink-0">
+                  <CustomSelect
+                    ariaLabel={labels.dinStatus}
+                    value={dinStatus}
+                    onChange={handleDinStatusChange}
+                    options={[
+                      { id: "Pending", label: "Pending" },
+                      { id: "Active", label: "Active" },
+                      { id: "Inactive", label: "Inactive" },
+                      { id: "In Progress", label: "In Progress" },
+                    ]}
+                    isDisabled={!canEdit}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Director Information */}
@@ -295,10 +319,13 @@ export default function DirectorDetailPage() {
             value={formatDate(director.dateOfBirth)}
           />
           <InfoField label="Nationality" value={director.nationality} />
-          {director.passportNo && (
-            <InfoField label="Passport No" value={director.passportNo} />
+          {(director.isForeignResident ||
+            (director.passportNo && director.passportNo !== "-")) && (
+            <InfoField label="Passport No" value={director.passportNo || "-"} />
           )}
-          <InfoField label="PAN" value={director.pan} />
+          {!director.isForeignResident && (
+            <InfoField label="PAN" value={director.pan} />
+          )}
           <InfoField
             label="Occupation Type"
             value={director.occupationType}
@@ -321,47 +348,26 @@ export default function DirectorDetailPage() {
             value={director.durationOfStayAtPresentAddress}
           />
           {director.previousResidenceAddress && (
-            <InfoField
-              label="If Duration of stay at present address- is less than a one year then address of previous residence"
-              value={director.previousResidenceAddress}
-            />
-          )}
-        </div>
-
-        <div className="mt-6 grid grid-cols-1 gap-8 border-t border-gray-100 pt-6 md:grid-cols-2">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold text-secondary">
-              KYC Verified
-            </span>
-            <Switch
-              checked={kycVerified}
-              onChange={handleKycToggle}
-              disabled={!canEdit}
-            />
-          </div>
-
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold text-secondary">
-              DSC Application
-            </span>
-            <Switch
-              checked={dscApplication}
-              onChange={handleDscToggle}
-              disabled={!canEdit}
-            />
-          </div>
-
-          {isAlsoShareholder && (
-            <div className="col-span-full rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-              This person is also{" "}
-              {linkedShareholderNumber
-                ? labels.shareholderWithNumber(linkedShareholderNumber)
-                : `a ${labels.shareholder.toLowerCase()}`}
-              . KYC and DSC toggled here automatically sync to their{" "}
-              {labels.shareholder.toLowerCase()} profile and tracking steps.
+            <div className="col-span-full w-full">
+              <InfoField
+                fullWidth
+                label="If Duration of stay at present address- is less than a one year then address of previous residence"
+                value={director.previousResidenceAddress}
+              />
             </div>
           )}
         </div>
+
+        {isAlsoShareholder && (
+          <div className="mt-6 col-span-full rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            This person is also{" "}
+            {linkedShareholderNumber
+              ? labels.shareholderWithNumber(linkedShareholderNumber)
+              : `a ${labels.shareholder.toLowerCase()}`}
+            . KYC and DSC toggled here automatically sync to their{" "}
+            {labels.shareholder.toLowerCase()} profile and tracking steps.
+          </div>
+        )}
       </div>
     </div>
   );

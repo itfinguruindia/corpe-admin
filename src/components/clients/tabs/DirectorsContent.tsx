@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Director } from "@/types/director";
 import { clientsApi } from "@/lib/api/clients";
-import { Button, Card, Spinner, TextArea, toast } from "@heroui/react";
+import { Button, Card, Spinner, toast } from "@heroui/react";
 import { Chip } from "@/components/ui";
 import { useClientCompanyLabels } from "@/contexts/ClientCompanyTypeContext";
 import { toStakeholderId } from "@/utils/stakeholderIds";
@@ -112,6 +112,26 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
     router.push(`/clients/${appNo}/directors/${director.id}`);
   };
 
+  const handleQuickDinStatusChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>,
+    directorId: string,
+    newStatus: string,
+  ) => {
+    e.stopPropagation();
+    try {
+      await clientsApi.updateDirectorStatus(appNo, directorId, {
+        dinStatus: newStatus,
+      });
+      toast.success(`DIN status updated to ${newStatus}`);
+      await loadDirectors();
+    } catch (error: any) {
+      toast(
+        error?.response?.data?.message || "Failed to update DIN status",
+        { variant: "danger" },
+      );
+    }
+  };
+
   const handleReview = async (
     requestId: string,
     action: "approve" | "reject",
@@ -148,6 +168,58 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
   }
 
   const pendingRequests = changeRequests.filter((r) => r.status === "pending");
+  const reviewedRequests = changeRequests.filter(
+    (r) => r.status === "approved" || r.status === "rejected",
+  );
+
+  const openDoc = (doc: any, label: string) => {
+    const url = doc?.previewUrl || doc?.url;
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    toast(`No file available for ${label}`, { variant: "danger" });
+  };
+
+  const renderRequestDocs = (req: any) => {
+    const pan = req?.proposedDirector?.panCard;
+    const address = req?.proposedDirector?.presentAddressProof;
+    const extras = (req?.supportingDocuments || []).filter(Boolean);
+    const docs = [
+      pan ? { label: "PAN card", doc: pan } : null,
+      address ? { label: "Address proof", doc: address } : null,
+      ...extras.map((d: any, i: number) => ({
+        label: d?.name || `Document ${i + 1}`,
+        doc: d,
+      })),
+    ].filter(Boolean) as { label: string; doc: any }[];
+
+    // De-dupe by path
+    const seen = new Set<string>();
+    const unique = docs.filter(({ doc }) => {
+      const key = String(doc?.path || doc?.previewUrl || doc?.name || "");
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    if (unique.length === 0) return null;
+
+    return (
+      <div className="flex flex-wrap gap-2">
+        {unique.map(({ label, doc }) => (
+          <button
+            key={`${label}-${doc?.path || doc?.name}`}
+            type="button"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+            onClick={() => openDoc(doc, label)}
+          >
+            View {label}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -191,25 +263,39 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                           req.proposedDirector?.email,
                           req.proposedDirector?.phoneNumber,
                           req.proposedDirector?.panNumber,
+                          req.proposedDirector?.dateOfBirth
+                            ? `DOB ${req.proposedDirector.dateOfBirth}`
+                            : "",
                         ]
                           .filter(Boolean)
                           .join(" · ") || "No extra contact details"}
                       </p>
                       {req.clientNote && (
-                        <p className="text-xs text-slate-600 mt-2 italic">
-                          Client note: {req.clientNote}
-                        </p>
+                        <div className="mt-2 rounded-md border border-slate-100 bg-slate-50 px-2.5 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                            Client note
+                          </p>
+                          <p className="text-xs text-slate-700 mt-0.5 whitespace-pre-wrap break-words">
+                            {req.clientNote}
+                          </p>
+                        </div>
                       )}
                     </div>
                     <Chip label="Pending" variant="orange" className="text-xs" />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-600">
+                  {renderRequestDocs(req)}
+
+                  <div className="w-full space-y-1.5">
+                    <label
+                      htmlFor={`admin-note-${req._id}`}
+                      className="block text-xs font-medium text-slate-600"
+                    >
                       Admin note (optional)
                     </label>
-                    <TextArea
-                      rows={2}
+                    <textarea
+                      id={`admin-note-${req._id}`}
+                      rows={3}
                       value={adminNotes[req._id] || ""}
                       onChange={(e) =>
                         setAdminNotes((prev) => ({
@@ -217,6 +303,8 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                           [req._id]: e.target.value,
                         }))
                       }
+                      placeholder="Add a note for the client (shown on reject/approve)…"
+                      className="w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#F46A45] focus:outline-none focus:ring-1 focus:ring-[#F46A45]"
                     />
                   </div>
 
@@ -238,6 +326,54 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                         : "Approve replacement"}
                     </Button>
                   </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {reviewedRequests.length > 0 && (
+          <Card className="p-6 border border-slate-200">
+            <h2 className="text-lg font-semibold text-secondary mb-4">
+              Director change history
+            </h2>
+            <div className="space-y-3">
+              {reviewedRequests.slice(0, 10).map((req) => (
+                <div
+                  key={req._id}
+                  className="rounded-lg border border-slate-200 bg-white p-3 flex flex-wrap items-start justify-between gap-3"
+                >
+                  <div>
+                    <p className="text-sm text-slate-800">
+                      <span className="line-through opacity-60">
+                        {req.previousDirectorName || "Previous"}
+                      </span>
+                      {" → "}
+                      <span className="font-medium">
+                        {req.proposedDirector?.name || "New director"}
+                      </span>
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Reviewed
+                      {req.reviewedByName ? ` by ${req.reviewedByName}` : ""}
+                      {req.reviewedAt
+                        ? ` · ${new Date(req.reviewedAt).toLocaleString()}`
+                        : ""}
+                    </p>
+                    {req.adminNote && (
+                      <p className="text-xs text-slate-600 mt-1 italic">
+                        Note: {req.adminNote}
+                      </p>
+                    )}
+                    <div className="mt-2">{renderRequestDocs(req)}</div>
+                  </div>
+                  <Chip
+                    label={
+                      req.status === "approved" ? "Approved" : "Rejected"
+                    }
+                    variant={req.status === "approved" ? "green" : "red"}
+                    className="text-xs"
+                  />
                 </div>
               ))}
             </div>
@@ -271,7 +407,7 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                       </p>
                     </div>
                   )}
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-gray-900">
@@ -297,10 +433,10 @@ export default function DirectorsContent({ appNo }: DirectorsContentProps) {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm font-semibold text-slate-800 mt-1">
                         {director.directorName}
                       </p>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-gray-500 mt-0.5">
                         {director.email} • {director.phoneNo}
                         {(director as { isForeignResident?: boolean })
                           .isForeignResident && (

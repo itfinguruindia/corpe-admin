@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -23,6 +23,7 @@ import type { NameStatus } from "@/types/company";
 import { useClientTabEdit } from "@/hooks/useClientTabEdit";
 import { notifyApiError } from "@/utils/apiErrors";
 import { isRunFilingStepTitle } from "@/utils/trackerStepLabels";
+import { useAdminTrackerRealtimeSync } from "@/hooks/useAdminTrackerRealtimeSync";
 
 interface NameApplicationContentProps {
   appNo: string;
@@ -71,6 +72,8 @@ export default function NameApplicationContent({
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRocReviewed, setIsRocReviewed] = useState(false);
+  const [trackerOrgId, setTrackerOrgId] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewFileName, setPreviewFileName] = useState<string>("");
@@ -99,6 +102,39 @@ export default function NameApplicationContent({
     if (company?.nameResubmission) return "Resubmission";
     return "Pending";
   };
+
+  const refreshTrackerDerivedGates = useCallback(async () => {
+    try {
+      const trackerRes = await clientsApi.getTrackingStatus(appNo);
+      if (!trackerRes) return;
+
+      const orgId =
+        trackerRes.org?._id ||
+        trackerRes.org ||
+        trackerRes.organisationId ||
+        null;
+      if (orgId) setTrackerOrgId(String(orgId));
+
+      const stage1Attempts = trackerRes.stages?.filter(
+        (s: any) =>
+          s.stageId === "stage_1_name_application" ||
+          s.stageId.startsWith("stage_1_name_application_attempt_"),
+      );
+      const activeStage1 = stage1Attempts?.[stage1Attempts.length - 1];
+      if (!activeStage1) return;
+
+      const sectionB = activeStage1.sections?.find(
+        (sec: any) =>
+          sec.label === "Object Clause & RUN Filing" || sec.order === 2,
+      );
+      const partAStep = sectionB?.steps?.find((st: any) =>
+        isRunFilingStepTitle(st.title),
+      );
+      setIsRocReviewed(partAStep?.status === "Done");
+    } catch (trackerErr) {
+      console.error("Error refreshing tracker gates:", trackerErr);
+    }
+  }, [appNo]);
 
   /* ---------------- HANDLERS ---------------- */
 
@@ -208,18 +244,19 @@ export default function NameApplicationContent({
     }
   };
 
-  const refreshObjectClauseStatus = async () => {
+  const refreshObjectClauseStatus = async (opts?: { silent?: boolean }) => {
     try {
-      setIsRefreshing(true);
+      if (!opts?.silent) setIsRefreshing(true);
       const statusData = await clientsApi.getObjectClauseStatus(appNo);
       setAdminFile(statusData.adminFile);
       setClientFile(statusData.clientFile);
-      toast.success("Status refreshed");
+      await refreshTrackerDerivedGates();
+      if (!opts?.silent) toast.success("Status refreshed");
     } catch (error) {
       console.error("Error refreshing status:", error);
-      toast("Failed to refresh status", { variant: "danger" });
+      if (!opts?.silent) toast("Failed to refresh status", { variant: "danger" });
     } finally {
-      setIsRefreshing(false);
+      if (!opts?.silent) setIsRefreshing(false);
     }
   };
 
@@ -228,6 +265,7 @@ export default function NameApplicationContent({
     if (!requireEdit()) return;
     try {
       await clientsApi.updateCompanyStatus(appNo, index, status);
+      await refreshTrackerDerivedGates();
     } catch (error) {
       console.error("Failed to update status", error);
       notifyApiError(error, {
@@ -243,6 +281,7 @@ export default function NameApplicationContent({
     try {
       await clientsApi.updateCompanyMcaApproval(appNo, index, value);
       toast.success("MCA approval status updated");
+      await refreshTrackerDerivedGates();
     } catch (error) {
       console.error("Failed to update MCA approval", error);
       toast("Failed to update MCA approval", { variant: "danger" });
@@ -255,6 +294,7 @@ export default function NameApplicationContent({
     try {
       await clientsApi.updateCompanyTradeConflict(appNo, index, value);
       toast.success("Trademark status updated");
+      await refreshTrackerDerivedGates();
     } catch (error) {
       console.error("Failed to update Trademark status", error);
       toast("Failed to update Trademark status", { variant: "danger" });
@@ -347,8 +387,14 @@ export default function NameApplicationContent({
 
   /* ---------------- API ---------------- */
 
-  const [isRocReviewed, setIsRocReviewed] = useState(false);
-  const [isTrademarkDone, setIsTrademarkDone] = useState(false);
+  // Keep Object Clause unlock / ROC gates in sync when tracker changes
+  useAdminTrackerRealtimeSync({
+    orgId: trackerOrgId,
+    enabled: !!trackerOrgId,
+    onRefresh: () => {
+      void refreshObjectClauseStatus({ silent: true });
+    },
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -390,49 +436,7 @@ export default function NameApplicationContent({
           setTradeConflictMap(initialTradeConflict);
         }
 
-        try {
-          const trackerRes = await clientsApi.getTrackingStatus(appNo);
-          if (trackerRes) {
-            const stage1Attempts = trackerRes.stages?.filter(
-              (s: any) =>
-                s.stageId === "stage_1_name_application" ||
-                s.stageId.startsWith("stage_1_name_application_attempt_"),
-            );
-            const activeStage1 = stage1Attempts?.[stage1Attempts.length - 1];
-            if (activeStage1) {
-              const sectionA = activeStage1.sections?.find(
-                (sec: any) =>
-                  sec.label === "Name Search & Submission" || sec.order === 1,
-              );
-              if (sectionA && sectionA.steps) {
-                const findLastStep = (steps: any[], title: string) => {
-                  for (let i = steps.length - 1; i >= 0; i--) {
-                    if (steps[i].title === title) {
-                      return steps[i];
-                    }
-                  }
-                  return null;
-                };
-                const stepTrade = findLastStep(
-                  sectionA.steps,
-                  "Trademark Check",
-                );
-                setIsTrademarkDone(stepTrade?.status === "Done");
-              }
-
-              const sectionB = activeStage1.sections?.find(
-                (sec: any) =>
-                  sec.label === "Object Clause & RUN Filing" || sec.order === 2,
-              );
-              const partAStep = sectionB?.steps?.find((st: any) =>
-                isRunFilingStepTitle(st.title),
-              );
-              setIsRocReviewed(partAStep?.status === "Done");
-            }
-          }
-        } catch (trackerErr) {
-          console.error("Error fetching tracker status:", trackerErr);
-        }
+        await refreshTrackerDerivedGates();
 
         // Fetch object clause status (both admin and client files)
         const statusData = await clientsApi.getObjectClauseStatus(appNo);
@@ -448,7 +452,7 @@ export default function NameApplicationContent({
     };
 
     fetchData();
-  }, [appNo]);
+  }, [appNo, refreshTrackerDerivedGates]);
 
   // Auto-refresh object clause status every 30 seconds to detect client uploads
   useEffect(() => {
@@ -484,6 +488,15 @@ export default function NameApplicationContent({
           { name: "company name 3", fullName: "company name 3", comment: "" },
         ];
 
+  // Object Clause unlocks only after Name Status + Trademark are set for every submitted name
+  const canUploadObjectClause =
+    companyNames.length > 0 &&
+    companyNames.every((_, index) => {
+      const mca = mcaApprovalMap[index] || "Pending";
+      const trade = tradeConflictMap[index] || "Pending";
+      return mca !== "Pending" && trade !== "Pending";
+    });
+
   const renderNameCards = (companiesList: any[], isReadOnly: boolean) => {
     return (
       <div className="space-y-6">
@@ -506,8 +519,13 @@ export default function NameApplicationContent({
             isReadOnly ||
             (hasAnyApproved && statusMap[index] !== "Approved") ||
             (companyMca === "Not Available" && companyTrade === "Conflict");
+          // MCA Approval (Approved/Pending) unlocks after ROC review; until then
+          // Name Status + Trademark stay editable. Once MCA Approval is enabled,
+          // lock the other two.
           const isNameStatusDisabled =
             isDisabled || (!isReadOnly && !isRocReviewed);
+          const isMcaTradeDisabled =
+            isDisabled || (!isReadOnly && isRocReviewed);
 
           return (
             <div
@@ -590,7 +608,7 @@ export default function NameApplicationContent({
                   </span>
                   <div
                     onClick={() => {
-                      if (isDisabled || isTrademarkDone) return;
+                      if (isMcaTradeDisabled) return;
                       setOpenDropdown(
                         openDropdown?.index === index &&
                           openDropdown?.field === "mca"
@@ -599,7 +617,7 @@ export default function NameApplicationContent({
                       );
                     }}
                     className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-                      isDisabled || isTrademarkDone
+                      isMcaTradeDisabled
                         ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
                         : "bg-white text-secondary border-gray-200 hover:border-gray-300 cursor-pointer"
                     }`}
@@ -641,7 +659,7 @@ export default function NameApplicationContent({
                   </span>
                   <div
                     onClick={() => {
-                      if (isDisabled || isTrademarkDone) return;
+                      if (isMcaTradeDisabled) return;
                       setOpenDropdown(
                         openDropdown?.index === index &&
                           openDropdown?.field === "trade"
@@ -650,7 +668,7 @@ export default function NameApplicationContent({
                       );
                     }}
                     className={`flex items-center justify-between border rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-                      isDisabled || isTrademarkDone
+                      isMcaTradeDisabled
                         ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
                         : companyTrade === "Conflict"
                           ? "bg-[#fff8f8] text-[#b83232] border-[#f5c2c2] hover:border-[#e0a6a6] cursor-pointer"
@@ -881,7 +899,9 @@ export default function NameApplicationContent({
                 <div title="Refresh status">
                   <RefreshCw
                     size={18}
-                    onClick={refreshObjectClauseStatus}
+                    onClick={() => {
+                      void refreshObjectClauseStatus();
+                    }}
                     className={`cursor-pointer text-secondary hover:text-primary ${isRefreshing ? "animate-spin" : ""}`}
                   />
                 </div>
@@ -891,22 +911,22 @@ export default function NameApplicationContent({
                   title="Upload Object Clause"
                   subtitle="Upload from your computer, Google Drive, or existing documents."
                   dropLabel="Drag and drop your file here"
-                  disabled={!isTrademarkDone}
+                  disabled={!canUploadObjectClause}
                   onBeforeOpen={() => requireEdit()}
                   onFileSelect={handleObjectClauseFileSelected}
                   renderTrigger={(openPicker) => (
                     <div
                       title={
-                        isTrademarkDone
+                        canUploadObjectClause
                           ? "Upload Object Clause (Admin)"
-                          : "Available after Trademark Check is marked Done"
+                          : "Set Name Status and Trademark Check for all names first"
                       }
                     >
                       <Upload
                         size={20}
-                        onClick={isTrademarkDone ? openPicker : undefined}
+                        onClick={canUploadObjectClause ? openPicker : undefined}
                         className={
-                          isTrademarkDone
+                          canUploadObjectClause
                             ? "cursor-pointer text-primary hover:text-secondary"
                             : "cursor-not-allowed text-gray-300 opacity-50"
                         }
