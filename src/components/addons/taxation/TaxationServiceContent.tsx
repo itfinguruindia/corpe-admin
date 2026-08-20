@@ -41,7 +41,8 @@ const DOC_LABELS: Record<string, string> = {
   gstPrevReturn: "Last filed GSTR-1 / GSTR-3B",
   gstAnnualRecon: "Audited financials / GSTR-9 reconciliation",
   gstSalesReg: "Sales register (GSTR-1)",
-  gstPurchaseReg: "Purchase register / software access",
+  gstPurchaseReg: "Purchase register",
+  gstAccountingAccess: "Accounting software access",
   gstSignatory: "Authorised Signatory details",
   itrPortalAccess: "Income tax e-filing portal login",
   itrSignatory: "Authorised Signatory details",
@@ -55,7 +56,7 @@ const DOC_LABELS: Record<string, string> = {
   itrGstRecon: "GST returns for the year",
   itrForeign: "Foreign income / DTAA documents",
   tdsTan: "TAN allotment letter",
-  tdsDeductee: "Deductee details",
+  tdsDeductee: "Deductee details / statement (PDF or Excel)",
   tdsChallan: "Challan copies of TDS paid",
   tdsPrevAck: "Previous quarter TDS acknowledgment",
   tdsSalary: "Salary structure & perquisites",
@@ -69,12 +70,13 @@ const DOC_LABELS: Record<string, string> = {
   advPrevChallan: "Previous instalment challan",
   advSignatory: "Authorised Signatory details",
   gstAccess__letter: "GST Portal Authorisation Letter",
+  gstAccountingAccess__letter: "Accounting Software Authorisation Letter",
   gstPurchaseReg__letter: "Purchase Register Authorisation Letter",
   itrAccountingAccess__letter: "Accounting Software Authorisation Letter",
   tdsPortalAccess__letter: "TDS Portal Authorisation Letter",
 };
 
-const DOC_CATEGORY_ORDER = ["gst", "itr", "tds", "advance", "other"];
+const DOC_CATEGORY_ORDER = ["gst", "tds", "advance", "itr", "other"];
 
 const DOC_CATEGORY_META: Record<string, { title: string; color: string }> = {
   gst: { title: "GST Filing Documents", color: "text-blue-800 border-blue-100 bg-blue-50/50" },

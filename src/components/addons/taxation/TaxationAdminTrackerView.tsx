@@ -16,9 +16,9 @@ const ADDON_ID = "taxation";
 
 const SERVICES: { id: string; icon: string; name: string }[] = [
   { id: "gst", icon: "📄", name: "GST Filing" },
-  { id: "itr", icon: "🧾", name: "Income Tax (ITR)" },
   { id: "tds", icon: "📊", name: "TDS Returns" },
   { id: "advance", icon: "⏱️", name: "Advance Tax" },
+  { id: "itr", icon: "🧾", name: "Income Tax (ITR)" },
 ];
 
 interface TaxationAdminTrackerViewProps {
