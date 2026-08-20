@@ -56,16 +56,16 @@ export function PanTanEmailDisclaimer({
 
   const adminText = trimmedEmail ? (
     <>
-      This document is delivered directly to the client&apos;s company email
-      from Corporate Structure:{" "}
-      <strong className="text-[#F46A45]">{trimmedEmail}</strong>. Upload and
-      download are not required for PAN or TAN on this portal.
+      This document will be provided by the client. It is delivered directly to
+      the client&apos;s company email from Corporate Structure:{" "}
+      <strong className="text-[#F46A45]">{trimmedEmail}</strong>.
     </>
   ) : (
     <>
-      This document is delivered directly to the client&apos;s company email
-      from Corporate Structure. No company email is on file yet - ask the client
-      to complete and verify Company Email in Corporate Structure.
+      This document will be provided by the client. It is delivered directly to
+      the client&apos;s company email from Corporate Structure. No company email
+      is on file yet - ask the client to complete and verify Company Email in
+      Corporate Structure.
     </>
   );
 
