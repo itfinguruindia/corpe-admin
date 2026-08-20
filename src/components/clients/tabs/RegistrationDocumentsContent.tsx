@@ -1,8 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-import { Edit, Upload, Download, Eye } from "lucide-react";
+import {
+  Edit,
+  Upload,
+  Download,
+  Eye,
+  CheckCircle2,
+  Clock,
+  FileText,
+} from "lucide-react";
 import { toast } from "@heroui/react";
 
 import { clientsApi } from "@/lib/api/clients";
@@ -609,7 +616,8 @@ export default function RegistrationDocumentsContent({
         <div className="space-y-0 max-w-5xl">
           {data.documents.map((doc) => {
             const isEmailDeliveryDoc = doc.name === "PAN" || doc.name === "TAN";
-            const showUploadActions = !isEmailDeliveryDoc;
+            const isCoi = doc.name === "COI";
+            const hasFile = Boolean((doc as { fileName?: string }).fileName);
 
             return (
               <div
@@ -617,62 +625,97 @@ export default function RegistrationDocumentsContent({
                 className="flex items-center justify-between py-6 border-b border-gray-200 last:border-0 hover:bg-gray-50/50 transition-colors"
               >
                 <div className="flex flex-col flex-1 min-w-0 pr-6">
-                  <span className="text-lg font-bold text-black">
-                    {doc.name}
-                  </span>
-                  {isEmailDeliveryDoc ? (
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold text-black">
+                      {doc.name}
+                    </span>
+                    {isEmailDeliveryDoc && (
+                      hasFile ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Uploaded by Client
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                          <Clock className="w-3.5 h-3.5 text-amber-500" />
+                          Waiting for Client Upload
+                        </span>
+                      )
+                    )}
+                    {isCoi && (
+                      hasFile ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Uploaded by CorpE
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                          Not Uploaded Yet
+                        </span>
+                      )
+                    )}
+                  </div>
+
+                  {isEmailDeliveryDoc && (
                     <PanTanEmailDisclaimer
                       officeEmail={data.officeEmail}
                       variant="admin"
                     />
-                  ) : (
-                    (doc as { fileName?: string }).fileName && (
-                      <span className="text-sm text-gray-500 font-normal mt-1">
-                        {(doc as { fileName?: string }).fileName}
-                      </span>
-                    )
+                  )}
+
+                  {isCoi && !hasFile && (
+                    <p className="text-xs text-gray-500 mt-1 mb-0">
+                      Upload the Certificate of Incorporation for the client to download.
+                    </p>
+                  )}
+
+                  {hasFile && (
+                    <div className="flex items-center gap-2 mt-2 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-md px-3 py-1.5 w-fit">
+                      <FileText className="w-4 h-4 text-primary shrink-0" />
+                      <span className="truncate max-w-md">{(doc as { fileName?: string }).fileName}</span>
+                    </div>
                   )}
                 </div>
 
-                {showUploadActions && (
-                  <div className="flex items-center gap-6 shrink-0">
-                    {/* View */}
-                    <button
-                      onClick={() =>
-                        handlePreview(
-                          doc.name,
-                          (doc as { fileName?: string }).fileName ?? "",
-                        )
-                      }
-                      className="text-primary hover:text-[#d55a39] transition-colors p-1"
-                      title="View"
-                      disabled={doc.status === "pending"}
-                      style={{ opacity: doc.status === "pending" ? 0.3 : 1 }}
-                    >
-                      <Eye size={24} />
-                    </button>
-                    {/* Download */}
-                    <button
-                      onClick={() =>
-                        handleDownload(
-                          doc.name,
-                          (doc as { fileName?: string }).fileName ?? "",
-                        )
-                      }
-                      className="text-primary hover:text-[#d55a39] transition-colors p-1"
-                      title="Download"
-                      disabled={doc.status === "pending"}
-                      style={{ opacity: doc.status === "pending" ? 0.3 : 1 }}
-                    >
-                      <Download size={24} />
-                    </button>
-                    {/* Edit / Upload */}
+                <div className="flex items-center gap-6 shrink-0">
+                  {/* View */}
+                  <button
+                    onClick={() =>
+                      handlePreview(
+                        doc.name,
+                        (doc as { fileName?: string }).fileName ?? "",
+                      )
+                    }
+                    className="text-primary hover:text-[#d55a39] transition-colors p-1"
+                    title="View"
+                    disabled={doc.status === "pending"}
+                    style={{ opacity: doc.status === "pending" ? 0.3 : 1 }}
+                  >
+                    <Eye size={24} />
+                  </button>
+                  {/* Download */}
+                  <button
+                    onClick={() =>
+                      handleDownload(
+                        doc.name,
+                        (doc as { fileName?: string }).fileName ?? "",
+                      )
+                    }
+                    className="text-primary hover:text-[#d55a39] transition-colors p-1"
+                    title="Download"
+                    disabled={doc.status === "pending"}
+                    style={{ opacity: doc.status === "pending" ? 0.3 : 1 }}
+                  >
+                    <Download size={24} />
+                  </button>
+                  {/* Edit / Upload (Only for COI on admin) */}
+                  {isCoi && (
                     <FileUploadComponent
                       context="clients"
                       allowedFileTypes=".pdf,.png,.jpg,.jpeg"
                       title={`Upload ${doc.name}`}
                       subtitle="Upload from your computer, Google Drive, or existing documents."
-                      disabled={!data?.cin || (doc.name === "COI" && isLocked)}
+                      disabled={!data?.cin || isLocked}
                       onBeforeOpen={() => {
                         if (!requireEdit()) return false;
                         return canUploadRegistrationDoc(doc.name);
@@ -684,48 +727,43 @@ export default function RegistrationDocumentsContent({
                         <button
                           type="button"
                           onClick={
-                            !data?.cin || (doc.name === "COI" && isLocked)
+                            !data?.cin || isLocked
                               ? undefined
                               : openPicker
                           }
                           className={`transition-colors p-1 ${
-                            doc.name === "COI" && isLocked
+                            isLocked
                               ? "text-gray-300 cursor-not-allowed"
                               : "text-primary hover:text-[#d55a39] cursor-pointer"
                           }`}
                           title={
-                            doc.name === "COI" && isLocked
+                            isLocked
                               ? "Locked - installment due"
                               : "Upload"
                           }
-                          disabled={
-                            !data?.cin || (doc.name === "COI" && isLocked)
-                          }
+                          disabled={!data?.cin || isLocked}
                           style={{
-                            opacity:
-                              !data?.cin || (doc.name === "COI" && isLocked)
-                                ? 0.3
-                                : 1,
+                            opacity: !data?.cin || isLocked ? 0.3 : 1,
                           }}
                         >
                           <Upload size={24} />
                         </button>
                       )}
                     />
-                    <DocumentIssueButton
-                      applicationNo={appNo}
-                      target={{
-                        entityType: "registration",
-                        entityId: "registration",
-                        entityLabel: "Registration Documents",
-                        fieldKey: REGISTRATION_FIELD_KEYS[doc.name] || doc.name,
-                        documentLabel: doc.name,
-                        clientRoute: "registration-documents",
-                      }}
-                      className="inline-flex items-center text-primary hover:text-[#d55a39] p-1"
-                    />
-                  </div>
-                )}
+                  )}
+                  <DocumentIssueButton
+                    applicationNo={appNo}
+                    target={{
+                      entityType: "registration",
+                      entityId: "registration",
+                      entityLabel: "Registration Documents",
+                      fieldKey: REGISTRATION_FIELD_KEYS[doc.name] || doc.name,
+                      documentLabel: doc.name,
+                      clientRoute: "registration-documents",
+                    }}
+                    className="inline-flex items-center text-primary hover:text-[#d55a39] p-1"
+                  />
+                </div>
               </div>
             );
           })}
