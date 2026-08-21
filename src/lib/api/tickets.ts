@@ -1,4 +1,4 @@
-// Data for Raised Tickets features
+import axios from "axios";
 import axiosInstance from "@/lib/axios";
 import { Ticket } from "@/types/tickets";
 
@@ -8,6 +8,13 @@ export interface IUpdateTicketPayload {
   assignee?: string | null;
   priority?: string;
   comment?: string;
+}
+
+function is401OrAborted(error: unknown): boolean {
+  if (axios.isAxiosError(error)) {
+    return error.response?.status === 401 || error.code === "ERR_CANCELED";
+  }
+  return false;
 }
 
 function mapAssignee(
@@ -68,7 +75,9 @@ export class TicketApi {
       }
       return { tickets: [], totalItems: 0, totalPages: 0 };
     } catch (error) {
-      console.error("Error fetching tickets:", error);
+      if (!is401OrAborted(error)) {
+        console.error("Error fetching tickets:", error);
+      }
       return { tickets: [], totalItems: 0, totalPages: 0 };
     }
   }
@@ -85,7 +94,9 @@ export class TicketApi {
       );
       return response.data?.success === true;
     } catch (error) {
-      console.error("Error updating ticket:", error);
+      if (!is401OrAborted(error)) {
+        console.error("Error updating ticket:", error);
+      }
       return false;
     }
   }
@@ -101,7 +112,9 @@ export class TicketApi {
       }
       return null;
     } catch (error) {
-      console.error("Error fetching ticket:", error);
+      if (!is401OrAborted(error)) {
+        console.error("Error fetching ticket:", error);
+      }
       return null;
     }
   }
@@ -116,7 +129,9 @@ export class TicketApi {
       );
       return Number(response.data?.data?.count || 0);
     } catch (error) {
-      console.error("Error fetching unread ticket count:", error);
+      if (!is401OrAborted(error)) {
+        console.error("Error fetching unread ticket count:", error);
+      }
       return 0;
     }
   }
@@ -131,7 +146,9 @@ export class TicketApi {
       );
       return response.data?.success === true;
     } catch (error) {
-      console.error("Error marking tickets as seen:", error);
+      if (!is401OrAborted(error)) {
+        console.error("Error marking tickets as seen:", error);
+      }
       return false;
     }
   }
