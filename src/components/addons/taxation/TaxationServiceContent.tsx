@@ -41,13 +41,13 @@ const DOC_LABELS: Record<string, string> = {
   gstPrevReturn: "Last filed GSTR-1 / GSTR-3B",
   gstAnnualRecon: "Audited financials / GSTR-9 reconciliation",
   gstSalesReg: "Sales register (GSTR-1)",
-  gstPurchaseReg: "Purchase register / software access",
+  gstPurchaseReg: "Purchase register",
+  gstAccountingAccess: "Accounting software access",
   gstSignatory: "Authorised Signatory details",
   itrPortalAccess: "Income tax e-filing portal login",
   itrSignatory: "Authorised Signatory details",
   itrAccountingAccess: "Accounting software access",
-  itrFin: "Financial statements (P&L + Balance Sheet)",
-  itr26as: "Form 26AS / AIS access",
+  itrFin: "Audited financial statements (P&L + Balance Sheet)",
   itrTds: "TDS certificates (Form 16A)",
   itrBank: "Bank statements for the year",
   itrPrevYear: "Previous year's ITR / computation",
@@ -55,7 +55,7 @@ const DOC_LABELS: Record<string, string> = {
   itrGstRecon: "GST returns for the year",
   itrForeign: "Foreign income / DTAA documents",
   tdsTan: "TAN allotment letter",
-  tdsDeductee: "Deductee details",
+  tdsDeductee: "Deductee details / statement (PDF or Excel)",
   tdsChallan: "Challan copies of TDS paid",
   tdsPrevAck: "Previous quarter TDS acknowledgment",
   tdsSalary: "Salary structure & perquisites",
@@ -63,18 +63,19 @@ const DOC_LABELS: Record<string, string> = {
   tdsPortalAccess: "TDS portal login credentials",
   tdsSignatory: "Authorised Signatory details",
   advProjection: "Income & expense projection",
-  advPrevItr: "Previous year's ITR",
+  advTdsSoFar: "TDS deducted so far this year",
   advTdsCredit: "Form 26AS extract",
   advCapGains: "Capital gains / one-off income",
   advPrevChallan: "Previous instalment challan",
   advSignatory: "Authorised Signatory details",
   gstAccess__letter: "GST Portal Authorisation Letter",
+  gstAccountingAccess__letter: "Accounting Software Authorisation Letter",
   gstPurchaseReg__letter: "Purchase Register Authorisation Letter",
   itrAccountingAccess__letter: "Accounting Software Authorisation Letter",
   tdsPortalAccess__letter: "TDS Portal Authorisation Letter",
 };
 
-const DOC_CATEGORY_ORDER = ["gst", "itr", "tds", "advance", "other"];
+const DOC_CATEGORY_ORDER = ["gst", "tds", "advance", "itr", "other"];
 
 const DOC_CATEGORY_META: Record<string, { title: string; color: string }> = {
   gst: { title: "GST Filing Documents", color: "text-blue-800 border-blue-100 bg-blue-50/50" },
@@ -113,12 +114,12 @@ const DELIVERABLES: Record<string, { id: string; text: string }[]> = {
   ],
   tds: [
     { id: "dlv-tds-1", text: "Filed TDS return acknowledgment (Form 27A / token number) each quarter" },
-    { id: "dlv-tds-2", text: "Form 16 (salary) / Form 16A (non-salary) certificates for your deductees" },
+    { id: "dlv-tds-2", text: "Form 16 (salary) / Form 16A (non-salary) certificates for your deductees (Timeline: 7 to 8 days)" },
     { id: "dlv-tds-3", text: "Challan-to-deduction reconciliation statement" },
   ],
   advance: [
-    { id: "dlv-advance-1", text: "Quarterly tax liability computation working" },
-    { id: "dlv-advance-2", text: "Paid challan copy (Form 280) for your records" },
+    { id: "dlv-advance-1", text: "Advance tax liability" },
+    { id: "dlv-advance-2", text: "Challan payment receipt (BSR code + CIN)" },
     { id: "dlv-advance-3", text: "Running advance-tax-paid summary for the year, for use at ITR time" },
   ],
 };
